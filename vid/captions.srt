@@ -1,0 +1,51 @@
+1
+00:00:00,250 --> 00:00:05,911
+You pay for the smartest AI there is. Ask it why you're tired this week... and it guesses.
+
+2
+00:00:06,411 --> 00:00:13,244
+The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them.
+
+3
+00:00:15,044 --> 00:00:18,379
+ycyc connects them. Even the ones with no API.
+
+4
+00:00:19,279 --> 00:00:25,244
+Sign in once. ycyc reads your account, writes the tools, and tests a real request.
+
+5
+00:00:27,179 --> 00:00:30,304
+Then ONE link goes into every assistant you use.
+
+6
+00:00:38,079 --> 00:00:40,471
+Same question. Now it actually knows you.
+
+7
+00:00:41,779 --> 00:00:43,939
+Anything that writes waits for your OK.
+
+8
+00:00:47,679 --> 00:00:49,363
+Same link in ChatGPT.
+
+9
+00:00:52,879 --> 00:00:53,869
+Or just text it.
+
+10
+00:00:57,579 --> 00:01:00,507
+Every app ycyc learns, it learns once, for everyone.
+
+11
+00:01:03,479 --> 00:01:06,990
+ParkMobile. Duolingo. Whatever you open next.
+
+12
+00:01:09,679 --> 00:01:13,999
+Built today at YC, with Capy, Revyl, and Convex.
+
+13
+00:01:17,479 --> 00:01:21,905
+ycyc. Your apps, in every AI.
