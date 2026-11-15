@@ -48,8 +48,8 @@ http.route({
     const slug = decodeURIComponent(new URL(req.url).pathname.slice("/connect/".length).split("/")[0] ?? "");
     const app = catalogApp(slug);
     const target = `${deeplinkBase()}connect/${encodeURIComponent(app?.slug ?? slug)}`;
-    const line = app ? `Open ycyc to connect ${app.name}` : "Open ycyc";
-    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ycyc</title><style>html,body{margin:0;height:100%;background:#000;color:#fff;font:500 17px/1.4 Inter,-apple-system,system-ui,sans-serif}body{display:flex;align-items:center;justify-content:center;padding:0 16px}a{color:#fff}</style></head><body><a href="${escapeHtml(target)}">${escapeHtml(line)}</a></body></html>`;
+    const line = app ? `Open yuzu to connect ${app.name}` : "Open yuzu";
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>yuzu</title><style>html,body{margin:0;height:100%;background:#000;color:#fff;font:500 17px/1.4 Inter,-apple-system,system-ui,sans-serif}body{display:flex;align-items:center;justify-content:center;padding:0 16px}a{color:#fff}</style></head><body><a href="${escapeHtml(target)}">${escapeHtml(line)}</a></body></html>`;
     return new Response(html, {
       status: 302,
       headers: { Location: target, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },

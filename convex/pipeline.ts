@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { catalogApp } from "./catalog";
-import { executeRequest, executeTool, isAuthFailure } from "./executor";
+import { executeRequest, executeTool, isAuthFailure, recordHealth } from "./executor";
 import { compileCapture, HAS_COMPILER } from "./lib/compilerShim";
 import { fallbackCompile } from "./lib/fallbackCompiler";
 import { handRecipeFor, normalizeRecipe } from "./lib/recipeStore";
@@ -273,7 +273,7 @@ async function afterSignin(b: BuildCtx, connectionId: Id<"connections">, app: Ca
     recipe = best;
     await step("map", "skipped", `Reusing verified recipe v${recipe.version}`);
     await step("generate", "skipped", `Reusing verified recipe v${recipe.version}`);
-  } else if (hand) {
+  } else if (hand && best?.status !== "broken") {
     await begin("map");
     await sleep(BEAT_MS);
     // Keep the DB copy's status (a hand recipe verified earlier stays verified).
@@ -288,7 +288,11 @@ async function afterSignin(b: BuildCtx, connectionId: Id<"connections">, app: Ca
   } else if (app.route === "web") {
     await begin("map");
     if (apiEntries.length === 0) {
-      throw new BuildError("No API calls recorded. Open your diary in the browser, then finish again.");
+      throw new BuildError(
+        best?.status === "broken"
+          ? `${app.name} changed and yuzu needs to relearn it. Browse a few pages, then finish again.`
+          : "No API calls recorded. Open your diary in the browser, then finish again.",
+      );
     }
     const compiled = normalizeRecipe(await compile(app, entries, session));
     const endpoints = new Set(compiled.tools.map((t) => `${t.request?.method} ${t.request?.urlTemplate.split("?")[0]}`));
@@ -305,6 +309,12 @@ async function afterSignin(b: BuildCtx, connectionId: Id<"connections">, app: Ca
     await ctx.runMutation(internal.recipes.save, { json: JSON.stringify(compiled) });
     recipe = compiled;
     await step("generate", "done", `${plural(recipe.tools.length, "tool")} in draft v${recipe.version}`);
+  } else if (best) {
+    // A broken recipe on an app with no capture to relearn from (cloud phone): try it again;
+    // a passing check marks it healthy.
+    recipe = best;
+    await step("map", "skipped", `Recipe v${recipe.version} has been failing, trying it again`);
+    await step("generate", "skipped", `Recipe v${recipe.version}`);
   } else {
     await begin("map");
     await sleep(BEAT_MS);
@@ -375,6 +385,7 @@ async function verify(
         executor: executor === "phone" ? "cloud" : executor,
       })
     : await executeTool(ctx, { conn, recipe, tool: readTool!, args: {} });
+  if (check) await recordHealth(ctx, recipe, res);
   const ms = Date.now() - started;
 
   if (res.ok) {
@@ -383,7 +394,7 @@ async function verify(
   if (res.status === undefined && /Phone did not answer/.test(res.text)) {
     return { status: "skipped", detail: "Phone relay did not answer, verify on first call" };
   }
-  if (isAuthFailure(res)) {
+  if (isAuthFailure(res) || /signed you out/i.test(res.text)) {
     return { status: "error", detail: `Session rejected (${res.status}). Sign in again.` };
   }
   if (/MFA_REQUIRED/.test(res.text)) {

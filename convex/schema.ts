@@ -73,6 +73,7 @@ export default defineSchema({
     pendingJson: v.optional(v.string()),
     pendingAt: v.optional(v.number()),
     codePrompt: v.optional(v.string()),
+    lastHealthyAt: v.optional(v.number()), // last passing auth.check from the health cron
     createdAt: v.number(),
     updatedAt: v.number(),
     liveAt: v.optional(v.number()),
@@ -182,6 +183,20 @@ export default defineSchema({
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
   }).index("by_user_status", ["userId", "status"]),
+
+  // Per recipe version, across all users: drives "broken" after repeated non-auth failures.
+  recipeHealth: defineTable({
+    appSlug: v.string(),
+    version: v.number(),
+    lastOkAt: v.optional(v.number()),
+    lastFailAt: v.optional(v.number()),
+    consecutiveFailures: v.number(),
+    okCount: v.number(),
+    failCount: v.number(),
+    authFailCount: v.number(),
+    lastError: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_app_version", ["appSlug", "version"]),
 
   // Latest live metrics for the Today screen (needs tool calls, so an action fills it).
   todaySummaries: defineTable({

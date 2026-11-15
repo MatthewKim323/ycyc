@@ -218,9 +218,11 @@ const timeoutFetch: typeof fetch = (input, init) => {
   return fetch(input, { ...(init ?? {}), signal: controller.signal }).finally(() => clearTimeout(timer));
 };
 
-function errText(e: unknown): string {
-  if (e instanceof Error) return e.name === "AbortError" ? "Request timed out" : e.message;
-  return String(e);
+// One plain line, never a stack trace or a Convex "Uncaught Error:" prefix.
+export function errText(e: unknown): string {
+  const raw = e instanceof Error ? (e.name === "AbortError" ? "Request timed out" : e.message) : String(e);
+  const line = raw.split("\n")[0].replace(/^(Uncaught )?(\w*Error): /, "").trim();
+  return /aborted|AbortError/i.test(line) ? "Request timed out" : line.slice(0, 300) || "Request failed";
 }
 
 async function executeTemplated(
@@ -322,7 +324,7 @@ async function executeViaRecipeRunner(
   if (!r.ok) {
     const err = r.error ?? "Failed";
     const friendly = /no way to authenticate|auth failed/i.test(err)
-      ? `${catalogApp(conn.appSlug)?.name ?? conn.appSlug} session expired. Reconnect it in ycyc.`
+      ? `${catalogApp(conn.appSlug)?.name ?? conn.appSlug} session expired. Reconnect it in yuzu.`
       : err;
     return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
   }
@@ -351,10 +353,18 @@ async function refreshBearer(
   const tpl = recipe.auth.refresh;
   if (!tpl) return false;
   const req = buildRequest({ ...recipe, auth: { ...recipe.auth, type: "cookie" } }, tpl, scope, executor === "device");
-  const res =
+  let res =
     executor === "device"
       ? await deviceFetch(ctx, { userId: conn.userId, connectionId: conn._id, appSlug: conn.appSlug, tool: "auth_refresh", req })
       : await cloudFetch(req).catch(() => null);
+  // The site's HttpOnly session cookies live in the phone's WebView: if the cloud can't refresh and
+  // the phone relay answered recently, refresh from there.
+  if ((!res || res.status >= 400) && executor !== "device" && conn.sessionJson && conn._id) {
+    if (await ctx.runQuery(internal.health.relayRecent, { userId: conn.userId })) {
+      const devReq = buildRequest({ ...recipe, auth: { ...recipe.auth, type: "cookie" } }, tpl, scope, true);
+      res = await deviceFetch(ctx, { userId: conn.userId, connectionId: conn._id, appSlug: conn.appSlug, tool: "auth_refresh", req: devReq });
+    }
+  }
   if (!res || res.status >= 400) return false;
   const body = parseBody(res.body) as Record<string, unknown> | undefined;
   const token = body?.access_token ?? body?.accessToken ?? body?.token;
@@ -432,8 +442,7 @@ export async function executeRequest(
       if (await refreshBearer(ctx, conn, recipe, scope, executor)) res = await attempt(false);
     }
   } catch (e) {
-    const msg = e instanceof Error ? (e.name === "AbortError" ? "Request timed out" : e.message) : String(e);
-    return { ok: false, text: msg };
+    return { ok: false, text: errText(e) };
   }
   // Bot wall on Convex's IPs (Duolingo answers 403 with a blockScript page): retry from the phone,
   // which has the user's own IP and cookies. Needs a real connection (not a public, sessionless call).
@@ -448,7 +457,7 @@ export async function executeRequest(
     if (dev) res = dev;
   }
   if (!res) {
-    return { ok: false, text: "Phone did not answer. Open ycyc on your phone and try again." };
+    return { ok: false, text: "Phone did not answer. Open yuzu on your phone and try again." };
   }
   const empty = (opts.emptyOn ?? []).find(
     (e) => e.status === res!.status && (!e.bodyContains || res!.body.includes(e.bodyContains)),
@@ -496,13 +505,71 @@ async function executePhone(
       data: o.data,
     };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { ok: false, text: `Cloud phone unavailable: ${msg.slice(0, 300)}` };
+    return { ok: false, text: `Cloud phone unavailable: ${errText(e)}` };
   }
 }
 
 // Run one recipe tool for a connection.
+// ---- outcome handling shared by tool calls and health checks ----
+
+export type Outcome = "ok" | "auth" | "fail" | "transient";
+
+export function classifyResult(res: ExecResult): Outcome {
+  // GWT apps answer 200 with an //EX NotLoggedIn exception body.
+  if (res.ok && !/^\/\/EX/.test(res.text)) return "ok";
+  if (isAuthFailure({ status: res.status, text: res.text }) || /NotLoggedIn|signed you out|session expired|no way to authenticate|auth failed/i.test(res.text)) {
+    return "auth";
+  }
+  if (res.ok) return "fail";
+  if (res.status === undefined || res.status === 0 || res.status === 502 || res.status === 503 || res.status === 504 || res.status === 429) {
+    return "transient"; // network, timeout, phone offline, gateway, rate limit: not the recipe's fault
+  }
+  return "fail";
+}
+
+function retryable(res: ExecResult): boolean {
+  if (res.ok) return false;
+  if (res.status === 502 || res.status === 503 || res.status === 504) return true;
+  return (res.status === undefined || res.status === 0) && /timed out|fetch failed|network|ECONN|ETIMEDOUT|EAI_AGAIN|socket|terminated|reset/i.test(res.text);
+}
+
+export function signedOutText(appSlug: string): string {
+  return `${catalogApp(appSlug)?.name ?? appSlug} signed you out. Reconnect it in yuzu.`;
+}
+
+// Per recipe version health; never lets bookkeeping break a call.
+export async function recordHealth(ctx: Ctx, recipe: Recipe, res: ExecResult): Promise<void> {
+  const outcome = classifyResult(res);
+  if (outcome === "transient") return;
+  try {
+    await ctx.runMutation(internal.health.record, {
+      appSlug: recipe.appSlug,
+      version: recipe.version,
+      outcome,
+      error: outcome === "fail" ? res.text.slice(0, 200) : undefined,
+    });
+  } catch (e) {
+    console.error("health.record", errText(e));
+  }
+}
+
+// Run one recipe tool for a connection: one retry for reads on network/5xx gateway errors (never for
+// writes), plain signed-out copy, recipe health recorded.
 export async function executeTool(
+  ctx: Ctx,
+  opts: { conn: Doc<"connections">; recipe: Recipe; tool: RecipeTool; args: Record<string, unknown> | undefined },
+): Promise<ExecResult> {
+  let res = await executeToolOnce(ctx, opts);
+  if (opts.tool.kind === "read" && retryable(res)) {
+    await sleep(400);
+    res = await executeToolOnce(ctx, opts);
+  }
+  await recordHealth(ctx, opts.recipe, res);
+  if (classifyResult(res) === "auth") return { ok: false, status: res.status, text: signedOutText(opts.recipe.appSlug) };
+  return res;
+}
+
+async function executeToolOnce(
   ctx: Ctx,
   opts: { conn: Doc<"connections">; recipe: Recipe; tool: RecipeTool; args: Record<string, unknown> | undefined },
 ): Promise<ExecResult> {

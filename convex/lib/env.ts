@@ -5,6 +5,6 @@ export const SITE_URL: string =
 
 // Deep link base for /connect redirects. Override with DEEPLINK_BASE (e.g. an exp:// URL for Expo Go).
 export function deeplinkBase(): string {
-  const base = (typeof process !== "undefined" && process.env.DEEPLINK_BASE) || "ycyc://";
+  const base = (typeof process !== "undefined" && process.env.DEEPLINK_BASE) || "yuzu://";
   return base.endsWith("/") ? base : base + "/";
 }

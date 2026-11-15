@@ -123,7 +123,13 @@ export const runRecipeTool = internalAction({
       }
     }
     try {
-      const r = await runRecipeToolImpl(recipe, a.tool, (a.args ?? {}) as Record<string, unknown>, sess, state);
+      // 15 s per request so a hung upstream never stalls an MCP call.
+      const timedFetch: typeof fetch = (input, init) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15_000);
+        return fetch(input, { ...(init ?? {}), signal: controller.signal }).finally(() => clearTimeout(timer));
+      };
+      const r = await runRecipeToolImpl(recipe, a.tool, (a.args ?? {}) as Record<string, unknown>, sess, state, timedFetch);
       return { ok: r.ok, status: r.status, data: r.data ?? null, error: r.error ?? null, login: state.login ? JSON.stringify(state.login) : null };
     } catch (e) {
       return { ok: false, status: 0, data: null, error: e instanceof Error ? e.message : String(e), login: state.login ? JSON.stringify(state.login) : null };

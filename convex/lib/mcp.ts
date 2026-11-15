@@ -17,7 +17,7 @@ const POLL_MS = 500;
 const SEP = "__";
 
 const INSTRUCTIONS =
-  `ycyc connects you to the user's consumer apps (${CATALOG.map((a) => a.name).join(", ")}). ` +
+  `yuzu connects you to the user's consumer apps (${CATALOG.map((a) => a.name).join(", ")}). ` +
   "Call list_apps to see what is connected. If an app the user mentions is not connected, call connect_app " +
   "and give the user the link to open on their phone. Write actions ask the user to approve on their phone first.";
 
@@ -111,7 +111,7 @@ function listTools(mc: McpContext) {
     {
       name: "list_apps",
       title: "List apps",
-      description: "List the apps ycyc can connect, which ones this user has connected, and the tools each one adds.",
+      description: "List the apps yuzu can connect, which ones this user has connected, and the tools each one adds.",
       inputSchema: { type: "object", properties: {} },
       annotations: { title: "List apps", readOnlyHint: true, openWorldHint: false },
     },
@@ -119,7 +119,7 @@ function listTools(mc: McpContext) {
       name: "connect_app",
       title: "Connect an app",
       description:
-        "Get a link that connects one of the user's apps to ycyc. The user opens it on their phone and signs in. " +
+        "Get a link that connects one of the user's apps to yuzu. The user opens it on their phone and signs in. " +
         `Apps: ${CATALOG.map((a) => a.slug).join(", ")}.`,
       inputSchema: {
         type: "object",
@@ -206,7 +206,7 @@ function connectApp(mc: McpContext, token: string, args: Record<string, unknown>
     );
   }
   const url = connectUrl(app.slug);
-  return textResult(`Open this link on your phone to connect ${app.name} in ycyc: ${url}`);
+  return textResult(`Open this link on your phone to connect ${app.name} in yuzu: ${url}`);
 }
 
 // Wait for the phone's decision, then (if approved) for approvalRunner to store the result.
@@ -349,7 +349,7 @@ async function handleMessage(
   if (isNotification) return undefined;
 
   const mc = state.mc ?? (state.mc = await loadContext(ctx, token));
-  if (!mc) throw new RpcError(-32001, "Unknown ycyc link. Copy your MCP URL from the ycyc app again.");
+  if (!mc) throw new RpcError(-32001, "Unknown yuzu link. Copy your MCP URL from the yuzu app again.");
 
   const params = (msg.params ?? {}) as Record<string, unknown>;
   switch (msg.method) {
@@ -367,7 +367,7 @@ async function handleMessage(
       return {
         protocolVersion,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "ycyc", title: "ycyc", version: "0.1.0" },
+        serverInfo: { name: "yuzu", title: "yuzu", version: "0.1.0" },
         instructions: INSTRUCTIONS,
       };
     }
@@ -376,31 +376,41 @@ async function handleMessage(
     case "tools/list":
       return listTools(mc);
     case "tools/call": {
-      const name = String(params.name ?? "");
-      const args = (params.arguments ?? {}) as Record<string, unknown>;
-      const session = state.isNewSession ? null : await ctx.runQuery(internal.mcpData.session, { sessionId: state.sessionId });
-      const assistant = session?.assistant ?? inferAssistant(undefined, req.headers.get("user-agent"));
-      if (name === "list_apps") return listApps(mc, token);
-      if (name === "check_approval") {
-        const id = String(args.id ?? "");
-        return approvalOutcome(await ctx.runQuery(internal.approvals.forUser, { id, userId: mc.user._id }), id);
+      const toolName = String(params.name ?? "");
+      try {
+        return await (async () => {
+          const name = String(params.name ?? "");
+          const args = (params.arguments ?? {}) as Record<string, unknown>;
+          const session = state.isNewSession ? null : await ctx.runQuery(internal.mcpData.session, { sessionId: state.sessionId });
+          const assistant = session?.assistant ?? inferAssistant(undefined, req.headers.get("user-agent"));
+          if (name === "list_apps") return listApps(mc, token);
+          if (name === "check_approval") {
+            const id = String(args.id ?? "");
+            return approvalOutcome(await ctx.runQuery(internal.approvals.forUser, { id, userId: mc.user._id }), id);
+          }
+          if (name === "connect_app") {
+            const out = connectApp(mc, token, args);
+            const app = findApp(String(args.app ?? ""));
+            await ctx.runMutation(internal.activity.log, {
+              userId: mc.user._id,
+              appSlug: app?.slug ?? "ycyc",
+              assistant,
+              tool: "connect_app",
+              kind: "read",
+              summary: app ? `Asked to connect ${app.name}` : `Asked to connect "${String(args.app ?? "")}"`,
+              status: out.isError ? "error" : "ok",
+            });
+            return out;
+          }
+          if (!name.includes(SEP)) throw new RpcError(-32602, `Unknown tool: ${name}`);
+          return await callAppTool(ctx, mc, token, assistant, name, args);
+        })();
+      } catch (e) {
+        if (e instanceof RpcError) throw e;
+        // Plain message to the assistant; details stay in the Convex logs.
+        console.error("tools/call", toolName, e instanceof Error ? e.stack ?? e.message : String(e));
+        return textResult(`Something went wrong running ${toolName}. Try again in a moment.`, true);
       }
-      if (name === "connect_app") {
-        const out = connectApp(mc, token, args);
-        const app = findApp(String(args.app ?? ""));
-        await ctx.runMutation(internal.activity.log, {
-          userId: mc.user._id,
-          appSlug: app?.slug ?? "ycyc",
-          assistant,
-          tool: "connect_app",
-          kind: "read",
-          summary: app ? `Asked to connect ${app.name}` : `Asked to connect "${String(args.app ?? "")}"`,
-          status: out.isError ? "error" : "ok",
-        });
-        return out;
-      }
-      if (!name.includes(SEP)) throw new RpcError(-32602, `Unknown tool: ${name}`);
-      return await callAppTool(ctx, mc, token, assistant, name, args);
     }
     case "resources/list":
       return { resources: [] };
