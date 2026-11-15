@@ -5,59 +5,66 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, {
   FadeIn,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { copyFor, type Capability } from "@/components/app-copy";
 import { AppGlyph } from "@/components/app-glyph";
 import { Button } from "@/components/button";
-import { Icon, type IconName } from "@/components/icon";
+import { Icon } from "@/components/icon";
+import { usePlan } from "@/components/paywall/use-plan";
 import { Text } from "@/components/text";
 import { api } from "@/hooks/convex";
-import { usePlan } from "@/components/paywall/use-plan";
 import { useUser } from "@/hooks/user";
+import { CAPTURE_APPS } from "@/lib/capture/apps";
+import type { CatalogApp } from "@/lib/contract";
 import { colors, enter, radius, space, springs } from "@/theme";
 
-function Lockup({ app }: { app: { slug: string; category: "nutrition" | "training" | "cycle" | "other" } }) {
-  const apart = useSharedValue(8);
+const MARK = 56;
+
+/** yuzu mark and the app's logo slide together, then the link between them plays once. */
+function Lockup({ app }: { app: Pick<CatalogApp, "slug" | "category"> }) {
+  const reduced = useReducedMotion();
+  const apart = useSharedValue(reduced ? 0 : 16);
+  const [linkPlay, setLinkPlay] = useState(0);
+
   useEffect(() => {
+    if (reduced) return;
     apart.set(withDelay(150, withSpring(0, springs.enter)));
-  }, [apart]);
+    const t = setTimeout(() => setLinkPlay(1), 480);
+    return () => clearTimeout(t);
+  }, [apart, reduced]);
+
   const left = useAnimatedStyle(() => ({ transform: [{ translateX: -apart.get() }] }));
   const right = useAnimatedStyle(() => ({ transform: [{ translateX: apart.get() }] }));
+
   return (
-    <View style={styles.lockup}>
+    <View style={styles.lockup} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Animated.View style={[styles.mark, left]}>
-        <Text variant="label" color={colors.onAccent}>
-          ycyc
+        <Text variant="label" color={colors.onAccent} style={styles.markText}>
+          yuzu
         </Text>
       </Animated.View>
-      <Animated.View entering={FadeIn.delay(250).duration(280)}>
-        <Icon name="link" size={20} opacity={0.7} />
+      <Animated.View entering={reduced ? undefined : FadeIn.delay(250).duration(240)}>
+        <Icon name="link" size={20} opacity={0.6} playKey={linkPlay} />
       </Animated.View>
       <Animated.View style={right}>
-        <AppGlyph app={app} size={48} />
+        <AppGlyph app={app} size={MARK} />
       </Animated.View>
     </View>
   );
 }
 
-function ValueRow({ icon, title, body, index }: { icon: IconName; title: string; body: string; index: number }) {
-  return (
-    <Animated.View entering={enter(index + 2)} style={styles.valueRow}>
-      <View style={styles.valueIcon}>
-        <Icon name={icon} size={22} />
-      </View>
-      <View style={styles.valueText}>
-        <Text variant="bodyMedium">{title}</Text>
-        <Text variant="caption" color={colors.textSecondary}>
-          {body}
-        </Text>
-      </View>
-    </Animated.View>
-  );
+/** Two reads and the first write (writes wait for an OK), or three reads when the app has no writes. */
+function highlights(slug: string): Capability[] {
+  const can = copyFor(slug)?.can ?? [];
+  const reads = can.filter((c) => !c.asks);
+  const write = can.find((c) => c.asks);
+  return write ? [...reads.slice(0, 2), write] : reads.slice(0, 3);
 }
 
 /** Pre-sign-in sheet: what connecting means, then one Continue. */
@@ -90,8 +97,8 @@ export default function ConnectSheet() {
         pathname: "/build/[connectionId]",
         params: onboarding ? { connectionId, slug: app.slug, onboarding } : { connectionId, slug: app.slug },
       });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't start. Try again.");
+    } catch {
+      setError("Couldn't start. Try again.");
       setStarting(false);
     }
   };
@@ -101,7 +108,7 @@ export default function ConnectSheet() {
       <View style={[styles.sheet, styles.loading]}>
         {app === null ? (
           <Text variant="body" color={colors.textSecondary}>
-            This app isn&apos;t in the library.
+            This app isn&apos;t available yet.
           </Text>
         ) : (
           <ActivityIndicator color={colors.textTertiary} />
@@ -110,36 +117,61 @@ export default function ConnectSheet() {
     );
   }
 
-  const web = app.route === "web";
+  const caps = highlights(app.slug);
+  const signsInWithLink = !!CAPTURE_APPS[app.slug]?.magicLink;
 
   return (
     <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.lg) + space.sm }]}>
       <Lockup app={app} />
+
       <Animated.View entering={enter(1)}>
         <Text variant="title" style={styles.center}>
           Connect {app.name}
         </Text>
       </Animated.View>
-      <View style={styles.rows}>
-        <ValueRow
-          index={0}
-          icon="fingerprint"
-          title={web ? `Sign in on ${app.name}'s own page` : `Sign in with your ${app.name} account`}
-          body="ycyc never stores your password."
-        />
-        <ValueRow
-          index={1}
-          icon="check"
-          title="You approve every change"
-          body="Assistants read freely. Logging or editing waits for your OK."
-        />
-      </View>
+
+      {caps.length ? (
+        <Animated.View entering={enter(2)} style={styles.section}>
+          <Text variant="label" color={colors.textTertiary} style={styles.sectionLabel}>
+            Your assistants can
+          </Text>
+          <View style={styles.card}>
+            {caps.map((c, i) => (
+              <View key={c.verb} style={[styles.capRow, i > 0 && styles.capDivider]}>
+                <Text variant="body" numberOfLines={1} style={styles.capVerb}>
+                  {c.verb}
+                </Text>
+                {c.asks ? (
+                  <Text variant="caption" color={colors.textSecondary}>
+                    Asks you first
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={enter(3)} style={styles.footer}>
+        {signsInWithLink ? (
+          <Text variant="caption" color={colors.textSecondary} style={styles.center}>
+            {app.name} sends you a sign-in link by email or text.
+          </Text>
+        ) : null}
+        <Text variant="caption" color={colors.textSecondary} style={styles.center}>
+          yuzu never stores your password.
+        </Text>
+      </Animated.View>
+
       {error ? (
         <Text variant="caption" color={colors.error} style={styles.center}>
           {error}
         </Text>
       ) : null}
-      <Button label="Continue" onPress={begin} loading={starting} disabled={!userId} fullWidth />
+
+      <Animated.View entering={enter(4)}>
+        <Button label="Continue" onPress={begin} loading={starting} disabled={!userId} fullWidth />
+      </Animated.View>
     </View>
   );
 }
@@ -155,24 +187,33 @@ const styles = StyleSheet.create({
   center: { textAlign: "center" },
   lockup: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.md },
   mark: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: MARK,
+    height: MARK,
+    borderRadius: Math.round(MARK * 0.27),
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  rows: { gap: space.lg },
-  valueRow: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
-  valueIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface2,
+  markText: { fontFamily: "Inter_600SemiBold", letterSpacing: -0.2 },
+  section: { gap: space.sm },
+  sectionLabel: { paddingHorizontal: space.xs },
+  card: {
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: colors.bg,
+    overflow: "hidden",
   },
-  valueText: { flex: 1, gap: 2 },
+  capRow: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+  },
+  capDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  capVerb: { flex: 1, fontSize: 16, lineHeight: 22 },
+  footer: { gap: space.xs },
 });
