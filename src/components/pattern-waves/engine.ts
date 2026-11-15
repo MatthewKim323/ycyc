@@ -171,6 +171,8 @@ export type EngineHost = {
   prepareBuffer: (canvasW: number, canvasH: number, width: number, height: number) => [number, number];
   // Called after every presented frame (the component uses the first one to drop its fallback).
   onFrame?: () => void;
+  // Called once, ~1.5 s in, with the brightest channel value (0-255) found in a block at the center.
+  onProbe?: (max: number) => void;
 };
 
 export type Engine = {
@@ -186,6 +188,7 @@ export type Engine = {
 };
 
 export const createEngine = (gl: GL, host: EngineHost): Engine => {
+  let probeFrame = 0;
   const HALF_FLOAT = (gl as any).HALF_FLOAT ?? 0x140b;
   const RGBA16F = (gl as any).RGBA16F ?? 0x881a;
 
@@ -563,6 +566,19 @@ export const createEngine = (gl: GL, host: EngineHost): Engine => {
       bindTarget(null, bufferW, bufferH);
       gl.clear(gl.COLOR_BUFFER_BIT);
       drawPass(presentPass);
+    }
+    probeFrame += 1;
+    if (probeFrame === 90 && host.onProbe) {
+      try {
+        const side = 48;
+        const px = new Uint8Array(side * side * 4);
+        gl.readPixels(Math.max(0, Math.floor(bufferW / 2 - side / 2)), Math.max(0, Math.floor(bufferH / 2 - side / 2)), side, side, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        let max = 0;
+        for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
+        host.onProbe(max);
+      } catch {
+        host.onProbe(-1);
+      }
     }
     gl.endFrameEXP?.();
     host.onFrame?.();

@@ -216,6 +216,10 @@ const PatternWaves = ({
       const engine = createEngine(gl, {
         getSettings: () => settingsRef.current,
         pixelRatio: () => PixelRatio.get(),
+        onProbe: (max) => {
+          console.warn(`[pattern-waves] probe max=${max}`);
+          if (!isWeb && max >= 0 && max < 12) setFallback(true);
+        },
         onFrame: () => {
           if (drawnRef.current) return;
           drawnRef.current = true;
