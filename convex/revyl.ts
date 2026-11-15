@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import type { Recipe, SessionBundle } from "../src/lib/contract";
 import { RevylClient, runPhoneTask } from "../scripts/re/lib/revyl";
-import { runTool as runRecipeToolImpl, type RunState } from "../scripts/re/lib/template";
+import { ensureLogin as ensureLoginImpl, runTool as runRecipeToolImpl, type RunState } from "../scripts/re/lib/template";
 import { action, internalAction } from "./_generated/server";
 
 // Revyl build version per phone-only app. Flo has no build until a plain APK is uploaded.
@@ -110,6 +110,7 @@ export const runRecipeTool = internalAction({
     args: v.optional(v.any()),
     sessionJson: v.string(),
     loginJson: v.optional(v.string()),
+    forceRefresh: v.optional(v.boolean()), // keep-alive: rotate tokens now, before they expire
   },
   handler: async (_ctx, a) => {
     const recipe = JSON.parse(a.recipeJson) as Recipe;
@@ -129,6 +130,7 @@ export const runRecipeTool = internalAction({
         const timer = setTimeout(() => controller.abort(), 15_000);
         return fetch(input, { ...(init ?? {}), signal: controller.signal }).finally(() => clearTimeout(timer));
       };
+      if (a.forceRefresh) await ensureLoginImpl(recipe, sess, state, timedFetch, true);
       const r = await runRecipeToolImpl(recipe, a.tool, (a.args ?? {}) as Record<string, unknown>, sess, state, timedFetch);
       return { ok: r.ok, status: r.status, data: r.data ?? null, error: r.error ?? null, login: state.login ? JSON.stringify(state.login) : null };
     } catch (e) {

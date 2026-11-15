@@ -17,7 +17,7 @@ import {
   type RenderScope,
 } from "./lib/render";
 import * as tmpl from "./lib/templateShim";
-import type { FlaggedTool, ToolFlags } from "./lib/recipeOverrides";
+import { authFlags, type FlaggedTool, type ToolFlags } from "./lib/recipeOverrides";
 
 type Ctx = GenericActionCtx<DataModel>;
 
@@ -126,10 +126,33 @@ async function cloudFetch(req: BuiltRequest): Promise<{ status: number; body: st
   }
 }
 
+// Phone offline: a plain next step, not a timeout.
+export function phoneOfflineText(appSlug: string): string {
+  return `Open yuzu on your phone once to reconnect ${displayName(appSlug)}.`;
+}
+
+export function isPhoneOffline(text: string): boolean {
+  return /^Open yuzu on your phone once to reconnect|Phone did not answer/.test(text);
+}
+
+const OFFLINE_WAIT_MS = 6_000;
+const QUEUE_KEEP_MS = 60_000;
+
+// Run a request in the phone's hidden relay WebView. Waits 20 s when the phone looks online, ~6 s when
+// it doesn't. A read the phone didn't pick up stays queued 60 s so it still runs if yuzu opens; writes
+// are dropped instead, so an approved write never lands after we told the assistant it didn't.
 async function deviceFetch(
   ctx: Ctx,
-  opts: { userId: Id<"users">; connectionId?: Id<"connections">; appSlug: string; tool: string; req: BuiltRequest },
+  opts: {
+    userId: Id<"users">;
+    connectionId?: Id<"connections">;
+    appSlug: string;
+    tool: string;
+    req: BuiltRequest;
+    kind?: "read" | "write";
+  },
 ): Promise<{ status: number; body: string } | null> {
+  const online = await ctx.runQuery(internal.health.relayOnline, { userId: opts.userId });
   const callId = await ctx.runMutation(internal.calls.enqueue, {
     userId: opts.userId,
     connectionId: opts.connectionId,
@@ -137,14 +160,18 @@ async function deviceFetch(
     tool: opts.tool,
     request: opts.req,
   });
-  const deadline = Date.now() + DEVICE_WAIT_MS;
+  const deadline = Date.now() + (online ? DEVICE_WAIT_MS : OFFLINE_WAIT_MS);
   while (Date.now() < deadline) {
     await sleep(POLL_MS);
     const call = await ctx.runQuery(internal.calls.get, { callId });
     if (call?.status === "done" && call.response) return call.response;
     if (!call || call.status === "expired") return null;
   }
-  await ctx.runMutation(internal.calls.expire, { callId });
+  if (!online && opts.kind !== "write") {
+    await ctx.scheduler.runAfter(QUEUE_KEEP_MS, internal.calls.expire, { callId });
+  } else {
+    await ctx.runMutation(internal.calls.expire, { callId });
+  }
   return null;
 }
 
@@ -290,7 +317,14 @@ async function executeTemplated(
 // login comes back and is stored on the connection. No password login happens here.
 async function executeViaRecipeRunner(
   ctx: Ctx,
-  opts: { conn: Doc<"connections">; recipe: Recipe; toolName: string; args: Record<string, unknown>; template?: RequestTemplate },
+  opts: {
+    conn: Doc<"connections">;
+    recipe: Recipe;
+    toolName: string;
+    args: Record<string, unknown>;
+    template?: RequestTemplate;
+    forceRefresh?: boolean;
+  },
 ): Promise<ExecResult> {
   const { conn } = opts;
   let recipe = opts.recipe;
@@ -315,16 +349,27 @@ async function executeViaRecipeRunner(
       args: opts.args,
       sessionJson: JSON.stringify(withoutCreds(sessionJson)),
       loginJson: conn.authCacheJson,
+      forceRefresh: opts.forceRefresh,
     });
   } catch (e) {
     return { ok: false, text: errText(e).slice(0, 300) };
   }
   if (r.login && r.login !== conn.authCacheJson) {
     await ctx.runMutation(internal.connections.saveAuthCache, { connectionId: conn._id, json: r.login });
+    // Rotated tokens mean a refresh happened (proactive or on expiry).
+    let rotated = true;
+    try {
+      rotated = JSON.parse(r.login).accessToken !== JSON.parse(conn.authCacheJson ?? "{}").accessToken;
+    } catch {
+      rotated = true;
+    }
+    if (rotated && conn._id) await ctx.runMutation(internal.health.markRefreshed, { connectionId: conn._id });
   }
   if (!r.ok) {
     const err = r.error ?? "Failed";
-    const friendly = /no way to authenticate|auth failed/i.test(err)
+    // Only a real rejection (4xx on refresh/login, or nothing left to try) means signed out; a 5xx or
+    // network error during refresh stays a plain transient error.
+    const friendly = /no way to authenticate|auth failed: HTTP 4\d\d/i.test(err)
       ? `${displayName(conn.appSlug)} session expired. Reconnect it in yuzu.`
       : err;
     return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
@@ -344,15 +389,83 @@ function withoutCreds(sessionJson: string): SessionBundle {
 
 // MFP-style refresh for bearer recipes: mint a fresh token from the site session, store it on the
 // connection's session (headers.authorization, and the user id header when returned).
+type RefreshResult = "ok" | "failed" | "offline";
+
+// Session refresh for a rejected call. "offline" means the phone that holds the session couldn't be
+// reached, which is never treated as being signed out.
+async function refreshAuth(
+  ctx: Ctx,
+  conn: Doc<"connections">,
+  recipe: Recipe,
+  scope: RenderScope,
+  executor: Executor,
+): Promise<RefreshResult> {
+  if (!recipe.auth?.refresh || recipe.auth.type === "login_api") return "failed";
+  const result = authFlags(recipe).refreshVia === "relay"
+    ? await relayRefresh(ctx, conn, recipe, scope)
+    : await refreshBearer(ctx, conn, recipe, scope, executor);
+  if (result === "ok" && conn._id) await ctx.runMutation(internal.health.markRefreshed, { connectionId: conn._id });
+  return result;
+}
+
+// UTC offset in minutes for a zone (-480 for Los Angeles in winter), what Cronometer's authenticate takes.
+function tzOffsetMinutes(tz: string | undefined): number {
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz || "America/Los_Angeles",
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).formatToParts(now);
+    const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+    const local = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+    return Math.round((local - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes())) / 60_000);
+  } catch {
+    return -480;
+  }
+}
+
+// Refresh inside the phone's relay page (Cronometer nonce, ParkMobile JWT): the WebView's own cookies
+// rotate with it, so the phone and yuzu never hold different sessions.
+async function relayRefresh(ctx: Ctx, conn: Doc<"connections">, recipe: Recipe, scope: RenderScope): Promise<RefreshResult> {
+  if (!conn._id || !conn.sessionJson) return "failed";
+  if (!(await ctx.runQuery(internal.health.relayOnline, { userId: conn.userId }))) return "offline";
+  const tz = (scope.session.storage ?? {}).tz;
+  const req = buildRequest(recipe, recipe.auth.refresh!, { ...scope, args: { ...scope.args, tz_offset: tzOffsetMinutes(tz) } }, true);
+  const res = await deviceFetch(ctx, { userId: conn.userId, connectionId: conn._id, appSlug: conn.appSlug, tool: "auth_refresh", req, kind: "write" });
+  if (!res || res.status === 0) return "offline";
+  const flags = authFlags(recipe);
+  if (res.status >= 400 || (flags.deadBody && res.body.includes(flags.deadBody)) || /^\/\/EX/.test(res.body)) return "failed";
+  const picks = flags.refreshPick ?? {};
+  if (Object.keys(picks).length) {
+    const session = JSON.parse(JSON.stringify(scope.session)) as SessionBundle & Record<string, Record<string, string> | undefined>;
+    for (const [key, pattern] of Object.entries(picks)) {
+      const m = new RegExp(pattern).exec(res.body);
+      if (!m?.[1]) return "failed";
+      const [bucket, ...rest] = key.split(".");
+      const bag = { ...((session[bucket] as Record<string, string> | undefined) ?? {}) };
+      bag[rest.join(".")] = m[1];
+      (session as Record<string, unknown>)[bucket] = bag;
+    }
+    scope.session = session;
+    await ctx.runMutation(internal.connections.updateSession, { connectionId: conn._id, json: JSON.stringify(session) });
+  }
+  return "ok";
+}
+
 async function refreshBearer(
   ctx: Ctx,
   conn: Doc<"connections">,
   recipe: Recipe,
   scope: RenderScope,
   executor: Executor,
-): Promise<boolean> {
+): Promise<RefreshResult> {
   const tpl = recipe.auth.refresh;
-  if (!tpl) return false;
+  if (!tpl) return "failed";
   const req = buildRequest({ ...recipe, auth: { ...recipe.auth, type: "cookie" } }, tpl, scope, executor === "device");
   let res =
     executor === "device"
@@ -360,16 +473,18 @@ async function refreshBearer(
       : await cloudFetch(req).catch(() => null);
   // The site's HttpOnly session cookies live in the phone's WebView: if the cloud can't refresh and
   // the phone relay answered recently, refresh from there.
+  let phoneTried = false;
   if ((!res || res.status >= 400) && executor !== "device" && conn.sessionJson && conn._id) {
-    if (await ctx.runQuery(internal.health.relayRecent, { userId: conn.userId })) {
-      const devReq = buildRequest({ ...recipe, auth: { ...recipe.auth, type: "cookie" } }, tpl, scope, true);
-      res = await deviceFetch(ctx, { userId: conn.userId, connectionId: conn._id, appSlug: conn.appSlug, tool: "auth_refresh", req: devReq });
-    }
+    if (!(await ctx.runQuery(internal.health.relayOnline, { userId: conn.userId }))) return "offline";
+    phoneTried = true;
+    const devReq = buildRequest({ ...recipe, auth: { ...recipe.auth, type: "cookie" } }, tpl, scope, true);
+    res = await deviceFetch(ctx, { userId: conn.userId, connectionId: conn._id, appSlug: conn.appSlug, tool: "auth_refresh", req: devReq, kind: "write" });
   }
-  if (!res || res.status >= 400) return false;
+  if (!res || res.status === 0) return executor === "device" || phoneTried ? "offline" : "failed";
+  if (res.status >= 400) return "failed";
   const body = parseBody(res.body) as Record<string, unknown> | undefined;
   const token = body?.access_token ?? body?.accessToken ?? body?.token;
-  if (typeof token !== "string" || !token) return false;
+  if (typeof token !== "string" || !token) return "failed";
   const tokenType = typeof body?.token_type === "string" ? body.token_type : "Bearer";
   const headers = { ...(scope.session.headers ?? {}) };
   const authKey = Object.keys(headers).find((k) => k.toLowerCase() === "authorization") ?? "authorization";
@@ -381,7 +496,13 @@ async function refreshBearer(
   }
   scope.session = { ...scope.session, headers };
   await ctx.runMutation(internal.connections.updateSession, { connectionId: conn._id, json: JSON.stringify(scope.session) });
-  return true;
+  return "ok";
+}
+
+// Keep-alive: refresh a bearer session before it goes stale (MFP re-mint via the phone).
+export async function keepAliveRefresh(ctx: Ctx, conn: Doc<"connections">, recipe: Recipe): Promise<RefreshResult> {
+  const scope: RenderScope = { args: {}, session: parseSession(conn), baseUrl: recipe.baseUrl };
+  return refreshAuth(ctx, conn, recipe, scope, recipe.executor ?? "cloud");
 }
 
 // MFP answers a stale bearer with 400 "Invalid token", not 401.
@@ -403,12 +524,14 @@ export async function executeRequest(
     executor?: Executor;
     extract?: string;
     emptyOn?: ToolFlags["emptyOn"];
+    kind?: "read" | "write";
+    forceRefresh?: boolean;
   },
 ): Promise<ExecResult> {
   const { conn, recipe, template } = opts;
   const executor = opts.executor ?? recipe.executor ?? "cloud";
   if (executor !== "device" && recipe.auth?.type === "login_api") {
-    return executeViaRecipeRunner(ctx, { conn, recipe, toolName: opts.toolName, args: opts.args, template });
+    return executeViaRecipeRunner(ctx, { conn, recipe, toolName: opts.toolName, args: opts.args, template, forceRefresh: opts.forceRefresh });
   }
   if (executor !== "device" && isTemplated(recipe)) {
     return executeTemplated(ctx, { conn, recipe, args: opts.args, template, extract: opts.extract });
@@ -427,6 +550,7 @@ export async function executeRequest(
         appSlug: conn.appSlug,
         tool: opts.toolName,
         req,
+        kind: opts.kind,
       });
       if (!res) return null;
       return res;
@@ -434,13 +558,20 @@ export async function executeRequest(
     return await cloudFetch(req);
   };
 
+  const deadBody = authFlags(recipe).deadBody;
+  const rejected = (r: { status: number; body: string } | null) =>
+    !!r && (isAuthFailure(r) || (!!deadBody && r.status === 200 && r.body.includes(deadBody)));
+
   let res: { status: number; body: string } | null;
   try {
     res = await attempt(false);
     if (res && (res.status === 401 || res.status === 403) && loginNeeded) {
       res = await attempt(true);
-    } else if (res && isAuthFailure(res) && recipe.auth?.refresh && recipe.auth.type !== "login_api") {
-      if (await refreshBearer(ctx, conn, recipe, scope, executor)) res = await attempt(false);
+    } else if (rejected(res) && recipe.auth?.refresh && recipe.auth.type !== "login_api") {
+      // One refresh, then one retry of the original call.
+      const r = await refreshAuth(ctx, conn, recipe, scope, executor);
+      if (r === "ok") res = await attempt(false);
+      else if (r === "offline") return { ok: false, text: phoneOfflineText(conn.appSlug) };
     }
   } catch (e) {
     return { ok: false, text: errText(e) };
@@ -454,11 +585,12 @@ export async function executeRequest(
       appSlug: conn.appSlug,
       tool: opts.toolName,
       req: buildRequest(recipe, template, scope, true),
+      kind: opts.kind,
     });
     if (dev) res = dev;
   }
-  if (!res) {
-    return { ok: false, text: "Phone did not answer. Open yuzu on your phone and try again." };
+  if (!res || (executor === "device" && res.status === 0)) {
+    return { ok: false, text: phoneOfflineText(conn.appSlug) };
   }
   const empty = (opts.emptyOn ?? []).find(
     (e) => e.status === res!.status && (!e.bodyContains || res!.body.includes(e.bodyContains)),
@@ -518,7 +650,7 @@ export type Outcome = "ok" | "auth" | "fail" | "transient";
 export function classifyResult(res: ExecResult): Outcome {
   // GWT apps answer 200 with an //EX NotLoggedIn exception body.
   if (res.ok && !/^\/\/EX/.test(res.text)) return "ok";
-  if (isAuthFailure({ status: res.status, text: res.text }) || /NotLoggedIn|signed you out|session expired|no way to authenticate|auth failed/i.test(res.text)) {
+  if (isAuthFailure({ status: res.status, text: res.text }) || /NotLoggedIn|signed you out|session expired|no way to authenticate|auth failed: HTTP 4\d\d/i.test(res.text)) {
     return "auth";
   }
   if (res.ok) return "fail";
@@ -531,7 +663,11 @@ export function classifyResult(res: ExecResult): Outcome {
 function retryable(res: ExecResult): boolean {
   if (res.ok) return false;
   if (res.status === 502 || res.status === 503 || res.status === 504) return true;
-  return (res.status === undefined || res.status === 0) && /timed out|fetch failed|network|ECONN|ETIMEDOUT|EAI_AGAIN|socket|terminated|reset/i.test(res.text);
+  if (isPhoneOffline(res.text)) return false; // waiting again won't wake the phone
+  return (
+    (res.status === undefined || res.status === 0) &&
+    (/timed out|fetch failed|network error|socket hang up|terminated/i.test(res.text) || /\b(ECONN\w+|ETIMEDOUT|EAI_AGAIN)\b/.test(res.text))
+  );
 }
 
 export function signedOutText(appSlug: string): string {
@@ -595,6 +731,7 @@ async function executeToolOnce(
     executor,
     extract: opts.tool.extract,
     emptyOn: (opts.tool as FlaggedTool).emptyOn,
+    kind: opts.tool.kind,
   });
 }
 

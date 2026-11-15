@@ -29,6 +29,16 @@ export function DeviceRelay({ userId }: { userId: string | null }) {
   const queued = useQuery(api.calls.queued, uid ? { userId: uid } : "skip") as QueuedCall[] | undefined;
   const connections = useQuery(api.connections.mine, uid ? { userId: uid } : "skip");
   const complete = useMutation(api.calls.complete);
+  const heartbeat = useMutation(api.calls.heartbeat);
+
+  // Tell the backend this phone can run calls, so device-only apps know whether to wait or say "open yuzu".
+  useEffect(() => {
+    if (!uid) return undefined;
+    const beat = () => heartbeat({ userId: uid }).catch(() => {});
+    beat();
+    const id = setInterval(beat, 30_000);
+    return () => clearInterval(id);
+  }, [uid, heartbeat]);
 
   // appSlug -> the web origin whose page runs that app's calls, and origin -> page URL the WebView sits on.
   // Calls to an app's API host (e.g. api.myfitnesspal.com) run from the app's web origin, where CORS is

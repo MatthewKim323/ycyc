@@ -3,7 +3,7 @@ import type { CaptureEntry, CatalogApp, Recipe, SessionBundle } from "../src/lib
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
-import { executeRequest, executeTool, isAuthFailure, recordHealth } from "./executor";
+import { executeRequest, executeTool, isAuthFailure, isPhoneOffline, recordHealth } from "./executor";
 import { compileCapture, HAS_COMPILER } from "./lib/compilerShim";
 import { fallbackCompile } from "./lib/fallbackCompiler";
 import { handRecipeFor, normalizeRecipe } from "./lib/recipeStore";
@@ -395,7 +395,7 @@ async function verify(
   if (res.ok) {
     return { status: "done", detail: `Session works (${check ? "auth check" : readTool!.name}, ${ms} ms)` };
   }
-  if (res.status === undefined && /Phone did not answer/.test(res.text)) {
+  if (res.status === undefined && isPhoneOffline(res.text)) {
     return { status: "skipped", detail: "Phone relay did not answer, verify on first call" };
   }
   if (isAuthFailure(res) || /signed you out/i.test(res.text)) {

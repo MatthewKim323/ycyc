@@ -62,6 +62,7 @@ export default defineSchema({
     mcpToken: v.string(),
     plan: v.union(v.literal("free"), v.literal("pro")),
     createdAt: v.number(),
+    relaySeenAt: v.optional(v.number()), // phone relay heartbeat (calls.heartbeat)
   })
     .index("by_deviceId", ["deviceId"])
     .index("by_mcpToken", ["mcpToken"]),
@@ -98,6 +99,7 @@ export default defineSchema({
     pendingAt: v.optional(v.number()),
     codePrompt: v.optional(v.string()),
     lastHealthyAt: v.optional(v.number()), // last passing auth.check from the health cron
+    lastRefreshAt: v.optional(v.number()), // last successful session refresh (token, nonce, JWT)
     createdAt: v.number(),
     updatedAt: v.number(),
     liveAt: v.optional(v.number()),

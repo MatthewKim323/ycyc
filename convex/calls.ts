@@ -12,8 +12,8 @@ export const queued = query({
       .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "queued"))
       .order("asc")
       .take(20);
-    // Skip calls the executor already gave up on (it waits about 20 s).
-    const cutoff = Date.now() - 25_000;
+    // Calls stay runnable for 60 s (longer than the executor waits) so a phone that opens late still runs them.
+    const cutoff = Date.now() - 65_000;
     return rows.filter((r) => r.createdAt > cutoff).map((r) => ({
       _id: r._id,
       appSlug: r.appSlug,
@@ -72,3 +72,14 @@ export const expire = internalMutation({
   },
 });
 
+
+// The phone's relay calls this every ~30 s while yuzu is open, so the backend knows it can run
+// device calls right now instead of waiting on a phone that is closed.
+export const heartbeat = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (user) await ctx.db.patch(userId, { relaySeenAt: Date.now() });
+    return null;
+  },
+});

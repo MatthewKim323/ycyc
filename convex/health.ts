@@ -6,7 +6,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { CATALOG, catalogApp } from "./catalog";
-import { classifyResult, executeRequest, recordHealth, signedOutText } from "./executor";
+import { classifyResult, executeRequest, keepAliveRefresh, recordHealth, signedOutText } from "./executor";
 import { bestRecipe, handRecipeFor, recipeAt, stripSource } from "./lib/recipeStore";
 
 const RELAY_RECENT_MS = 10 * 60_000;
@@ -20,6 +20,25 @@ async function relayAnsweredSince(ctx: { db: any }, userId: Id<"users">, since: 
     .first();
   return !!last && (last.completedAt ?? last.createdAt) > since;
 }
+
+// Phone relay reachable now: a heartbeat in the last 60 s, or a call answered in the last 10 min.
+export const relayOnline = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }): Promise<boolean> => {
+    const user = await ctx.db.get(userId);
+    // Phones that send heartbeats are judged by them alone; older builds fall back to recent answers.
+    if (user?.relaySeenAt) return Date.now() - user.relaySeenAt < 60_000;
+    return relayAnsweredSince(ctx, userId, Date.now() - RELAY_RECENT_MS);
+  },
+});
+
+export const markRefreshed = internalMutation({
+  args: { connectionId: v.id("connections") },
+  handler: async (ctx, { connectionId }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (conn) await ctx.db.patch(connectionId, { lastRefreshAt: Date.now() });
+  },
+});
 
 export const relayRecent = internalQuery({
   args: { userId: v.id("users") },
@@ -106,7 +125,9 @@ export const liveConnections = internalQuery({
     for (const conn of conns.slice(0, 200)) {
       const r = stripSource(await recipeAt(ctx, conn.appSlug, conn.recipeVersion));
       if (!r) continue;
-      out.push({ conn, recipeJson: JSON.stringify(r), relayRecent: await relayAnsweredSince(ctx, conn.userId, since) });
+      const user = await ctx.db.get(conn.userId);
+      const online = user?.relaySeenAt ? Date.now() - user.relaySeenAt < 60_000 : await relayAnsweredSince(ctx, conn.userId, since);
+      out.push({ conn, recipeJson: JSON.stringify(r), relayRecent: online });
     }
     return out;
   },
@@ -120,23 +141,72 @@ export const markHealthy = internalMutation({
   },
 });
 
-// Cron, every 10 minutes.
+const STRONG_REFRESH_LEAD_MS = 5 * 60_000;
+const BEARER_REMINT_MS = 7 * 24 * 60 * 60_000;
+
+function jwtExpMs(token: unknown): number | undefined {
+  if (typeof token !== "string" || token.split(".").length !== 3) return undefined;
+  try {
+    const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const exp = (JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4))) as { exp?: number }).exp;
+    return typeof exp === "number" ? exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Cron, every 10 minutes: keep every live session warm so a call at any hour works, and mark a
+// connection signed out only on a real rejection after a refresh attempt (never when offline).
 export const checkAll = internalAction({
   args: {},
-  handler: async (ctx): Promise<{ checked: number; ok: number; signedOut: number; skipped: number }> => {
+  handler: async (
+    ctx,
+  ): Promise<{ checked: number; ok: number; refreshed: number; signedOut: number; skipped: number }> => {
     const items = await ctx.runQuery(internal.health.liveConnections, {});
-    const tally = { checked: 0, ok: 0, signedOut: 0, skipped: 0 };
+    const tally = { checked: 0, ok: 0, refreshed: 0, signedOut: 0, skipped: 0 };
     for (const { conn, recipeJson, relayRecent } of items) {
       const recipe = JSON.parse(recipeJson) as Recipe;
-      const check = recipe.auth?.check;
+      const flags = recipe.auth as Recipe["auth"] & { keepAlive?: Recipe["auth"]["check"]; refreshVia?: string };
+      const template = flags.keepAlive ?? recipe.auth?.check;
       const executor = recipe.executor ?? "cloud";
-      if (!check || executor === "phone" || (executor === "device" && !relayRecent)) {
+      if (!template || executor === "phone" || (executor === "device" && !relayRecent)) {
         tally.skipped++;
         continue;
       }
       tally.checked++;
-      // executeRequest already tries auth.refresh (bearer) or token rotation (login_api) once.
-      const res = await executeRequest(ctx, { conn, recipe, template: check, args: {}, toolName: "health_check" });
+      let forceRefresh = false;
+      if (recipe.auth.type === "login_api") {
+        // Strong: rotate the token pair when the access token has under 5 minutes left.
+        let login: { accessToken?: unknown } = {};
+        try {
+          login = conn.authCacheJson ? JSON.parse(conn.authCacheJson) : {};
+        } catch {
+          login = {};
+        }
+        const exp = jwtExpMs(login.accessToken);
+        forceRefresh = exp !== undefined && exp - Date.now() < STRONG_REFRESH_LEAD_MS;
+      } else if (recipe.auth.refresh && flags.refreshVia !== "relay" && relayRecent) {
+        // MFP: re-mint the bearer through the phone once it is a week old.
+        let capturedAt = 0;
+        try {
+          capturedAt = (JSON.parse(conn.sessionJson ?? "{}") as { capturedAt?: number }).capturedAt ?? 0;
+        } catch {
+          capturedAt = 0;
+        }
+        const minted = conn.lastRefreshAt ?? capturedAt;
+        if (Date.now() - minted > BEARER_REMINT_MS && (await keepAliveRefresh(ctx, conn, recipe)) === "ok") tally.refreshed++;
+      }
+      const fresh = (await ctx.runQuery(internal.connections.get, { connectionId: conn._id })) ?? conn;
+      // executeRequest tries one refresh on rejection (relay, bearer re-mint or token rotation).
+      const res = await executeRequest(ctx, {
+        conn: fresh,
+        recipe,
+        template,
+        args: {},
+        toolName: flags.keepAlive ? "keep_alive" : "health_check",
+        forceRefresh,
+      });
+      if (forceRefresh && res.ok) tally.refreshed++;
       await recordHealth(ctx, recipe, res);
       const outcome = classifyResult(res);
       if (outcome === "ok") {
@@ -150,6 +220,7 @@ export const checkAll = internalAction({
           error: signedOutText(conn.appSlug),
         });
       }
+      // transient (network, phone offline, 5xx): leave the connection alone.
     }
     return tally;
   },
