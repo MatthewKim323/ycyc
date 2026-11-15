@@ -52,3 +52,5 @@ example
 .env.*
 !.env.example
 .revyl/device-sessions.*
+.gstack/
+scripts/re/*/captures/

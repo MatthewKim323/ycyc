@@ -1,0 +1,273 @@
+{
+  "appSlug": "myfitnesspal",
+  "version": 1,
+  "status": "verified",
+  "executor": "cloud",
+  "baseUrl": "https://api.myfitnesspal.com/v2",
+  "auth": {
+    "type": "bearer",
+    "sessionKeys": [
+      "headers.authorization",
+      "headers.mfp-user-id"
+    ],
+    "refresh": {
+      "method": "GET",
+      "urlTemplate": "https://www.myfitnesspal.com/user/auth_token?refresh=true",
+      "headers": {
+        "accept": "application/json"
+      }
+    },
+    "check": {
+      "method": "GET",
+      "urlTemplate": "https://api.myfitnesspal.com/v2/nutrient-goals?date={{today}}",
+      "headers": {
+        "authorization": "{{session.headers.authorization}}",
+        "mfp-client-id": "mfp-main-js",
+        "mfp-user-id": "{{session.headers.mfp-user-id}}",
+        "accept": "application/json"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "search_food",
+      "title": "Search foods",
+      "description": "Search the MyFitnessPal food database. Returns items[].item with id, version, description, brand_name, nutritional_contents (per base serving) and serving_sizes[] ({value, unit, nutrition_multiplier}). Pass id, version and one serving size to log_food.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Food name, e.g. \"banana\" or \"chobani greek yogurt\""
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 5
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://api.myfitnesspal.com/v2/nutrition?q={{query}}&max_items={{limit}}&fields%5B%5D=nutritional_contents&fields%5B%5D=serving_sizes",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "mfp-client-id": "mfp-main-js",
+          "mfp-user-id": "{{session.headers.mfp-user-id}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "items",
+      "sample": {
+        "args": {
+          "query": "banana",
+          "limit": 5
+        },
+        "ok": true,
+        "at": 1794779051918
+      }
+    },
+    {
+      "name": "get_diary",
+      "title": "Read food diary",
+      "description": "Food entries logged on a date: each item has id (use it to delete), meal_name, food {id, description}, servings, serving_size and nutritional_contents (totals for that entry). Defaults to today.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "default": "{{today}}"
+          }
+        }
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://api.myfitnesspal.com/v2/diary?entry_date={{date}}&types=food_entry&fields%5B%5D=nutritional_contents&fields%5B%5D=food&fields%5B%5D=serving_size&fields%5B%5D=meal_name&fields%5B%5D=servings",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "mfp-client-id": "mfp-main-js",
+          "mfp-user-id": "{{session.headers.mfp-user-id}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "items",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794779051918
+      }
+    },
+    {
+      "name": "log_food",
+      "title": "Log food",
+      "description": "Add a food to the diary. Get food_id, food_version and a serving size from search_food first. servings multiplies the chosen serving (2 bananas = serving_unit \"banana\", servings 2).",
+      "kind": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "food_id": {
+            "type": "string",
+            "description": "items[].item.id from search_food"
+          },
+          "food_version": {
+            "type": "string",
+            "description": "items[].item.version from search_food"
+          },
+          "meal": {
+            "type": "string",
+            "enum": [
+              "Breakfast",
+              "Lunch",
+              "Dinner",
+              "Snacks"
+            ],
+            "default": "Snacks"
+          },
+          "servings": {
+            "type": "number",
+            "default": 1
+          },
+          "serving_value": {
+            "type": "number",
+            "description": "serving_sizes[].value",
+            "default": 1
+          },
+          "serving_unit": {
+            "type": "string",
+            "description": "serving_sizes[].unit, e.g. \"banana\" or \"g\""
+          },
+          "serving_multiplier": {
+            "type": "number",
+            "description": "serving_sizes[].nutrition_multiplier"
+          },
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "default": "{{today}}"
+          }
+        },
+        "required": [
+          "food_id",
+          "food_version",
+          "serving_unit",
+          "serving_multiplier"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "urlTemplate": "https://api.myfitnesspal.com/v2/diary",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "mfp-client-id": "mfp-main-js",
+          "mfp-user-id": "{{session.headers.mfp-user-id}}",
+          "accept": "application/json",
+          "content-type": "application/json"
+        },
+        "bodyTemplate": "{\"items\":[{\"type\":\"food_entry\",\"date\":\"{{date}}\",\"meal_name\":\"{{meal}}\",\"servings\":{{servings}},\"food\":{\"id\":\"{{food_id}}\",\"version\":\"{{food_version}}\"},\"serving_size\":{\"value\":{{serving_value}},\"unit\":\"{{serving_unit}}\",\"nutrition_multiplier\":{{serving_multiplier}}}}]}"
+      },
+      "extract": "items.0",
+      "sample": {
+        "args": {
+          "food_id": "90048150924533",
+          "food_version": "233815641308285",
+          "meal": "Snacks",
+          "servings": 1,
+          "serving_value": 1,
+          "serving_unit": "banana",
+          "serving_multiplier": 1.26
+        },
+        "ok": true,
+        "at": 1794779051918
+      }
+    },
+    {
+      "name": "delete_food_entry",
+      "title": "Remove diary entry",
+      "description": "Delete one food entry from the diary by its id (get_diary items[].id or log_food result id).",
+      "kind": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "description": "Diary entry id (uuid)"
+          }
+        },
+        "required": [
+          "entry_id"
+        ]
+      },
+      "request": {
+        "method": "DELETE",
+        "urlTemplate": "https://api.myfitnesspal.com/v2/diary/{{entry_id}}",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "mfp-client-id": "mfp-main-js",
+          "mfp-user-id": "{{session.headers.mfp-user-id}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {
+          "entry_id": "aae416c9-43d6-44db-a385-f3c89abbe4cd"
+        },
+        "ok": true,
+        "at": 1794779051918
+      }
+    },
+    {
+      "name": "get_goals",
+      "title": "Nutrition goals",
+      "description": "Daily calorie and macro goals in effect on a date: default_goal and daily_goals[] (per weekday) with energy {value, unit}, carbohydrates, protein, fat (grams) and micronutrients.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "default": "{{today}}"
+          }
+        }
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://api.myfitnesspal.com/v2/nutrient-goals?date={{date}}",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "mfp-client-id": "mfp-main-js",
+          "mfp-user-id": "{{session.headers.mfp-user-id}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "items.0",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794779051918
+      }
+    }
+  ],
+  "playbook": [
+    "Open https://www.myfitnesspal.com/account/login in the in-app browser and sign in with email and password (Google and Facebook sign-in are blocked inside embedded browsers)",
+    "Wait for /api/auth/session to return a user",
+    "Call /user/auth_token?refresh=true from the signed-in page to mint the API bearer token (access_token, user_id)",
+    "Visit /food/diary for today",
+    "Visit /account/my-goals",
+    "Run a food search (/api/nutrition?query=banana)"
+  ],
+  "provenance": {
+    "compiler": "hand",
+    "compiledAt": 1794779051918,
+    "captureCount": 9,
+    "notes": "Verified live 2026-11-15 on a real account with scripts/re/mfp/client.ts: auth.check, get_goals, search_food, get_diary pass on the cloud path (plain fetch, residential IP) and on the device path (in-page fetch from www.myfitnesspal.com, cookies omitted for the API host, CORS allows it); log_food (201) then get_diary showed the entry, delete_food_entry (204) then get_diary showed it gone. Confirmed live: /user/auth_token?refresh=true returns {token_type, access_token, expires_in: 864000, refresh_token, user_id} from the cookie session (HttpOnly NextAuth cookie, so it must run on the device); /api/auth/session returns {} when signed out. Confirmed in source: same token exchange and headers (Authorization Bearer, mfp-client-id mfp-main-js, mfp-user-id) in coddingtonbear/python-myfitnesspal client.py; POST /v2/diary body and DELETE /v2/diary/{id} in AdamWalt/myfitnesspal-mcp-python and zN3utr4l/MFP-Auto. The website itself never calls api.myfitnesspal.com from the browser: it proxies through www.myfitnesspal.com/api/services/* (cookie only), which the device path can also use. Assumed, not tested: api.myfitnesspal.com accepts calls from Convex datacenter IPs (www is Cloudflare-fronted and blocks datacenter traffic more often); each auth_token call rotates tokens."
+  }
+}
