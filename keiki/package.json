@@ -1,0 +1,18 @@
+{
+  "name": "ycyc-keiki",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.mts",
+    "deploy": "bun run deploy.mts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@onkeiki/agents": "0.1.7",
+    "effect": "^3.14.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.0"
+  }
+}
