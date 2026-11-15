@@ -1,5 +1,5 @@
 {
-  "total": 83.284,
+  "total": 81.924,
   "scenes": {
     "s01-guess": {
       "start": 0.0,
@@ -51,7 +51,7 @@
     },
     "s13-end": {
       "start": 75.284,
-      "duration": 8.0
+      "duration": 6.64
     }
   },
   "lines": [
@@ -175,8 +175,8 @@
     {
       "scene": "s13-end",
       "who": "narrator",
-      "start": 77.484,
-      "end": 80.437,
+      "start": 76.204,
+      "end": 79.157,
       "text": [
         "Yuzu. Your apps, in every AI."
       ]

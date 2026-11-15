@@ -194,13 +194,13 @@
   },
   {
    "id": "s13-end",
-   "min": 8.0,
-   "tail": 2.5,
+   "min": 6.64,
+   "tail": 0.5,
    "lines": [
     {
      "who": "narrator",
      "src": "audio/voice/chris/v13-t2.mp3",
-     "at": 2.2,
+     "at": 0.92,
      "text": [
       "Yuzu. Your apps, in every AI."
      ],
