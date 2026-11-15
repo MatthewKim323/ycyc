@@ -9,7 +9,7 @@
 | 9:00 AM | Kickoff, lightning talks, tracks announced |
 | 10:00 AM | Hacking begins |
 | 12:30 PM | Lunch |
-| 6:00 PM | Submissions due |
+| 6:30 PM | Submissions due (vibeapps.dev, demo video + public repo required) |
 | 7:00 PM | Finalist demos |
 | 8:00 PM | Winners |
 

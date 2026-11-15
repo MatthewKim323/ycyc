@@ -5,6 +5,7 @@ Plaid for consumer apps, for AI: connect any app on your phone, even ones with n
 ## Read first
 - [`VISION.md`](VISION.md): the idea, how it evolved, product, architecture, business, risks, open calls
 - [`HACKATHON.md`](HACKATHON.md): YC consumer mobile hackathon (Nov 15, 2026): rules, sponsors, demo plan, scope, checklist
+- [`TRACKS.md`](TRACKS.md): every prize track and where the idea fits (main, Keiki, Whop)
 
 ## Research (Nov 15, 2026)
 - [`research/feasibility-report.md`](research/feasibility-report.md): full report. executor.sh teardown, iOS and Android limits, how to build a per-app API, legal, landscape, what's buildable
