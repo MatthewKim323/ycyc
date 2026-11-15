@@ -6,6 +6,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { taglineFor } from "@/components/app-copy";
+import { BackButton } from "@/components/back-button";
 import { Icon } from "@/components/icon";
 import { AppIcon, PopularChips, SearchField, SearchResults } from "@/components/onboarding/app-search";
 import { PressableScale } from "@/components/pressable-scale";
@@ -156,17 +157,7 @@ export default function AddApp() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.bar}>
-        <PressableScale
-          onPress={() => router.back()}
-          hitSlop={12}
-          scaleTo={0.94}
-          haptic="selection"
-          accessibilityLabel="Close"
-        >
-          <Text variant="bodyMedium" color={colors.textSecondary}>
-            Close
-          </Text>
-        </PressableScale>
+        <BackButton label="Close" />
       </View>
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -201,7 +192,7 @@ export default function AddApp() {
                 <PickerTile
                   key={a.slug}
                   app={a}
-                  tagline={fits ? taglineFor(a) : undefined}
+                  tagline={"discovered" in a && a.discovered ? "yuzu learns it" : fits ? taglineFor(a) : undefined}
                   connected={bySlug.get(a.slug)?.status === "live"}
                   onPhone={!!installed[a.slug]}
                   index={i + 2}

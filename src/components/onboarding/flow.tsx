@@ -5,6 +5,7 @@ import { BackHandler, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackButton } from "@/components/back-button";
 import { useScrim } from "@/components/onboarding-chrome";
 import { PressableScale } from "@/components/pressable-scale";
 import { Text } from "@/components/text";
@@ -94,17 +95,7 @@ export function OnboardingFlow() {
             <View style={styles.side}>
               {canBack ? (
                 <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)}>
-                  <PressableScale
-                    onPress={back}
-                    hitSlop={12}
-                    scaleTo={0.94}
-                    haptic="selection"
-                    accessibilityLabel="Back"
-                  >
-                    <Text variant="bodyMedium" color={colors.textSecondary}>
-                      Back
-                    </Text>
-                  </PressableScale>
+                  <BackButton onPress={back} />
                 </Animated.View>
               ) : null}
             </View>

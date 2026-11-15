@@ -1,5 +1,5 @@
-import { useAction, useMutation } from "convex/react";
-import { makeFunctionReference } from "convex/server";
+import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Image } from "expo-image";
 import { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
@@ -16,32 +16,20 @@ import { AppGlyph } from "@/components/app-glyph";
 import { Button } from "@/components/button";
 import { PressableScale } from "@/components/pressable-scale";
 import { Text } from "@/components/text";
-import type { Id } from "@/hooks/convex";
+import { api, type Id } from "@/hooks/convex";
 import type { CatalogApp } from "@/lib/contract";
 import { colors, enter, fonts, layout, radius, space, stageOut } from "@/theme";
 
-export type SearchStatus = "ready" | "learnable" | "phone_only";
-export type SearchResult = {
-  slug?: string;
-  trackId?: string | number;
-  name: string;
-  iconUrl?: string;
-  developer?: string;
-  genre?: string;
-  webUrl?: string;
-  status: SearchStatus;
-};
+export type SearchResult = FunctionReturnType<typeof api.apps.search>[number];
+export type SearchStatus = SearchResult["status"];
 
-// Backend functions land while this ships; references stay loose so the UI builds either way.
-const searchRef = makeFunctionReference<"action", { query: string }, SearchResult[]>("apps:search");
-const requestRef = makeFunctionReference<
-  "mutation",
-  { userId: Id<"users">; trackId: string | number; name: string },
-  unknown
->("apps:request");
-const addCustomRef = makeFunctionReference<"mutation", { trackId: string | number }, string | { slug: string }>(
-  "apps:addCustom",
-);
+/** Pulls the readable sentence out of a Convex error ("... Uncaught Error: <message>\n at ..."). */
+export function errorText(e: unknown, fallback: string): string {
+  const raw = e instanceof Error ? e.message : "";
+  const m = raw.match(/Uncaught Error:\s*([^\n]+?)(?:\s+at\s|\n|$)/);
+  const text = (m?.[1] ?? raw).trim();
+  return text && !/CONVEX|Server Error|Request ID/i.test(text) ? text : fallback;
+}
 
 export const POPULAR = ["Strava", "Peloton", "Headspace", "Lose It!", "Oura", "Uber Eats"];
 
@@ -53,7 +41,7 @@ const STATUS_LINE: Record<SearchStatus, string> = {
 
 /** Debounced live search. `results` is null while the query is empty. */
 export function useAppSearch(query: string) {
-  const search = useAction(searchRef);
+  const search = useAction(api.apps.search);
   const [state, setState] = useState<{
     q: string;
     results: SearchResult[] | null;
@@ -98,12 +86,12 @@ export function useAppSearch(query: string) {
 
 /** Turns a search result into a connectable slug (adds learnable apps to the catalog first). */
 export function useResolveResult() {
-  const addCustom = useMutation(addCustomRef);
+  const addCustom = useAction(api.apps.addCustom);
   return async (r: SearchResult): Promise<string | null> => {
     if (r.status === "ready" && r.slug) return r.slug;
     if (r.status !== "learnable") return null;
-    const res = await addCustom({ trackId: r.trackId ?? r.slug ?? r.name });
-    return typeof res === "string" ? res : (res?.slug ?? null);
+    const res = await addCustom({ trackId: r.trackId });
+    return res.slug;
   };
 }
 
@@ -239,24 +227,26 @@ const ResultRow = memo(function ResultRow({
   userId: Id<"users"> | null;
   onConnect: (r: SearchResult) => Promise<void>;
 }) {
-  const request = useMutation(requestRef);
-  const [requested, setRequested] = useState(false);
+  const request = useMutation(api.apps.request);
+  const phoneOnly = r.status === "phone_only";
+  const asked = useQuery(
+    api.apps.requestCount,
+    phoneOnly ? { trackId: r.trackId, userId: userId ?? undefined } : "skip",
+  );
+  const [requestedNow, setRequestedNow] = useState(false);
+  const requested = requestedNow || !!asked?.requested;
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const tappable = r.status !== "phone_only";
+  const [failed, setFailed] = useState<string | null>(null);
 
   const ask = async () => {
     if (!userId || requested) return;
     setBusy(true);
+    setFailed(null);
     try {
-      await request({
-        userId,
-        trackId: r.trackId ?? r.slug ?? r.name,
-        name: r.name,
-      });
-      setRequested(true);
-    } catch {
-      setFailed(true);
+      await request({ userId, trackId: r.trackId, name: r.name });
+      setRequestedNow(true);
+    } catch (e) {
+      setFailed(errorText(e, "Couldn't send that. Try again."));
     } finally {
       setBusy(false);
     }
@@ -264,11 +254,11 @@ const ResultRow = memo(function ResultRow({
 
   const open = async () => {
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       await onConnect(r);
-    } catch {
-      setFailed(true);
+    } catch (e) {
+      setFailed(errorText(e, "Couldn't add that app. Try again."));
     } finally {
       setBusy(false);
     }
@@ -282,10 +272,10 @@ const ResultRow = memo(function ResultRow({
           {r.name}
         </Text>
         <Text variant="caption" color={failed ? colors.error : colors.textSecondary} numberOfLines={1}>
-          {failed ? "Couldn't do that. Try again." : STATUS_LINE[r.status]}
+          {failed ?? STATUS_LINE[r.status]}
         </Text>
       </View>
-      {r.status === "phone_only" ? (
+      {phoneOnly ? (
         <Button
           label={requested ? "Requested" : "Ask for it"}
           kind="secondary"
@@ -300,7 +290,7 @@ const ResultRow = memo(function ResultRow({
 
   return (
     <Animated.View entering={enter(index)} exiting={stageOut} layout={layout} style={index > 0 && styles.divider}>
-      {tappable ? (
+      {!phoneOnly ? (
         <PressableScale
           onPress={open}
           disabled={busy}
@@ -338,7 +328,6 @@ export function SearchResults({
     try {
       const slug = await resolve(r);
       if (slug) onConnect(slug);
-      else throw new Error("unresolved");
     } finally {
       resolving.current = false;
     }
@@ -357,7 +346,7 @@ export function SearchResults({
   return (
     <Animated.View layout={layout}>
       {results.map((r, i) => (
-        <ResultRow key={`${r.trackId ?? r.slug ?? r.name}`} r={r} index={i} userId={userId} onConnect={connect} />
+        <ResultRow key={`${r.trackId}`} r={r} index={i} userId={userId} onConnect={connect} />
       ))}
     </Animated.View>
   );

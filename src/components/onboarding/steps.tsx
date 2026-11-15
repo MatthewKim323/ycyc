@@ -177,7 +177,7 @@ export function Pick({
                         </View>
                       ) : (
                         <Text variant="caption" color={colors.textSecondary} numberOfLines={1}>
-                          {taglineFor(a)}
+                          {"discovered" in a && a.discovered ? "yuzu learns it" : taglineFor(a)}
                         </Text>
                       )}
                     </View>
