@@ -1,7 +1,252 @@
+<!-- s09b-any: yuzu runs no model of its own. A: the Today ask bar (ask-bar.tsx) types a request and switches its
+     target Claude, ChatGPT, Grok on the beats, Ask. B: the Link tab's assistant card (link.tsx ASSISTANTS), one check a
+     beat. C: scroll to "For developers", it opens, each agent's Copy turns to Copied on the beats, then the card exits so
+     s10 opens on the clean dim wave. Copy is the app's, rebuilt at 3x. -->
+<!-- sfx: t=0.25 name=text-tick gain=0.25 -->
+<!-- sfx: t=0.54 name=ui-roll gain=0.4 -->
+<!-- sfx: t=1.22 name=ui-roll gain=0.4 -->
+<!-- sfx: t=1.90 name=ui-roll gain=0.4 -->
+<!-- sfx: t=2.24 name=ui-confirm gain=0.55 -->
+<!-- sfx: t=2.32 name=whoosh-soft gain=0.3 -->
+<!-- sfx: t=2.58 name=row-tick gain=0.5 -->
+<!-- sfx: t=3.26 name=row-tick gain=0.5 -->
+<!-- sfx: t=3.94 name=row-tick gain=0.5 -->
+<!-- sfx: t=4.62 name=row-tick gain=0.5 -->
+<!-- sfx: t=4.98 name=card-morph gain=0.4 -->
+<!-- sfx: t=5.30 name=row-tick gain=0.5 -->
+<!-- sfx: t=5.98 name=row-tick gain=0.5 -->
+<!-- sfx: t=6.66 name=row-tick gain=0.5 -->
+<!-- sfx: t=7.35 name=row-tick gain=0.5 -->
+<!-- sfx: t=7.70 name=whoosh-soft gain=0.3 -->
 <template>
-  <style>#root { position: absolute; inset: 0; } #s09b-any-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s09b-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
+    .s9-f { font-family: "Inter", sans-serif; }
+
+    /* A: ask bar at 3x (bar 48pt -> 144, send 36pt -> 108, chips 26pt -> 78). Wider than a phone so the helper never truncates. */
+    #s09b-acam { position: absolute; left: 300px; top: 417px; width: 1320px; }
+    #s09b-ask { display: flex; flex-direction: column; gap: 24px; }
+    .s9-bar { height: 144px; border-radius: 72px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f;
+      padding: 0 18px 0 48px; display: flex; align-items: center; gap: 24px; }
+    .s9-input { position: relative; flex: 1; height: 63px; font: 400 45px/63px "Inter", sans-serif; color: #fff; white-space: nowrap; }
+    #s09b-ph, #s09b-typed { position: absolute; left: 0; top: 0; }
+    #s09b-ph { color: #6b6b6b; }
+    #s09b-send { height: 108px; padding: 0 42px; border-radius: 54px; background: #fff; color: #000; display: flex; align-items: center;
+      font: 500 39px/54px "Inter", sans-serif; flex: none; }
+    .s9-under { display: flex; align-items: center; gap: 24px; }
+    .s9-chips { display: flex; gap: 18px; flex: none; }
+    .s9-chip { height: 78px; padding: 0 30px; border-radius: 39px; display: flex; align-items: center;
+      font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #a1a1a1; background: rgba(255,255,255,0); box-shadow: inset 0 0 0 1.5px #2a2a2a; }
+    .s9-helper { position: relative; flex: 1; height: 42px; font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #6b6b6b; }
+    .s9-helper span { position: absolute; right: 0; top: 0; white-space: nowrap; }
+
+    /* B + C: the Link tab column at 3x (content 353pt -> 1059). */
+    #s09b-bcam { position: absolute; inset: 0; }
+    #s09b-col { position: absolute; left: 430px; top: 117px; width: 1059px; display: flex; flex-direction: column; gap: 78px; }
+    .s9-card { border-radius: 54px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; overflow: hidden; }
+    .s9-row { padding: 42px 48px; display: flex; align-items: center; gap: 42px; }
+    .s9-row + .s9-row { box-shadow: inset 0 1.5px 0 #1f1f1f; }
+    .s9-letter { width: 120px; height: 120px; border-radius: 36px; display: flex; align-items: center; justify-content: center; flex: none;
+      font: 500 48px/66px "Inter", sans-serif; }
+    .s9-rtext { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .s9-name { font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; }
+    .s9-cap { display: grid; font: 400 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-cap span, .s9-right > * { grid-area: 1 / 1; }
+    .s9-right { display: grid; justify-items: end; align-items: center; flex: none; }
+    .s9-how { height: 108px; padding: 0 48px; border-radius: 54px; box-shadow: inset 0 0 0 1.5px #2a2a2a; display: flex; align-items: center;
+      font: 600 45px/60px "Inter", sans-serif; color: #fff; }
+    .s9-check { width: 66px; height: 66px; border-radius: 33px; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .s9-check .k-icon { width: 42px; height: 42px; }
+    #s09b-dev { background: #000; }
+    .s9-devhead { padding: 48px; display: flex; justify-content: space-between; align-items: center; }
+    .s9-devtitle { font: 500 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-toggle { display: grid; justify-items: end; font: 500 39px/54px "Inter", sans-serif; color: #6b6b6b; }
+    .s9-toggle span { grid-area: 1 / 1; }
+    .s9-devbody { padding: 0 48px 48px; display: flex; flex-direction: column; gap: 48px; }
+    .s9-dev { display: flex; align-items: center; justify-content: space-between; height: 108px; }
+    .s9-devlabel { font: 500 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-copy { display: grid; justify-items: center; align-items: center; height: 108px; padding: 0 48px; border-radius: 54px;
+      box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 45px/60px "Inter", sans-serif; color: #fff; }
+    .s9-copy span { grid-area: 1 / 1; white-space: nowrap; }
+  </style>
   <div id="root" data-composition-id="s09b-any" data-width="1920" data-height="1080">
-    <div id="s09b-any-wrap" class="clip k-canvas" data-start="0" data-duration="8.168" data-track-index="0"><p id="s09b-any-ph">s09b-any</p></div>
+    <div id="s09b-any-wrap" class="clip k-canvas" data-start="0" data-duration="8.168" data-track-index="0">
+      <canvas id="s09b-waves" class="k-waves"></canvas>
+      <div id="s09b-dim"></div>
+
+      <!-- A: the Today ask bar -->
+      <div id="s09b-acam">
+        <div id="s09b-ask" class="s9-f">
+          <div class="s9-bar">
+            <div class="s9-input"><span id="s09b-ph">Log food, a workout, or ask anything</span><span id="s09b-typed">what did I bench last week?</span></div>
+            <div id="s09b-send">Ask</div>
+          </div>
+          <div id="s09b-under" class="s9-under">
+            <div class="s9-chips">
+              <div id="s09b-t1" class="s9-chip">Claude</div>
+              <div id="s09b-t2" class="s9-chip">ChatGPT</div>
+              <div id="s09b-t3" class="s9-chip">Grok</div>
+            </div>
+            <div class="s9-helper">
+              <span id="s09b-h1">Opens in Claude with your apps attached</span>
+              <span id="s09b-h2">Opens in ChatGPT with your apps attached</span>
+              <span id="s09b-h3">Opens in Grok with your apps attached</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B + C: the Link tab -->
+      <div id="s09b-bcam">
+        <div id="s09b-col" class="s9-f">
+          <div id="s09b-card" class="s9-card">
+            <div id="s09b-r1" class="s9-row">
+              <div class="s9-letter" style="background:#D97757;color:#fff;box-shadow:inset 0 0 0 1.5px #D97757">C</div>
+              <div class="s9-rtext"><div class="s9-name">Claude</div>
+                <div class="s9-cap"><span id="s09b-r1-hint">Settings, Connectors, Add</span><span id="s09b-r1-add">Added · used just now</span></div></div>
+              <div class="s9-right"><div id="s09b-r1-how" class="s9-how">How</div><div id="s09b-r1-ok" class="s9-check"><div id="s09b-r1-ic" class="k-icon"></div></div></div>
+            </div>
+            <div id="s09b-r2" class="s9-row">
+              <div class="s9-letter" style="background:#FFFFFF;color:#000;box-shadow:inset 0 0 0 1.5px #FFFFFF">G</div>
+              <div class="s9-rtext"><div class="s9-name">ChatGPT</div>
+                <div class="s9-cap"><span id="s09b-r2-hint">On the web, chatgpt.com/plugins</span><span id="s09b-r2-add">Added · used just now</span></div></div>
+              <div class="s9-right"><div id="s09b-r2-how" class="s9-how">How</div><div id="s09b-r2-ok" class="s9-check"><div id="s09b-r2-ic" class="k-icon"></div></div></div>
+            </div>
+            <div id="s09b-r3" class="s9-row">
+              <div class="s9-letter" style="background:#141414;color:#fff;box-shadow:inset 0 0 0 1.5px #2A2A2A">X</div>
+              <div class="s9-rtext"><div class="s9-name">Grok</div>
+                <div class="s9-cap"><span id="s09b-r3-hint">Settings, Connectors, Add</span><span id="s09b-r3-add">Added · used just now</span></div></div>
+              <div class="s9-right"><div id="s09b-r3-how" class="s9-how">How</div><div id="s09b-r3-ok" class="s9-check"><div id="s09b-r3-ic" class="k-icon"></div></div></div>
+            </div>
+            <div id="s09b-r4" class="s9-row">
+              <div class="s9-letter" style="background:#1D4ED8;color:#fff;box-shadow:inset 0 0 0 1.5px #1D4ED8">M</div>
+              <div class="s9-rtext"><div class="s9-name">Muse</div>
+                <div class="s9-cap"><span id="s09b-r4-hint">Settings, Connectors, Add</span><span id="s09b-r4-add">Added · used just now</span></div></div>
+              <div class="s9-right"><div id="s09b-r4-how" class="s9-how">How</div><div id="s09b-r4-ok" class="s9-check"><div id="s09b-r4-ic" class="k-icon"></div></div></div>
+            </div>
+          </div>
+
+          <div id="s09b-dev" class="s9-card">
+            <div class="s9-devhead">
+              <div class="s9-devtitle">For developers</div>
+              <div class="s9-toggle"><span id="s09b-show">Show</span><span id="s09b-hide">Hide</span></div>
+            </div>
+            <div class="s9-devbody">
+              <div id="s09b-d1" class="s9-dev"><div id="s09b-d1-l" class="s9-devlabel">Claude Code</div>
+                <div id="s09b-d1-b" class="s9-copy"><span id="s09b-d1-c">Copy</span><span id="s09b-d1-k">Copied</span></div></div>
+              <div id="s09b-d2" class="s9-dev"><div id="s09b-d2-l" class="s9-devlabel">Codex</div>
+                <div id="s09b-d2-b" class="s9-copy"><span id="s09b-d2-c">Copy</span><span id="s09b-d2-k">Copied</span></div></div>
+              <div id="s09b-d3" class="s9-dev"><div id="s09b-d3-l" class="s9-devlabel">Cursor</div>
+                <div id="s09b-d3-b" class="s9-copy"><span id="s09b-d3-c">Copy link</span><span id="s09b-d3-k">Copied</span></div></div>
+              <div id="s09b-d4" class="s9-dev"><div id="s09b-d4-l" class="s9-devlabel">iMessage</div>
+                <div id="s09b-d4-b" class="s9-copy"><span id="s09b-d4-c">Copy link</span><span id="s09b-d4-k">Copied</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <script>window.__timelines["s09b-any"] = gsap.timeline({ paused: true });</script>
+  <script>
+    (function () {
+      const D = 8.168, S = KIT.springs, $ = (s) => document.querySelector(s);
+      const tl = gsap.timeline({ paused: true });
+      const swap = (outEl, inEl, at) => {
+        tl.fromTo(outEl, { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(6px)", duration: 0.1, ease: "power2.in", immediateRender: false }, at);
+        tl.fromTo(inEl, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power2.out", immediateRender: false }, at + 0.06);
+      };
+      const pressTo = (el, at, to) => {
+        tl.to(el, { scale: to, duration: 0.09, ease: S.press.ease }, at);
+        tl.to(el, { scale: 1, duration: S.release.dur, ease: S.release.ease }, at + 0.1);
+      };
+
+      KIT.waves(tl, $("#s09b-waves"), { from: 0, to: D, offset: 57.284 });
+
+      // ---------- A: the ask bar (0.00 - 2.60) ----------
+      const AS = 1.27;
+      gsap.set("#s09b-acam", { scale: AS, transformOrigin: "50% 50%" });
+      tl.fromTo("#s09b-ask", { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, 0);
+      tl.fromTo("#s09b-ask", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 0);
+      tl.fromTo("#s09b-acam", { scale: AS }, { scale: AS * 1.04, duration: 2.3, ease: "sine.inOut", immediateRender: false }, 0);
+
+      // The request types in (smear, 30 cps); placeholder clears, Ask appears with the first character.
+      gsap.set("#s09b-typed", { opacity: 0 });
+      gsap.set("#s09b-send", { opacity: 0, scale: 0.6 });
+      tl.fromTo("#s09b-ph", { opacity: 1 }, { opacity: 0, duration: 0.05, ease: "none", immediateRender: false }, 0.25);
+      tl.fromTo("#s09b-typed", { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none", immediateRender: false }, 0.25);
+      KIT.smear(tl, $("#s09b-typed"), 0.25);
+      tl.fromTo("#s09b-send", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 0.28);
+
+      // Target: Claude (0.54), ChatGPT (1.22), Grok (1.90). Active = white fill, black text (the app's chipActive).
+      const ON = { backgroundColor: "rgba(255,255,255,1)", color: "#000000", boxShadow: "inset 0 0 0 1.5px #ffffff" };
+      const OFF = { backgroundColor: "rgba(255,255,255,0)", color: "#a1a1a1", boxShadow: "inset 0 0 0 1.5px #2a2a2a" };
+      gsap.set(["#s09b-t1", "#s09b-t2", "#s09b-t3"], { ...OFF, scale: 1 });
+      gsap.set(["#s09b-h1", "#s09b-h2", "#s09b-h3"], { opacity: 0 });
+      const picks = [["#s09b-t1", "#s09b-h1", 0.54], ["#s09b-t2", "#s09b-h2", 1.22], ["#s09b-t3", "#s09b-h3", 1.9]];
+      picks.forEach(([chip, help, at], i) => {
+        tl.fromTo(chip, OFF, { ...ON, duration: 0.12, ease: "power2.out", immediateRender: false }, at);
+        pressTo($(chip), at, 0.95);
+        if (i > 0) {
+          tl.fromTo(picks[i - 1][0], ON, { ...OFF, duration: 0.12, ease: "power2.out", immediateRender: false }, at);
+          swap($(picks[i - 1][1]), $(help), at);
+        } else {
+          tl.fromTo(help, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power2.out", immediateRender: false }, at + 0.06);
+        }
+      });
+
+      // Ask (2.24, the app's 0.92 press), then one push up: the bar leaves the top as the Link tab arrives from below
+      // (same distance, same ease, so they travel as one page).
+      pressTo($("#s09b-send"), 2.24, 0.92);
+      tl.to("#s09b-ask", { y: -1080 / AS, duration: 0.36, ease: "power3.inOut" }, 2.28);
+      tl.to("#s09b-ask", { filter: "blur(6px)", duration: 0.36, ease: "power2.in" }, 2.28);
+
+      // ---------- B: assistants card (2.36 - 5.13) ----------
+      gsap.set("#s09b-col", { y: 1080 });
+      gsap.set("#s09b-dev", { opacity: 0 });
+      tl.fromTo("#s09b-col", { y: 1080 }, { y: 0, duration: 0.36, ease: "power3.inOut", immediateRender: false }, 2.28);
+      tl.fromTo("#s09b-col", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.4);
+      tl.fromTo("#s09b-bcam", { scale: 1 }, { scale: 1.05, duration: 5.34, ease: "sine.inOut", immediateRender: false, transformOrigin: "50% 50%" }, 2.36);
+
+      // One assistant added a beat: How clears, the check pops (checkBlack), the caption becomes "Added".
+      [2.58, 3.26, 3.94, 4.62].forEach((at, i) => {
+        const n = i + 1, how = $("#s09b-r" + n + "-how"), ok = $("#s09b-r" + n + "-ok");
+        gsap.set(ok, { opacity: 0, scale: 0.4 });
+        gsap.set("#s09b-r" + n + "-add", { opacity: 0 });
+        tl.fromTo(how, { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.12, ease: "power2.in", immediateRender: false }, at);
+        tl.fromTo(ok, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, at + 0.04);
+        KIT.icon(tl, $("#s09b-r" + n + "-ic"), "check-black", { at: at + 0.04 });
+        swap($("#s09b-r" + n + "-hint"), $("#s09b-r" + n + "-add"), at);
+      });
+
+      // ---------- C: scroll to "For developers", open it (card-morph), Copy -> Copied a beat ----------
+      const dev = $("#s09b-dev"), head = dev.querySelector(".s9-devhead");
+      const bodyH = Math.max(400, dev.offsetHeight - head.offsetHeight) || 624;
+      tl.fromTo(dev, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, 4.74);
+      tl.fromTo("#s09b-col", { y: 0 }, { y: -945, duration: 0.36, ease: "power2.inOut", immediateRender: false }, 4.78);
+      tl.fromTo("#s09b-card", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 4.8);
+      tl.fromTo("#s09b-col", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.18, ease: "power2.in", immediateRender: false }, 4.78);
+      tl.to("#s09b-col", { filter: "blur(0px)", duration: 0.18, ease: "power2.out" }, 4.96);
+      gsap.set(dev, { clipPath: "inset(0px 0px " + bodyH + "px 0px round 54px)" });
+      gsap.set("#s09b-hide", { opacity: 0 });
+      swap($("#s09b-show"), $("#s09b-hide"), 4.98);
+      tl.fromTo(dev, { clipPath: "inset(0px 0px " + bodyH + "px 0px round 54px)" }, { clipPath: "inset(0px 0px 0px 0px round 54px)", duration: 0.42, ease: S.layout.ease, immediateRender: false }, 4.98);
+      const rows = ["#s09b-d1", "#s09b-d2", "#s09b-d3", "#s09b-d4"];
+      gsap.set(rows, { opacity: 0 });
+      tl.fromTo(rows, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: KIT.ease.enter, stagger: 0.055, immediateRender: false }, 5.02);
+
+      [5.3, 5.98, 6.66, 7.35].forEach((at, i) => {
+        const n = i + 1;
+        gsap.set("#s09b-d" + n + "-k", { opacity: 0 });
+        gsap.set("#s09b-d" + n + "-b", { scale: 1 });
+        KIT.press(tl, $("#s09b-d" + n + "-b"), at - 0.06);
+        swap($("#s09b-d" + n + "-c"), $("#s09b-d" + n + "-k"), at);
+        tl.fromTo("#s09b-d" + n + "-l", { color: "#a1a1a1" }, { color: "#ffffff", duration: 0.2, ease: "power2.out", immediateRender: false }, at);
+      });
+
+      // Exit: 12 frames, blur, power2.in, gone by 8.10 so s10 opens on the clean dim wave.
+      tl.to("#s09b-bcam", { opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power2.in" }, 7.7);
+
+      window.__timelines["s09b-any"] = tl;
+    })();
+  </script>
 </template>
