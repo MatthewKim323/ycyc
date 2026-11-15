@@ -26,7 +26,14 @@ export function CredentialsForm({
   const [focused, setFocused] = useState<"email" | "password" | null>(null);
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
   const valid = email.trim().length > 3 && password.length > 0;
-  const submit = () => valid && !submitting && onSubmit(email.trim(), password);
+  // A ref, not state: the keyboard's return and a tap can land in the same tick, and a second
+  // sign-in makes the app email a second code that the first one no longer matches.
+  const sentAt = useRef(0);
+  const submit = () => {
+    if (!valid || submitting || Date.now() - sentAt.current < 4000) return;
+    sentAt.current = Date.now();
+    onSubmit(email.trim(), password);
+  };
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>

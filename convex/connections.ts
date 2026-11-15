@@ -100,6 +100,11 @@ export const submitLogin = mutation({
     const conn = await ctx.db.get(connectionId);
     if (!conn) throw new Error("Unknown connection");
     const now = Date.now();
+    // Ignore a duplicate sign-in while one is already running or waiting on a code: a second
+    // login would make the app send a new code and invalidate the one the user is typing.
+    if ((conn.status === "building" || conn.status === "needs_code") && now - (conn.updatedAt ?? conn._creationTime) < 20_000) {
+      return null;
+    }
     const bundle: SessionBundle = { ...(session ?? {}), capturedAt: session?.capturedAt ?? now };
 
     // Replace any earlier capture for this connection, keep the newest entries only.
