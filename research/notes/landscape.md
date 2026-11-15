@@ -1,6 +1,6 @@
-# Competitive landscape: consumer "connect any app to your AI" products, mobile focus (as of 2026-11-14)
+# Competitive landscape: consumer "connect any app to your AI" products, mobile focus (as of 2026-11-15)
 
-Notes on sourcing: every fact below carries a link. Where the only source is an aggregator or low-quality site it is flagged "(weak source)". Numbers are dated; anything older than ~6 months is flagged "STALE". Today is 2026-11-14.
+Notes on sourcing: every fact below carries a link. Where the only source is an aggregator or low-quality site it is flagged "(weak source)". Numbers are dated; anything older than ~6 months is flagged "STALE". Today is 2026-11-15.
 
 ## 1. Platform owners: what they connect to today and how
 

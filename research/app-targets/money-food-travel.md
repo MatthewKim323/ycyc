@@ -1,4 +1,4 @@
-# Money, food, shopping and travel apps: agent access (2026-11-14)
+# Money, food, shopping and travel apps: agent access (2026-11-15)
 
 Difficulty: 1 = official API or connector, 5 = locked down or hostile. Counts with `~` are older or secondary.
 

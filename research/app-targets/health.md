@@ -1,4 +1,4 @@
-# Health and body apps: can a personal AI read and write them? (2026-11-14)
+# Health and body apps: can a personal AI read and write them? (2026-11-15)
 
 Difficulty: 1 = official API, 5 = native-only and locked down. Cells marked **(bg)** are background knowledge (to about mid-2026) that was not re-verified. Many user counts are missing or third-party estimates. Gemini coverage was not found and is unverified.
 

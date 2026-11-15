@@ -2,7 +2,7 @@
 
 **Plaid for consumer apps, for AI.** Connect any app on your phone to any AI assistant you use (Claude, ChatGPT, Grok, Muse), including the apps that have no API. Connect once, every assistant has it.
 
-## Where it started (2026-11-14)
+## Where it started (2026-11-15)
 > "what if we make it so you can connect ANYTHING... mobile app that can connect ANY of your mobile apps to ur intelligence... make EVERYTHING agentic... the everything mcp... canvas, gym tracking app, nutrition apps, everything... it just goes thru ur phone and engineers its own api and map per app on the spot"
 
 Inspired by [executor.sh](https://executor.sh/) (see `research/notes/executor-sh.md`).

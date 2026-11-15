@@ -1,4 +1,4 @@
-# Who's already building pieces of this (checked 2026-11-14)
+# Who's already building pieces of this (checked 2026-11-15)
 
 Short version: the **wallet** (one MCP link that holds your connections) already exists. The **contents** (APIs for consumer apps that have none, especially phone-only apps) do not. That is the moat, same as Plaid: the bank picker screen was never the value, the 12k bank connections were.
 

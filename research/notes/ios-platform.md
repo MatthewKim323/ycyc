@@ -1,4 +1,4 @@
-# iOS platform routes for a "connect any of your phone apps to your AI" consumer app (state as of 2026-11-14)
+# iOS platform routes for a "connect any of your phone apps to your AI" consumer app (state as of 2026-11-15)
 
 Scope note: Apple primary sources (newsroom, developer docs, App Review Guidelines) were fetched directly for the 2026 facts. Items marked "(search summary)" come from search-result summaries rather than a direct page read. Items from before 2025 are flagged as possibly dated.
 

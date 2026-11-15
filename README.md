@@ -6,7 +6,7 @@ Plaid for consumer apps, for AI: connect any app on your phone, even ones with n
 - [`VISION.md`](VISION.md): the idea, how it evolved, product, architecture, business, risks, open calls
 - [`HACKATHON.md`](HACKATHON.md): YC consumer mobile hackathon (Nov 15, 2026): rules, sponsors, demo plan, scope, checklist
 
-## Research (Nov 14, 2026)
+## Research (Nov 15, 2026)
 - [`research/feasibility-report.md`](research/feasibility-report.md): full report. executor.sh teardown, iOS and Android limits, how to build a per-app API, legal, landscape, what's buildable
 - [`research/competitors.md`](research/competitors.md): MCP wallets (MoChiPi, Rube), Plaid-for-agents (Deck, Anon), assistant MCP support, MCP connect primitives, cloud phones (Revyl)
 - [`research/app-targets/`](research/app-targets/): 112 consumer apps checked for API / MCP / hacks / blocking, ranked as targets

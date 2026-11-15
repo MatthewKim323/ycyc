@@ -1,4 +1,4 @@
-# School, social, entertainment and home apps: agent access (2026-11-14)
+# School, social, entertainment and home apps: agent access (2026-11-15)
 
 Difficulty: 1 = official API or connector, 5 = locked down or hostile. "est." = approximate, not re-checked.
 

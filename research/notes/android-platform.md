@@ -1,6 +1,6 @@
-# Android platform: how a consumer app can let an AI agent read from and act in OTHER apps (state as of 2026-11-14)
+# Android platform: how a consumer app can let an AI agent read from and act in OTHER apps (state as of 2026-11-15)
 
-Scope note: research done 2026-11-14. Many sources are from 2026 and postdate the model's training, so everything below is taken from fetched pages. Where only secondary or vendor sources exist, that is flagged. "Play-rejected" means technically possible on Android but blocked by Google Play policy for a Play-distributed app.
+Scope note: research done 2026-11-15. Many sources are from 2026 and postdate the model's training, so everything below is taken from fetched pages. Where only secondary or vendor sources exist, that is flagged. "Play-rejected" means technically possible on Android but blocked by Google Play policy for a Play-distributed app.
 
 ## Q0. Overall route map for a "connect ANY of your phone apps to your AI" product
 
