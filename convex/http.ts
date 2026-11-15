@@ -35,7 +35,7 @@ http.route({
   handler: httpAction(async () => new Response(null, { status: 204, headers: CORS_HEADERS })),
 });
 
-// ---- Tap-to-connect: GET /connect/<slug>?u=<token> ----
+// ---- Tap-to-connect: GET /connect/<slug> ----
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

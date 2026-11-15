@@ -62,8 +62,9 @@ export function inferAssistant(clientName: string | undefined, userAgent: string
   return "claude";
 }
 
-export function connectUrl(slug: string, token: string): string {
-  return `${SITE_URL}/connect/${slug}?u=${token}`;
+export function connectUrl(slug: string): string {
+  // No token in the link: assistants print it into chats, and the handler does not need it.
+  return `${SITE_URL}/connect/${slug}`;
 }
 
 function json(body: unknown, status: number, headers: Record<string, string>): Response {
@@ -172,7 +173,7 @@ function listApps(mc: McpContext, token: string) {
       name: a.name,
       status,
       can: a.blurb,
-      ...(live ? { tools: live.recipe.tools.map((t) => `${a.slug}${SEP}${t.name}`) } : { connectUrl: connectUrl(a.slug, token) }),
+      ...(live ? { tools: live.recipe.tools.map((t) => `${a.slug}${SEP}${t.name}`) } : { connectUrl: connectUrl(a.slug) }),
       ...(conn?.status === "error" && conn.error ? { error: conn.error } : {}),
     };
   });
@@ -191,7 +192,7 @@ function connectApp(mc: McpContext, token: string, args: Record<string, unknown>
       `${app.name} is already connected. Tools: ${live.recipe.tools.map((t) => `${app.slug}${SEP}${t.name}`).join(", ")}.`,
     );
   }
-  const url = connectUrl(app.slug, token);
+  const url = connectUrl(app.slug);
   return textResult(`Open this link on your phone to connect ${app.name} in ycyc: ${url}`);
 }
 
@@ -240,7 +241,7 @@ async function callAppTool(
   }
   if (!entry) {
     return textResult(
-      `${app.name} is not connected. Ask the user to open ${connectUrl(slug, token)} on their phone.`,
+      `${app.name} is not connected. Ask the user to open ${connectUrl(slug)} on their phone.`,
       true,
     );
   }
