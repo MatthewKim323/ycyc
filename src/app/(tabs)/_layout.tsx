@@ -14,6 +14,7 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
     >
       <Tabs.Screen name="index" options={{ title: "Today" }} />
+      <Tabs.Screen name="agent" options={{ title: "Agent" }} />
       <Tabs.Screen name="library" options={{ title: "Apps" }} />
       <Tabs.Screen name="link" options={{ title: "Link" }} />
     </Tabs>

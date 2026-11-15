@@ -12,6 +12,7 @@ import { Text } from "./text";
 
 const TABS: Record<string, { label: string; icon: IconName }> = {
   index: { label: "Today", icon: "home" },
+  agent: { label: "Agent", icon: "chat" },
   library: { label: "Apps", icon: "library" },
   link: { label: "Link", icon: "link" },
 };
