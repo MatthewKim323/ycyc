@@ -1,0 +1,424 @@
+{
+  "appSlug": "parkmobile",
+  "version": 1,
+  "status": "verified",
+  "executor": "device",
+  "baseUrl": "https://app.parkmobile.io/api",
+  "auth": {
+    "type": "cookie",
+    "sessionKeys": [
+      "cookies.XSRF-TOKEN"
+    ],
+    "check": {
+      "method": "GET",
+      "urlTemplate": "https://app.parkmobile.io/api/user",
+      "headers": {
+        "SourceAppKey": "ParkmobileWeb",
+        "accept": "application/json"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_active_sessions",
+      "title": "Active parking",
+      "description": "Parking sessions running right now. Each sessionInfo[] item has zone {signageCode, internalZoneCode, locationName, zoneInfo}, startLocal, stopLocal (when it expires, in timeZoneStandardName), priceDetail {parkingPrice, billingType}, vehicleLpnState and creditCardType/creditCardLastFourDigits. An empty list means nothing is running. parking_action_type narrows to street/lot sessions (OnDemand) or prepaid reservations (Reservation); omit it for both.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "parking_action_type": {
+            "type": "string",
+            "enum": [
+              "OnDemand",
+              "Reservation"
+            ]
+          }
+        }
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/v2/parking/active?parkingActionType={{parking_action_type}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "sessionInfo",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "get_parking_history",
+      "title": "Parking history",
+      "description": "Past parking sessions, newest first. Each sessionInfo[] item has zone {signageCode, locationName}, startLocal, stopLocal, priceDetail {parkingPrice, billingType} and the card used (creditCardType, creditCardLastFourDigits). parking_action_type: OnDemand (street and lot sessions, the default) or Reservation.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "parking_action_type": {
+            "type": "string",
+            "enum": [
+              "OnDemand",
+              "Reservation"
+            ],
+            "default": "OnDemand"
+          }
+        }
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/v2/parking/history?parkingActionType={{parking_action_type}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "sessionInfo",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "get_vehicles",
+      "title": "Vehicles",
+      "description": "Vehicles on the account: vehicles[] with vehicleId (pass it to start_parking), the plate and its state, and which one is the default. HTTP 404 \"Vehicle not found\" means the account has no vehicles yet.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/account/vehicles",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "vehicles",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "get_payment_methods",
+      "title": "Payment methods",
+      "description": "Saved payment methods in the user's preferred order: billingMethodId (pass it to start_parking) plus card type and masked number only. An empty list means no card is on file.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/payment-methods",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "orderedBillingMethods",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "find_zone",
+      "title": "Look up zone",
+      "description": "Look up a ParkMobile zone by the number posted on the street sign or meter. The same number can exist in several cities, so check locationName/supplierName. Returns zones[] with internalZoneCode (use it for get_zone_rates and quote_parking), signageCode, locationName, type (OnStreet, Garage...), gpsPoints, parkingActionType and timeZoneStandardName.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "zone_number": {
+            "type": "string",
+            "description": "Zone number from the sign, e.g. \"51103\""
+          }
+        },
+        "required": [
+          "zone_number"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/zones/{{zone_number}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "zones",
+      "sample": {
+        "args": {
+          "zone_number": "51103"
+        },
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "find_zones_nearby",
+      "title": "Zones nearby",
+      "description": "ParkMobile zones inside a map box, nearest first: zones[] with signageCode, internalZoneCode, locationName, type, distanceMiles and zoneInfo {latitude, longitude}. Geocode an address yourself, then pass a box around it: north = lat + 0.004, south = lat - 0.004, east = lng + 0.005, west = lng - 0.005 (about 500 m). parking_type 1 = pay-by-zone street and lots (default), 2 = reservable garages.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "north": {
+            "type": "number",
+            "description": "Top latitude of the box"
+          },
+          "south": {
+            "type": "number",
+            "description": "Bottom latitude of the box"
+          },
+          "east": {
+            "type": "number",
+            "description": "Right longitude of the box"
+          },
+          "west": {
+            "type": "number",
+            "description": "Left longitude of the box"
+          },
+          "parking_type": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "default": 1
+          }
+        },
+        "required": [
+          "north",
+          "south",
+          "east",
+          "west"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/zones/search?parkingType={{parking_type}}&upper={{north}},{{east}}&lower={{south}},{{west}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "zones",
+      "sample": {
+        "args": {
+          "north": 33.785733,
+          "south": 33.777733,
+          "east": -84.375253,
+          "west": -84.385253
+        },
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "get_zone_rates",
+      "title": "Zone rules",
+      "description": "Rules for one zone right now: parkInfo.isParkingAllowed and parkingNotAllowedReason, maxParkingTime (longest allowed stay), maxStopTimeLocal (latest end time today), timeBlocks[] (timeblockId, minimumValue/maximumValue/incrementValue in minutes; quote_parking and start_parking need the timeblockId), durationSelections, paymentOptions and isPayBySpace. Use quote_parking for the dollar price.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "internal_zone_code": {
+            "type": "string",
+            "description": "internalZoneCode from find_zone or find_zones_nearby, e.g. \"71451103\""
+          }
+        },
+        "required": [
+          "internal_zone_code"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/zones/{{internal_zone_code}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "zones.0",
+      "sample": {
+        "args": {
+          "internal_zone_code": "71451103"
+        },
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "quote_parking",
+      "title": "Price check",
+      "description": "Price for parking in a zone for a number of minutes, without buying anything. Returns price[0] {parkingPrice, serviceFee, totalPrice}, currency, parkingStartTimeLocal, parkingStopTimeLocal, isParkingAllowed and parkingNotAllowedReason. Get time_block_id from get_zone_rates (parkInfo.timeBlocks[].timeblockId); minutes must sit between that block's minimumValue and maximumValue (parkInfo.durationSelections lists the steps the app offers, usually 15 minutes).",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "internal_zone_code": {
+            "type": "string",
+            "description": "internalZoneCode from find_zone"
+          },
+          "time_block_id": {
+            "type": "integer",
+            "description": "parkInfo.timeBlocks[].timeblockId from get_zone_rates"
+          },
+          "minutes": {
+            "type": "integer",
+            "description": "How long to park, in minutes",
+            "default": 60
+          },
+          "space_number": {
+            "type": "string",
+            "description": "Only for pay-by-space zones"
+          }
+        },
+        "required": [
+          "internal_zone_code",
+          "time_block_id"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/price/{{internal_zone_code}}?timeBlockId={{time_block_id}}&timeBlockQuantity={{minutes}}&spaceNumber={{space_number}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {
+          "internal_zone_code": "71451103",
+          "time_block_id": 1069639,
+          "minutes": 60
+        },
+        "ok": true,
+        "at": 1794783337828
+      }
+    },
+    {
+      "name": "start_parking",
+      "title": "Start parking",
+      "description": "Start a paid parking session. This charges the user's card, so run quote_parking first and get explicit approval with the zone, plate, duration and total. Needs internalZoneCode (find_zone), time_block_id (get_zone_rates), vehicle_id (get_vehicles) and payment_method_id (get_payment_methods billingMethodId).",
+      "kind": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "internal_zone_code": {
+            "type": "string"
+          },
+          "time_block_id": {
+            "type": "integer"
+          },
+          "minutes": {
+            "type": "integer"
+          },
+          "vehicle_id": {
+            "type": "integer",
+            "description": "vehicles[].vehicleId from get_vehicles"
+          },
+          "payment_method_id": {
+            "type": "integer",
+            "description": "billingMethodId from get_payment_methods"
+          },
+          "space_number": {
+            "type": "string",
+            "description": "Only for pay-by-space zones"
+          }
+        },
+        "required": [
+          "internal_zone_code",
+          "time_block_id",
+          "minutes",
+          "vehicle_id",
+          "payment_method_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/parking/active",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json",
+          "content-type": "application/json",
+          "X-XSRF-TOKEN": "{{session.cookies.XSRF-TOKEN}}"
+        },
+        "bodyTemplate": "{\"internalZoneCode\":\"{{internal_zone_code}}\",\"durationInMinutes\":{{minutes}},\"timeBlockId\":{{time_block_id}},\"vehicleId\":{{vehicle_id}},\"selectedBillingMethodId\":{{payment_method_id}},\"spaceNumber\":\"{{space_number}}\"}"
+      },
+      "extract": ""
+    },
+    {
+      "name": "extend_parking",
+      "title": "Extend parking",
+      "description": "Add time to a running session. This charges the user's card, so confirm the added minutes and price first. parking_action_id comes from get_active_sessions; time_block_id from get_zone_rates.",
+      "kind": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "parking_action_id": {
+            "type": "string",
+            "description": "Id of the running session from get_active_sessions"
+          },
+          "time_block_id": {
+            "type": "integer"
+          },
+          "minutes": {
+            "type": "integer",
+            "description": "Minutes to add"
+          },
+          "payment_method_id": {
+            "type": "integer",
+            "description": "billingMethodId from get_payment_methods"
+          }
+        },
+        "required": [
+          "parking_action_id",
+          "time_block_id",
+          "minutes",
+          "payment_method_id"
+        ]
+      },
+      "request": {
+        "method": "PUT",
+        "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/parking/active/{{parking_action_id}}",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json",
+          "content-type": "application/json",
+          "X-XSRF-TOKEN": "{{session.cookies.XSRF-TOKEN}}"
+        },
+        "bodyTemplate": "{\"durationInMinutes\":{{minutes}},\"timeBlockId\":{{time_block_id}},\"selectedBillingMethodId\":{{payment_method_id}}}"
+      },
+      "extract": ""
+    }
+  ],
+  "playbook": [
+    "Open https://app.parkmobile.io/login in the in-app browser. Sign in with email or phone: ParkMobile sends a magic link (any app.parkmobile.io URL with ?login_token=); open that link inside the same in-app browser. Google sign-in is blocked in embedded browsers",
+    "Wait for GET /api/user to return userProfile (401 while signed out)",
+    "Visit /account/zones/active",
+    "Visit /account/zones/history",
+    "Visit /account/settings",
+    "Probe /api/proxy/parkmobileapi/account/vehicles, /api/payment-methods, /api/proxy/parkmobileapi/v2/parking/active and /api/proxy/parkmobileapi/v2/parking/history",
+    "Probe a zone lookup: /api/proxy/parkmobileapi/zones/51103 and /api/zones/71451103"
+  ],
+  "provenance": {
+    "compiler": "hand",
+    "compiledAt": 1794783337828,
+    "captureCount": 45,
+    "notes": "Verified live 2026-11-15 on matt's own account with scripts/re/parkmobile/client.ts (device path, signed-in page): auth.check, get_active_sessions, get_parking_history, get_vehicles (404 Vehicle not found = no vehicles), get_payment_methods, find_zone, find_zones_nearby, get_zone_rates, quote_parking all pass. find_zone, find_zones_nearby, get_zone_rates and quote_parking also pass from plain Node with no session (--cloud). Account had no vehicles, cards or sessions, so list item fields come from the web bundle selectors. start_parking and extend_parking: not executed: charges money (templates lifted from the web bundle startParking/extendParking; X-XSRF-TOKEN acceptance checked on POST /api/refresh only). Session JWT is an HttpOnly cookie, so executor is device."
+  }
+}

@@ -124,7 +124,8 @@ const PatternWaves = ({
   const [appActive, setAppActive] = useState(AppState.currentState !== "background");
   // If GL never presents a frame (no ES3 context, shader rejected), show the same silk frame as a still.
   const drawnRef = useRef(false);
-  const [fallback, setFallback] = useState(false);
+  // iOS simulators (and some devices) present expo-gl frames black; native uses the pre-rendered silk still.
+  const [fallback, setFallback] = useState(!isWeb && !NATIVE_GL);
   useEffect(() => {
     if (isWeb) return undefined;
     const t = setTimeout(() => {
@@ -342,6 +343,7 @@ const PatternWaves = ({
 
   return (
     <View ref={containerRef} style={[styles.root, style]} onLayout={onLayout} {...touchHandlers}>
+      {isWeb || NATIVE_GL ? (
       <GLView
         style={StyleSheet.absoluteFill}
         msaaSamples={0}
@@ -351,6 +353,7 @@ const PatternWaves = ({
         onContextCreate={onContextCreate as (gl: unknown) => void}
         {...(isWeb ? { webglContextAttributes: WEB_CONTEXT_ATTRIBUTES } : null)}
       />
+      ) : null}
       {fallback ? <SilkStill /> : null}
       {children}
     </View>
@@ -373,6 +376,9 @@ const SilkStill = () => {
     </Animated.View>
   );
 };
+
+// Flip to true to run the live shader on native once expo-gl presentation is verified on device.
+const NATIVE_GL = false;
 
 const SILK_STILL = require("../../../assets/images/pattern-silk.png");
 
