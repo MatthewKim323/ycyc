@@ -68,7 +68,7 @@ try {
   var STATIC_RE = /\.(js|mjs|css|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|wasm)(\?|$)/i;
   var AUTH_HDR_RE = /(^authorization$|token|cookie|secret|session|csrf|xsrf|api-key|apikey|captcha)/i;
   var SECRET_KEY_RE = /(pass(word)?|passwd|token|secret|captcha|otp|code_verifier|refresh|authorization|cookie|api_?key|ssn)/i;
-  var SECRET_QS_RE = /^(access_token|id_token|refresh_token|token|api_key|apikey|key|secret|signature|sig|password|code|auth|session)$/i;
+  var SECRET_QS_RE = /^(access_token|id_token|refresh_token|token|login_token|magic_token|otp|api_key|apikey|key|secret|signature|sig|password|code|auth|session)$/i;
 
   function now() { return Date.now(); }
   function post(obj) {
@@ -246,7 +246,7 @@ try {
       if (!isApi(e.url) && !isJsonMime(e.mime)) return;
       e.id = "c" + now().toString(36) + (Y.seq++).toString(36);
       e.url = redactUrl(e.url);
-      e.pageUrl = W.location.href;
+      e.pageUrl = redactUrl(W.location.href);
       Y.queue.push(e);
       if (Y.queue.length >= 25) flush();
     } catch (err) {}
