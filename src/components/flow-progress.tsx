@@ -6,7 +6,7 @@ import { colors, easeFill, radius, space } from "@/theme";
 
 import { Text } from "./text";
 
-const LABELS = ["Sign in", "Build", "Live"] as const;
+const LABELS = ["Sign in", "Set up", "Done"] as const;
 
 function Segment({ fill, label, active }: { fill: number; label: string; active: boolean }) {
   const v = useSharedValue(fill);
@@ -26,7 +26,7 @@ function Segment({ fill, label, active }: { fill: number; label: string; active:
   );
 }
 
-/** Sign in · Build · Live. Lives once at the top of the connect modal and never resets. */
+/** Sign in · Set up · Done. Lives once at the top of the connect modal and never resets. */
 export const FlowProgress = memo(function FlowProgress({ fills, active }: { fills: [number, number, number]; active: 0 | 1 | 2 }) {
   return (
     <View style={styles.row}>

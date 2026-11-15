@@ -20,6 +20,8 @@ export interface CaptureWebViewProps {
   app: CatalogApp;
   onDone: (r: { session: SessionBundle; capture: CaptureEntry[] }) => void;
   onProgress?: (p: { phase: Phase; requests: number; loggedIn: boolean }) => void;
+  /** Optional first page instead of loginUrl (e.g. a pasted magic sign-in link). */
+  startUrl?: string;
 }
 
 const MAX_ENTRIES = 600;
@@ -30,13 +32,13 @@ const PROBE_TIMEOUT_MS = 6000;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export function CaptureWebView({ app, onDone, onProgress }: CaptureWebViewProps) {
+export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWebViewProps) {
   const cfg = useMemo(() => captureConfigFor(app.slug, app.loginUrl, app.webOrigin), [app.slug, app.loginUrl, app.webOrigin]);
   const recorder = useMemo(() => buildRecorderScript(cfg), [cfg]);
   const origin = useMemo(() => originOf(cfg.webOrigin || cfg.loginUrl), [cfg]);
 
   const webRef = useRef<WebViewHandle>(null);
-  const [uri, setUri] = useState(cfg.loginUrl);
+  const [uri, setUri] = useState(startUrl ?? cfg.loginUrl);
   const [phase, setPhase] = useState<Phase>("login");
 
   const [startedAt] = useState(() => Date.now());

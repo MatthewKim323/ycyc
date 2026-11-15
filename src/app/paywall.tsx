@@ -92,8 +92,7 @@ export default function Paywall() {
             </Animated.View>
             <View style={styles.benefits}>
               <BenefitRow index={0} icon="library" title="Unlimited apps" body="Connect every app you use." />
-              <BenefitRow index={1} icon="chat" title="iMessage agent" body="Text your apps from Messages." />
-              <BenefitRow index={2} icon="clock" title="Cancel anytime" body="Billed monthly through Whop." />
+              <BenefitRow index={1} icon="clock" title="Cancel anytime" body="Billed monthly through Whop." />
             </View>
           </View>
 

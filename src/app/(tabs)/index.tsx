@@ -3,11 +3,10 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { AskBar } from "@/components/ask-bar";
 import { Button } from "@/components/button";
 import { Card, Divider, Screen, SectionHeader } from "@/components/layout";
 import { McpLinkCard } from "@/components/mcp-link-card";
-import { ActivityRow, ApprovalCard } from "@/components/rows";
+import { ActivityRow } from "@/components/rows";
 import { Text } from "@/components/text";
 import { TodayPanel } from "@/components/today-panel";
 import { api } from "@/hooks/convex";
@@ -21,13 +20,12 @@ export default function TodayScreen() {
   const now = useNow();
   const apps = useQuery(api.apps.list);
   const connections = useQuery(api.connections.mine, userId ? { userId } : "skip");
-  const approvals = useQuery(api.approvals.pending, userId ? { userId } : "skip");
   const feed = useQuery(api.activity.feed, userId ? { userId, limit: 30 } : "skip");
 
   const appBySlug = new Map((apps ?? []).map((a) => [a.slug, a]));
 
   return (
-    <Screen footer={<AskBar />}>
+    <Screen>
       <View style={styles.header}>
         <Text variant="title">Today</Text>
       </View>
@@ -51,17 +49,6 @@ export default function TodayScreen() {
             </Text>
             <Button label="Browse apps" size="small" onPress={() => router.navigate("/library")} style={styles.emptyButton} />
           </Card>
-        </Animated.View>
-      ) : null}
-
-      {approvals && approvals.length > 0 ? (
-        <Animated.View entering={enter(0)} exiting={fadeOut} layout={layout}>
-          <SectionHeader title={approvals.length === 1 ? "Needs you" : `Needs you · ${approvals.length}`} />
-          <View style={styles.stack}>
-            {approvals.map((a, i) => (
-              <ApprovalCard key={a._id} approval={a} app={appBySlug.get(a.appSlug)} index={i} />
-            ))}
-          </View>
         </Animated.View>
       ) : null}
 

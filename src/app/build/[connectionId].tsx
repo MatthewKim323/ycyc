@@ -4,7 +4,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -27,12 +27,13 @@ import { Icon } from "@/components/icon";
 import { PressableScale } from "@/components/pressable-scale";
 import { SuccessMark } from "@/components/success-mark";
 import { Text } from "@/components/text";
-import { TweenNumber } from "@/components/tween-number";
 import { api, type Id } from "@/hooks/convex";
 import { hostOf } from "@/hooks/format";
 import { useOnboarding } from "@/hooks/onboarding";
 import { useUser } from "@/hooks/user";
+import { captureConfigFor, magicLinkFor } from "@/lib/capture/apps";
 import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
+import { copyFor, plainError, type Capability } from "@/components/app-copy";
 import { colors, enter, layout, radius, space, springs, stageIn, stageOut } from "@/theme";
 
 // Added by the backend for apps that email a verification code (Strong).
@@ -40,14 +41,8 @@ const submitCodeRef = makeFunctionReference<"mutation", { connectionId: Id<"conn
   "connections:submitCode",
 );
 
-const EXAMPLES: Record<string, string> = {
-  myfitnesspal: "log two eggs and toast for breakfast",
-  strong: "what did I bench last week?",
-  flo: "when does my next period start?",
-};
 
 type Stage = "loading" | "missing" | "signin" | "code" | "build" | "live" | "error";
-type Tool = { name: string; title: string; kind: "read" | "write" };
 type GlyphApp = Pick<CatalogApp, "slug" | "category">;
 
 function BreathingGlyph({ app }: { app: GlyphApp }) {
@@ -64,23 +59,45 @@ function BreathingGlyph({ app }: { app: GlyphApp }) {
   );
 }
 
+function CanList({ can }: { can: Capability[] }) {
+  return (
+    <View style={styles.tools}>
+      <Text variant="label" color={colors.textSecondary}>
+        Your assistant can
+      </Text>
+      {can.map((c, i) => (
+        <Animated.View key={c.verb} entering={enter(i)} style={styles.toolRow}>
+          <Text variant="bodyMedium" style={styles.flex} numberOfLines={1}>
+            {c.verb}
+          </Text>
+          {c.asks ? (
+            <Text variant="caption" color={colors.textSecondary}>
+              Asks you first
+            </Text>
+          ) : null}
+        </Animated.View>
+      ))}
+    </View>
+  );
+}
+
 function BuildStage({
   app,
   steps,
-  tools,
+  can,
   onShown,
   onSettled,
 }: {
   app: GlyphApp & { name: string };
   steps: DisplayStep[];
-  tools: Tool[];
+  can: Capability[];
   onShown: (n: number) => void;
   onSettled: () => void;
 }) {
   const shown = useDwell(steps, onSettled);
   const doneCount = shown.filter((s) => s.status === "done").length;
   useEffect(() => onShown(doneCount), [doneCount, onShown]);
-  const showTools = doneCount >= 2 && tools.length > 0;
+  const showCan = doneCount >= 2 && can.length > 0;
 
   return (
     <ScrollView contentContainerStyle={styles.buildContent} showsVerticalScrollIndicator={false}>
@@ -88,33 +105,14 @@ function BuildStage({
         <BreathingGlyph app={app} />
         <Animated.View entering={enter(0)}>
           <Text variant="heading" style={styles.center}>
-            Building your {app.name} connector
+            Setting up {app.name}
           </Text>
         </Animated.View>
       </View>
       <StepList steps={shown} />
-      {showTools ? (
-        <Animated.View entering={enter(0)} layout={layout} style={styles.tools}>
-          <View style={styles.toolsHead}>
-            <Text variant="label" color={colors.textSecondary}>
-              Tools
-            </Text>
-            <TweenNumber value={tools.length} color={colors.textSecondary} />
-          </View>
-          {tools.map((t, i) => (
-            <Animated.View key={t.name} entering={enter(i)} style={styles.toolRow}>
-              <Text variant="bodyMedium" style={styles.flex} numberOfLines={1}>
-                {t.title}
-              </Text>
-              {t.kind === "write" ? (
-                <View style={styles.tag}>
-                  <Text variant="micro" color={colors.text}>
-                    Needs OK
-                  </Text>
-                </View>
-              ) : null}
-            </Animated.View>
-          ))}
+      {showCan ? (
+        <Animated.View entering={enter(0)} layout={layout}>
+          <CanList can={can} />
         </Animated.View>
       ) : null}
     </ScrollView>
@@ -123,7 +121,7 @@ function BuildStage({
 
 function LiveStage({
   app,
-  tools,
+  can,
   firstConnect,
   mcpUrl,
   bottomInset,
@@ -131,7 +129,7 @@ function LiveStage({
   onShowMe,
 }: {
   app: GlyphApp & { name: string };
-  tools: Tool[];
+  can: Capability[];
   firstConnect: boolean;
   mcpUrl: string | null;
   bottomInset: number;
@@ -146,8 +144,7 @@ function LiveStage({
     return () => clearTimeout(id);
   }, [copied]);
 
-  const writes = tools.filter((t) => t.kind === "write").length;
-  const example = EXAMPLES[app.slug];
+  const example = copyFor(app.slug)?.prompts[0];
 
   const copy = async () => {
     if (!mcpUrl) return;
@@ -163,7 +160,7 @@ function LiveStage({
         <SuccessMark />
         <Animated.View entering={FadeInDown.delay(260).duration(280)}>
           <Text variant="title" style={styles.center}>
-            {app.name} is live
+            {app.name} is ready
           </Text>
         </Animated.View>
         <Animated.View entering={FadeInDown.delay(320).duration(280)}>
@@ -175,14 +172,9 @@ function LiveStage({
               : "Already in your assistants. Nothing to paste."}
           </Text>
         </Animated.View>
-        {tools.length > 0 ? (
-          <Animated.View entering={FadeIn.delay(380).duration(280)} style={styles.summary}>
-            <Text variant="bodyMedium">
-              {tools.length} {tools.length === 1 ? "tool" : "tools"}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary}>
-              {writes > 0 ? `${writes} need your OK` : "Read only"}
-            </Text>
+        {can.length > 0 ? (
+          <Animated.View entering={FadeIn.delay(380).duration(280)} style={styles.liveCan}>
+            <CanList can={can} />
           </Animated.View>
         ) : null}
       </ScrollView>
@@ -228,7 +220,7 @@ function LiveStage({
   );
 }
 
-/** One modal for Sign in, Build and Live. The progress bar at the top never resets. */
+/** One modal for Sign in, Set up and Done. The progress bar at the top never resets. */
 export default function ConnectFlow() {
   const params = useLocalSearchParams<{ connectionId: string; slug?: string; onboarding?: string }>();
   const connectionId = params.connectionId as Id<"connections">;
@@ -243,7 +235,6 @@ export default function ConnectFlow() {
   const slug = conn?.appSlug ?? params.slug;
   const app = useQuery(api.apps.get, slug ? { slug } : "skip");
   const build = useQuery(api.builds.forConnection, connectionId ? { connectionId } : "skip");
-  const recipe = useQuery(api.recipes.forApp, slug ? { slug } : "skip");
   const submitLogin = useMutation(api.connections.submitLogin);
   const submitCode = useMutation(submitCodeRef);
   const start = useMutation(api.connections.start);
@@ -256,6 +247,10 @@ export default function ConnectFlow() {
   const [firstConnect, setFirstConnect] = useState<boolean | null>(null);
   const [openedLive, setOpenedLive] = useState<boolean | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [startUrl, setStartUrl] = useState<string | undefined>(undefined);
+  const [magicOpen, setMagicOpen] = useState(false);
+  const [magicText, setMagicText] = useState("");
+  const [magicError, setMagicError] = useState<string | null>(null);
 
   const status = conn?.status as string | undefined;
 
@@ -285,22 +280,14 @@ export default function ConnectFlow() {
   const steps: DisplayStep[] =
     preSubmit && isWeb && web.loggedIn
       ? [
-          { key: "signin", label: "Signed in", status: "done" },
-          {
-            key: "read",
-            label: "Reading your account",
-            status: "running",
-            detail: web.requests > 0 ? `${web.requests} requests captured` : undefined,
-          },
-          { key: "write", label: "Writing tools", status: "pending" },
-          { key: "test", label: "Testing a real request", status: "pending" },
+          { key: "signin", label: "Signing in", status: "done" },
+          { key: "read", label: "Learning the app", status: "running" },
+          { key: "test", label: "Checking it works", status: "pending" },
+          { key: "ready", label: "Ready", status: "pending" },
         ]
       : mergeSteps(build?.steps);
 
-  const tools: Tool[] =
-    conn && conn.tools.length > 0
-      ? conn.tools
-      : (recipe?.tools ?? []).map((t) => ({ name: t.name, title: t.title, kind: t.kind }));
+  const can = slug ? (copyFor(slug)?.can ?? []) : [];
 
   const fills: [number, number, number] =
     stage === "signin"
@@ -351,12 +338,30 @@ export default function ConnectFlow() {
     setSettled(false);
     setShownSteps(0);
     setWeb({ phase: "login", requests: 0, loggedIn: false });
+    setStartUrl(undefined);
     setAttempt((n) => n + 1);
     await start({ userId, appSlug: app.slug });
   };
 
   const domain = app ? hostOf(app.webOrigin ?? app.loginUrl) : "";
   const showWebView = !!app && isWeb && preSubmit;
+  const magic = app ? captureConfigFor(app.slug, app.loginUrl, app.webOrigin).magicLink : undefined;
+
+  // Magic sign-in (ParkMobile): load the pasted link in the capture browser instead of the login page.
+  const submitMagicLink = () => {
+    if (!app) return;
+    const url = magicLinkFor(app.slug, magicText);
+    if (!url) {
+      setMagicError(`That isn't a ${app.name} sign-in link.`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      return;
+    }
+    setStartUrl(url);
+    setMagicOpen(false);
+    setMagicText("");
+    setWeb({ phase: "login", requests: 0, loggedIn: false });
+    setAttempt((n) => n + 1);
+  };
   const signingIn = stage === "signin" || stage === "code";
   const codePrompt =
     build?.steps.find((s) => s.key === "signin")?.detail ?? (app ? `Enter the code ${app.name} emailed you.` : "");
@@ -385,24 +390,57 @@ export default function ConnectFlow() {
           ) : null}
         </View>
         <View style={[styles.side, styles.sideRight]}>
-          {showWebView && web.requests > 0 ? (
-            <View style={styles.counter}>
-              <TweenNumber value={web.requests} variant="micro" color={colors.textSecondary} />
-              <Text variant="micro" color={colors.textSecondary}>
-                {web.requests === 1 ? " request" : " requests"}
-              </Text>
-            </View>
-          ) : null}
         </View>
       </View>
 
       <FlowProgress fills={fills} active={active} />
 
+      {showWebView && magic && stage === "signin" ? (
+        <View style={styles.magicBar}>
+          <Button label={magic.label} kind="secondary" size="small" onPress={() => setMagicOpen(true)} />
+        </View>
+      ) : null}
+
       <View style={styles.body}>
         {showWebView ? (
           <View key={`web-${attempt}`} style={[StyleSheet.absoluteFill, styles.webWrap]}>
-            <CaptureWebView app={app} onProgress={setWeb} onDone={({ session, capture }) => submit(session, capture)} />
+            <CaptureWebView
+              app={app}
+              startUrl={startUrl}
+              onProgress={setWeb}
+              onDone={({ session, capture }) => submit(session, capture)}
+            />
           </View>
+        ) : null}
+
+        {showWebView && magic && magicOpen ? (
+          <Animated.View entering={stageIn} exiting={stageOut} style={[styles.stage, styles.magicPanel]}>
+            <Text variant="heading">{magic.label}</Text>
+            <TextInput
+              value={magicText}
+              onChangeText={(t) => {
+                setMagicText(t);
+                setMagicError(null);
+              }}
+              placeholder="https://"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus
+              multiline
+              style={[styles.magicInput, magicError ? styles.magicInputError : null]}
+              selectionColor={colors.text}
+            />
+            <Text variant="caption" color={magicError ? colors.error : colors.textSecondary}>
+              {magicError ?? magic.hint}
+            </Text>
+            <Button label="Continue" onPress={submitMagicLink} disabled={!magicText.trim()} fullWidth />
+            <PressableScale onPress={() => setMagicOpen(false)} haptic="selection" style={styles.textButton} accessibilityLabel="Cancel">
+              <Text variant="bodyMedium" color={colors.textSecondary}>
+                Cancel
+              </Text>
+            </PressableScale>
+          </Animated.View>
         ) : null}
 
         {stage === "loading" ? (
@@ -445,7 +483,7 @@ export default function ConnectFlow() {
 
         {stage === "build" && app ? (
           <Animated.View key={`build-${attempt}`} entering={stageIn} exiting={stageOut} style={[styles.stage, styles.opaque]}>
-            <BuildStage app={app} steps={steps} tools={tools} onShown={setShownSteps} onSettled={onSettled} />
+            <BuildStage app={app} steps={steps} can={can} onShown={setShownSteps} onSettled={onSettled} />
           </Animated.View>
         ) : null}
 
@@ -453,7 +491,7 @@ export default function ConnectFlow() {
           <Animated.View key="live" entering={stageIn} style={[styles.stage, styles.opaque]}>
             <LiveStage
               app={app}
-              tools={tools}
+              can={can}
               firstConnect={firstConnect ?? false}
               mcpUrl={mcpUrl}
               bottomInset={insets.bottom}
@@ -471,7 +509,7 @@ export default function ConnectFlow() {
                 Couldn&apos;t connect {app.name}
               </Text>
               <Text variant="body" color={colors.error} style={styles.center}>
-                {build?.error ?? conn?.error ?? "Something broke while building the connector."}
+                {plainError(build?.error ?? conn?.error, "Something went wrong while setting it up.")}
               </Text>
             </View>
             <View style={[styles.footer, { paddingBottom: insets.bottom + space.md }]}>
@@ -554,6 +592,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: space.md,
   },
+  liveCan: { marginTop: space.lg, alignSelf: "stretch" },
+  magicBar: { paddingHorizontal: space.gutter, paddingTop: space.md, alignItems: "flex-start" },
+  magicPanel: { backgroundColor: colors.bg, padding: space.gutter, paddingTop: space.xl, gap: space.md },
+  magicInput: {
+    minHeight: 96,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    padding: space.md,
+    color: colors.text,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    textAlignVertical: "top",
+  },
+  magicInputError: { borderColor: colors.error },
   summary: {
     marginTop: space.lg,
     alignSelf: "stretch",

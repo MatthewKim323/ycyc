@@ -8,6 +8,7 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ApprovalSheet } from "@/components/approval-sheet";
 import { DeviceRelay } from "@/components/device-relay";
 import { OnboardingProvider, useOnboarding } from "@/hooks/onboarding";
 import { UserProvider, useUser } from "@/hooks/user";
@@ -73,6 +74,7 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
       <Stack.Screen name="build/[connectionId]" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
       <Stack.Screen name="app/[slug]" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+      <Stack.Screen name="add" options={{ presentation: "modal" }} />
     </Stack>
   );
 }
@@ -90,6 +92,7 @@ export default function RootLayout() {
                 <StatusBar style="light" />
                 <RootStack fontsReady={fontsLoaded || !!fontError} />
                 <Relay />
+                <ApprovalSheet />
               </ThemeProvider>
             </OnboardingProvider>
           </UserProvider>

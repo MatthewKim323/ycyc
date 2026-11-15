@@ -23,7 +23,6 @@ const BADGES: Record<string, { icon: IconName; took: string }> = {
   first_approval: { icon: "check", took: "You approved a change from your phone." },
   streak_3: { icon: "flame", took: "Something got logged three days in a row." },
   two_apps: { icon: "puzzle", took: "Two apps connected at the same time." },
-  logged_by_text: { icon: "chat", took: "You logged something by typing it." },
 };
 
 /** Keeps Today from taking the screen down if the backend query is missing or throws. */
@@ -147,6 +146,8 @@ function TodayBody({ userId, connections }: { userId: Id<"users">; connections: 
 
   const live = (slug: string) => !!connections?.some((c) => c.appSlug === slug && c.status === "live");
   const streak = today?.streakDays ?? 0;
+  // Only badges we can explain; anything else from the backend stays hidden.
+  const badges = (today?.achievements ?? []).filter((a) => a.key in BADGES);
 
   return (
     <View style={styles.wrap}>
@@ -171,9 +172,9 @@ function TodayBody({ userId, connections }: { userId: Id<"users">; connections: 
         </View>
       </Animated.View>
 
-      {today && today.achievements.length > 0 ? (
+      {badges.length > 0 ? (
         <View style={styles.badges}>
-          {today.achievements.map((a, i) => (
+          {badges.map((a, i) => (
             <Badge key={a.key} a={a} index={i + 4} onPress={() => setOpen(a)} />
           ))}
         </View>

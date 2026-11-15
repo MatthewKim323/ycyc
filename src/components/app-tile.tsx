@@ -1,60 +1,55 @@
 import * as Haptics from "expo-haptics";
 import { memo, useEffect, useRef } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 import type { CatalogApp } from "@/lib/contract";
 import { colors, enter, radius, space, springs } from "@/theme";
 
+import { taglineFor } from "./app-copy";
 import { AppGlyph } from "./app-glyph";
+import { Icon } from "./icon";
 import { PressableScale } from "./pressable-scale";
-import { StatusDot, type DotState } from "./status-dot";
 import { Text } from "./text";
 
-const CAPABILITY: Record<string, string> = {
-  myfitnesspal: "Food diary, macros",
-  strong: "Workouts, sets, PRs",
-  flo: "Cycle, symptoms",
-};
+export { taglineFor as capabilityOf } from "./app-copy";
 
-export function capabilityOf(app: Pick<CatalogApp, "slug" | "blurb">): string {
-  return CAPABILITY[app.slug] ?? app.blurb;
-}
-
-export type TileState = { kind: "available" } | { kind: "live"; tools: number } | { kind: "status"; dot: DotState; label: string };
-
+export const TILE = 88;
 const FLIP = { damping: 20, stiffness: 140, mass: 1 };
 
 /**
- * Collectible app tile. Front face shows the app and what it does; the live face shows it working.
- * When a connection goes live while the tile is on screen, it flips over once with a Success haptic.
+ * Home-screen style app tile: big logo, name underneath. While an app is still being set up the logo
+ * sits dimmed with a short note; the moment it's ready the tile flips to the full logo once, with a
+ * Success haptic.
  */
 export const AppTile = memo(function AppTile({
   app,
-  state,
+  ready,
+  note,
   index,
+  width,
   onPress,
 }: {
-  app: Pick<CatalogApp, "slug" | "name" | "category" | "blurb">;
-  state: TileState;
+  app: Pick<CatalogApp, "slug" | "name" | "category">;
+  ready: boolean;
+  /** Short state under the name while not ready ("Setting up", "Sign in"). */
+  note?: string;
   index: number;
+  width: number;
   onPress: () => void;
 }) {
-  const { width } = useWindowDimensions();
-  const cellWidth = (Math.min(width, 520) - space.gutter * 2 - space.md) / 2;
-  const live = state.kind === "live";
-  const rot = useSharedValue(live ? 180 : 0);
-  const wasLive = useRef(live);
+  const rot = useSharedValue(ready ? 180 : 0);
+  const wasReady = useRef(ready);
 
   useEffect(() => {
-    if (live && !wasLive.current) {
+    if (ready && !wasReady.current) {
       rot.set(withSpring(180, FLIP));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    } else if (!live && wasLive.current) {
+    } else if (!ready && wasReady.current) {
       rot.set(withSpring(0, springs.layout));
     }
-    wasLive.current = live;
-  }, [live, rot]);
+    wasReady.current = ready;
+  }, [ready, rot]);
 
   const front = useAnimatedStyle(() => ({
     transform: [{ perspective: 800 }, { rotateY: `${rot.get()}deg` }],
@@ -65,85 +60,107 @@ export const AppTile = memo(function AppTile({
     opacity: rot.get() >= 90 ? 1 : 0,
   }));
 
-  const label =
-    state.kind === "live"
-      ? `${app.name}, live, ${state.tools} tools`
-      : state.kind === "status"
-        ? `${app.name}, ${state.label}`
-        : `Connect ${app.name}`;
-
   return (
-    <Animated.View entering={enter(index)} style={{ width: cellWidth }}>
-      <PressableScale onPress={onPress} haptic="selection" accessibilityLabel={label} style={styles.press}>
-        <Animated.View style={[styles.face, front]}>
-          <AppGlyph app={app} size={40} />
-          <View style={styles.text}>
-            <Text variant="rowTitle" numberOfLines={1}>
-              {app.name}
-            </Text>
-            {state.kind === "status" ? (
-              <View style={styles.statusLine}>
-                <StatusDot state={state.dot} size={6} />
-                <Text variant="caption" color={state.dot === "error" ? colors.error : colors.textSecondary} numberOfLines={1}>
-                  {state.label}
-                </Text>
-              </View>
-            ) : (
-              <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
-                {capabilityOf(app)}
-              </Text>
-            )}
-          </View>
-        </Animated.View>
-        <Animated.View style={[styles.face, styles.liveFace, back]}>
-          <View style={styles.liveTop}>
-            <AppGlyph app={app} size={40} />
-            <View style={styles.livePill}>
-              <StatusDot state="live" size={6} />
-              <Text variant="micro" color={colors.text}>
-                Live
-              </Text>
+    <Animated.View entering={enter(index)} style={{ width }}>
+      <PressableScale
+        onPress={onPress}
+        haptic="selection"
+        accessibilityLabel={note ? `${app.name}, ${note}` : app.name}
+        style={styles.press}
+      >
+        <View style={styles.logoBox}>
+          <Animated.View style={[styles.face, front]}>
+            <View style={styles.dim}>
+              <AppGlyph app={app} size={TILE} />
             </View>
-          </View>
-          <View style={styles.text}>
-            <Text variant="rowTitle" numberOfLines={1}>
-              {app.name}
-            </Text>
-            <Text variant="caption" color={colors.textSecondary} style={styles.tabular} numberOfLines={1}>
-              {state.kind === "live" ? `${state.tools} ${state.tools === 1 ? "tool" : "tools"} in every assistant` : ""}
-            </Text>
-          </View>
-        </Animated.View>
+          </Animated.View>
+          <Animated.View style={[styles.face, back]}>
+            <AppGlyph app={app} size={TILE} />
+          </Animated.View>
+        </View>
+        <Text variant="label" numberOfLines={1} style={styles.center}>
+          {app.name}
+        </Text>
+        {!ready && note ? (
+          <Text variant="micro" color={colors.textTertiary} numberOfLines={1} style={styles.center}>
+            {note}
+          </Text>
+        ) : null}
+      </PressableScale>
+    </Animated.View>
+  );
+});
+
+/** Dashed "Add" tile that opens the app picker. */
+export function AddTile({ index, width, onPress }: { index: number; width: number; onPress: () => void }) {
+  return (
+    <Animated.View entering={enter(index)} style={{ width }}>
+      <PressableScale onPress={onPress} haptic="selection" accessibilityLabel="Add an app" style={styles.press}>
+        <View style={styles.add}>
+          <Icon name="plus" size={30} opacity={0.5} />
+        </View>
+        <Text variant="label" color={colors.textSecondary} style={styles.center}>
+          Add
+        </Text>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
+/** Wider picker card: logo, name and what it's for. */
+export const PickTile = memo(function PickTile({
+  app,
+  index,
+  width,
+  onPress,
+}: {
+  app: Pick<CatalogApp, "slug" | "name" | "category" | "blurb">;
+  index: number;
+  width: number;
+  onPress: () => void;
+}) {
+  return (
+    <Animated.View entering={enter(index)} style={{ width }}>
+      <PressableScale onPress={onPress} haptic="selection" accessibilityLabel={`Connect ${app.name}`} style={styles.card}>
+        <AppGlyph app={app} size={44} />
+        <View style={styles.cardText}>
+          <Text variant="rowTitle" numberOfLines={1}>
+            {app.name}
+          </Text>
+          <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
+            {taglineFor(app)}
+          </Text>
+        </View>
       </PressableScale>
     </Animated.View>
   );
 });
 
 const styles = StyleSheet.create({
-  press: { height: 128 },
-  face: {
-    ...StyleSheet.absoluteFill,
+  press: { alignItems: "center", gap: 6 },
+  logoBox: { width: TILE, height: TILE, marginBottom: 4 },
+  face: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden" },
+  dim: { opacity: 0.35 },
+  center: { textAlign: "center" },
+  add: {
+    width: TILE,
+    height: TILE,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: colors.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  card: {
+    height: 128,
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
     padding: space.lg,
     justifyContent: "space-between",
-    backfaceVisibility: "hidden",
   },
-  liveFace: { borderColor: colors.borderStrong, backgroundColor: colors.surface2 },
-  liveTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  livePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  text: { gap: 2 },
-  statusLine: { flexDirection: "row", alignItems: "center", gap: 6 },
-  tabular: { fontVariant: ["tabular-nums"] },
+  cardText: { gap: 2 },
 });

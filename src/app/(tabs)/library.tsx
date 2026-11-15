@@ -1,75 +1,65 @@
 import { useQuery } from "convex/react";
-import { useRouter } from "expo-router";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { type Href, useRouter } from "expo-router";
+import { ActivityIndicator, StyleSheet, useWindowDimensions, View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { AppTile, type TileState } from "@/components/app-tile";
-import { LargeTitle, Screen, SectionHeader } from "@/components/layout";
+import { AddTile, AppTile } from "@/components/app-tile";
+import { Screen } from "@/components/layout";
 import { statusLook } from "@/components/rows";
-import { api, type CatalogEntry, type MyConnection } from "@/hooks/convex";
+import { Text } from "@/components/text";
+import { api, type MyConnection } from "@/hooks/convex";
 import { useUser } from "@/hooks/user";
-import { colors, space } from "@/theme";
+import { colors, enter, space } from "@/theme";
 
-function tileState(conn: MyConnection | undefined): TileState {
-  if (!conn) return { kind: "available" };
-  if (conn.status === "live") return { kind: "live", tools: conn.toolCount };
-  const look = statusLook(conn.status, conn.toolCount);
-  return { kind: "status", dot: look.dot, label: conn.status === "error" && conn.error ? conn.error : look.label };
-}
+const GUTTER = 20;
+const COL_GAP = 18;
 
-export default function AppsScreen() {
+export default function YourApps() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { userId } = useUser();
-  const apps = useQuery(api.apps.list);
   const connections = useQuery(api.connections.mine, userId ? { userId } : "skip");
+  const tileWidth = (Math.min(width, 520) - GUTTER * 2 - COL_GAP * 2) / 3;
 
-  const bySlug = new Map((connections ?? []).map((c) => [c.appSlug, c]));
-  const mine = (apps ?? []).filter((a) => bySlug.has(a.slug));
-  const rest = (apps ?? []).filter((a) => !bySlug.has(a.slug));
-
-  const open = (app: CatalogEntry) => {
-    const c = bySlug.get(app.slug);
-    const status = c?.status as string | undefined;
-    if (!c) router.push({ pathname: "/connect/[slug]", params: { slug: app.slug } });
-    else if (status === "live") router.push({ pathname: "/app/[slug]", params: { slug: app.slug } });
+  const open = (c: MyConnection) => {
+    const status = c.status as string;
+    if (status === "live") router.push({ pathname: "/app/[slug]", params: { slug: c.appSlug } });
     else if (status === "building" || status === "capturing" || status === "needs_code")
-      router.push({ pathname: "/build/[connectionId]", params: { connectionId: c._id, slug: app.slug } });
-    else router.push({ pathname: "/connect/[slug]", params: { slug: app.slug } });
+      router.push({ pathname: "/build/[connectionId]", params: { connectionId: c._id, slug: c.appSlug } });
+    else router.push({ pathname: "/connect/[slug]", params: { slug: c.appSlug } });
   };
 
-  const loading = apps === undefined || (!!userId && connections === undefined);
-
   return (
-    <Screen>
-      <LargeTitle>Apps</LargeTitle>
+    <Screen contentStyle={styles.content}>
+      <Animated.View entering={enter(0)}>
+        <Text style={styles.title}>Your apps</Text>
+      </Animated.View>
 
-      {loading ? <ActivityIndicator color={colors.textTertiary} style={styles.loading} /> : null}
-
-      {mine.length > 0 ? (
-        <View>
-          <SectionHeader title={`Connected · ${mine.length}`} />
-          <View style={styles.grid}>
-            {mine.map((a, i) => (
-              <AppTile key={a.slug} app={a} index={i} state={tileState(bySlug.get(a.slug))} onPress={() => open(a)} />
-            ))}
-          </View>
+      {userId && connections === undefined ? (
+        <ActivityIndicator color={colors.textTertiary} style={styles.loading} />
+      ) : (
+        <View style={styles.grid}>
+          {(connections ?? []).map((c, i) => (
+            <AppTile
+              key={c._id}
+              app={c.app}
+              ready={c.status === "live"}
+              note={statusLook(c.status).label}
+              index={i + 1}
+              width={tileWidth}
+              onPress={() => open(c)}
+            />
+          ))}
+          <AddTile index={(connections?.length ?? 0) + 1} width={tileWidth} onPress={() => router.push("/add" as Href)} />
         </View>
-      ) : null}
-
-      {rest.length > 0 ? (
-        <View>
-          <SectionHeader title={mine.length > 0 ? "Add another" : "Pick an app"} />
-          <View style={styles.grid}>
-            {rest.map((a, i) => (
-              <AppTile key={a.slug} app={a} index={mine.length + i} state={{ kind: "available" }} onPress={() => open(a)} />
-            ))}
-          </View>
-        </View>
-      ) : null}
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  content: { paddingHorizontal: GUTTER, gap: space.xxl, paddingTop: space.lg },
+  title: { fontFamily: "Inter_600SemiBold", fontSize: 30, lineHeight: 36, letterSpacing: -0.6, color: colors.text },
   loading: { paddingVertical: space.xl },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
+  grid: { flexDirection: "row", flexWrap: "wrap", columnGap: COL_GAP, rowGap: 28 },
 });

@@ -8,6 +8,18 @@ import { CopyButton } from "./copy-button";
 import { Icon } from "./icon";
 import { Text } from "./text";
 
+/** Shows the link without protocol words: host, then the start of the private token. */
+export function displayLink(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const token = u.pathname.split("/").filter(Boolean).pop() ?? "";
+    return `${u.host}/…/${token.slice(0, 10)}`;
+  } catch {
+    return url.replace(/^https?:\/\//, "");
+  }
+}
+
 export function McpLinkCard({
   url,
   showSetup = true,
@@ -18,14 +30,14 @@ export function McpLinkCard({
   compact?: boolean;
 }) {
   const router = useRouter();
-  const display = url ? url.replace(/^https?:\/\//, "") : null;
+  const display = displayLink(url);
   if (compact) {
     return (
       <View style={[styles.card, styles.compact]}>
         <Icon name="link" size={20} />
         <View style={styles.compactText}>
           <Text variant="label" color={colors.textSecondary}>
-            Your MCP link
+            Your link
           </Text>
           <Text variant="caption" color={colors.textTertiary} numberOfLines={1} ellipsizeMode="middle">
             {display ?? "Creating your link"}
@@ -40,7 +52,7 @@ export function McpLinkCard({
       <View style={styles.head}>
         <Icon name="link" size={22} autoPlay />
         <Text variant="label" color={colors.textSecondary}>
-          Your MCP link
+          Your link
         </Text>
       </View>
       <View style={styles.urlBox}>

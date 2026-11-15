@@ -29,7 +29,7 @@ export default function Welcome() {
         </View>
         <Reveal delay={560}>
           <Text variant="body" color={colors.textSecondary}>
-            Connect apps that have no API. Use them from Claude, ChatGPT, Grok and Muse.
+            Connect the apps you already use. Use them from Claude, ChatGPT, Grok and Muse.
           </Text>
         </Reveal>
         <Reveal delay={700} style={styles.cta}>

@@ -3,48 +3,57 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 
+import { copyFor, plainError } from "@/components/app-copy";
 import { AppGlyph } from "@/components/app-glyph";
 import { Button } from "@/components/button";
-import { Card, Divider, Screen, SectionHeader, TopBar } from "@/components/layout";
-import { ActivityRow, statusLook } from "@/components/rows";
-import { StatusDot } from "@/components/status-dot";
+import { Screen, TopBar } from "@/components/layout";
+import { plainSummary, statusLook } from "@/components/rows";
 import { Text } from "@/components/text";
 import { api } from "@/hooks/convex";
-import { useNow } from "@/hooks/format";
+import { assistantName, timeAgo, useNow } from "@/hooks/format";
 import { useUser } from "@/hooks/user";
-import { colors, radius, space } from "@/theme";
+import { colors, enter, space } from "@/theme";
 
-export default function AppDetailScreen() {
+const ASSISTANTS = ["claude", "chatgpt", "grok", "muse"];
+
+function listJoin(names: string[]) {
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+function lowerFirst(s: string) {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+export default function AppDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const now = useNow();
   const { userId } = useUser();
   const app = useQuery(api.apps.get, slug ? { slug } : "skip");
   const connections = useQuery(api.connections.mine, userId ? { userId } : "skip");
-  const recipe = useQuery(api.recipes.forApp, slug ? { slug } : "skip");
   const feed = useQuery(api.activity.feed, userId ? { userId, limit: 100 } : "skip");
   const disconnect = useMutation(api.connections.disconnect);
   const [removing, setRemoving] = useState(false);
 
   const conn = connections?.find((c) => c.appSlug === slug);
-  const tools =
-    conn && conn.tools.length > 0
-      ? conn.tools
-      : (recipe?.tools ?? []).map((t) => ({ name: t.name, title: t.title, kind: t.kind }));
-  const activity = (feed ?? []).filter((a) => a.appSlug === slug).slice(0, 20);
+  const copy = slug ? copyFor(slug) : undefined;
+  const recent = (feed ?? []).filter((a) => a.appSlug === slug).slice(0, 6);
 
-  const back = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/library");
-  };
+  // Assistants this person actually uses; before any use, the four we support.
+  const used = [...new Set((feed ?? []).map((a) => a.assistant).filter((a) => ASSISTANTS.includes(a)))];
+  const inLine = `In ${listJoin((used.length ? used : ASSISTANTS).map(assistantName))}`;
+
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/library"));
 
   const confirmDisconnect = () => {
     if (!conn || !app) return;
-    Alert.alert(`Disconnect ${app.name}?`, "Your assistants lose its tools until you connect again.", [
+    Alert.alert(`Remove ${app.name}?`, "Your assistants won't be able to use it until you add it again.", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Disconnect",
+        text: "Remove",
         style: "destructive",
         onPress: async () => {
           setRemoving(true);
@@ -60,105 +69,116 @@ export default function AppDetailScreen() {
     ]);
   };
 
-  if (app === undefined) {
+  if (!app) {
     return (
-      <Screen header={<TopBar left="Back" onLeft={back} />}>
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.textTertiary} />
-        </View>
+      <Screen header={<TopBar left="Your apps" onLeft={back} />}>
+        {app === undefined ? (
+          <ActivityIndicator color={colors.textTertiary} style={styles.loading} />
+        ) : (
+          <Text variant="body" color={colors.textSecondary}>
+            This app isn&apos;t available.
+          </Text>
+        )}
       </Screen>
     );
   }
 
-  if (app === null) {
-    return (
-      <Screen header={<TopBar left="Back" onLeft={back} />}>
-        <Text variant="body" color={colors.textSecondary}>
-          This app isn&apos;t in the library.
-        </Text>
-      </Screen>
-    );
-  }
-
-  const look = conn ? statusLook(conn.status, conn.toolCount) : null;
+  const ready = conn?.status === "live";
+  const note = conn && !ready ? statusLook(conn.status).label : null;
   const goConnect = () => router.push({ pathname: "/connect/[slug]", params: { slug: app.slug } });
+  const status = conn?.status as string | undefined;
 
   return (
-    <Screen header={<TopBar left="Back" onLeft={back} />}>
-      <View style={styles.hero}>
-        <AppGlyph app={app} size={56} playKey={app.slug} />
+    <Screen header={<TopBar left="Your apps" onLeft={back} />}>
+      <Animated.View entering={enter(0)} style={styles.hero}>
+        <AppGlyph app={app} size={60} />
         <View style={styles.heroText}>
-          <Text variant="title">{app.name}</Text>
-          <View style={styles.statusLine}>
-            <StatusDot state={look?.dot ?? "idle"} />
-            <Text variant="label" color={conn?.status === "error" ? colors.error : colors.textSecondary} numberOfLines={2}>
-              {conn ? (conn.status === "error" && conn.error ? conn.error : look?.label) : "Not connected"}
-            </Text>
-          </View>
+          <Text style={styles.name}>{app.name}</Text>
+          <Text variant="body" color={conn?.status === "error" ? colors.error : colors.textSecondary} numberOfLines={2}>
+            {ready ? inLine : conn ? (conn.status === "error" ? plainError(conn.error, "Something went wrong") : note) : "Not added yet"}
+          </Text>
         </View>
-      </View>
+      </Animated.View>
 
-      {!conn || conn.status === "needs_login" || conn.status === "error" ? (
-        <Button label={conn ? "Reconnect" : `Connect ${app.name}`} onPress={goConnect} fullWidth />
+      {!conn || status === "needs_login" || status === "error" ? (
+        <Button label={conn ? "Sign in again" : `Add ${app.name}`} onPress={goConnect} fullWidth />
       ) : null}
-
-      {conn && (conn.status === "building" || conn.status === "capturing" || (conn.status as string) === "needs_code") ? (
+      {conn && (status === "building" || status === "capturing" || status === "needs_code") ? (
         <Button
-          label="View progress"
-          onPress={() =>
-            router.push({ pathname: "/build/[connectionId]", params: { connectionId: conn._id, slug: app.slug } })
-          }
+          label={status === "needs_code" ? "Enter your code" : "See progress"}
+          onPress={() => router.push({ pathname: "/build/[connectionId]", params: { connectionId: conn._id, slug: app.slug } })}
           fullWidth
         />
       ) : null}
 
-      {tools.length > 0 ? (
-        <View>
-          <SectionHeader title={`Tools · ${tools.length}`} />
-          <Card>
-            {tools.map((t, i) => (
-              <View key={t.name}>
-                {i > 0 ? <Divider inset={space.lg} /> : null}
-                <View style={styles.tool}>
-                  <Text variant="bodyMedium" style={styles.toolTitle} numberOfLines={1}>
-                    {t.title}
+      {copy ? (
+        <Animated.View entering={enter(1)} style={styles.section}>
+          <Text variant="label" color={colors.textTertiary}>
+            Your assistant can
+          </Text>
+          <View style={styles.card}>
+            {copy.can.map((c, i) => (
+              <View key={c.verb} style={[styles.canRow, i > 0 && styles.rowBorder]}>
+                <Text variant="rowTitle" style={styles.flex}>
+                  {c.verb}
+                </Text>
+                {c.asks ? (
+                  <Text variant="label" color={colors.textSecondary}>
+                    Asks you first
                   </Text>
-                  <View style={styles.tag}>
-                    <Text variant="micro" color={t.kind === "write" ? colors.text : colors.textSecondary}>
-                      {t.kind === "write" ? "Write" : "Read"}
-                    </Text>
-                  </View>
-                </View>
+                ) : null}
               </View>
             ))}
-          </Card>
-        </View>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {copy ? (
+        <Animated.View entering={enter(2)} style={styles.section}>
+          <Text variant="label" color={colors.textTertiary}>
+            Try asking
+          </Text>
+          <View style={styles.prompts}>
+            {copy.prompts.map((p) => (
+              <View key={p} style={styles.prompt}>
+                <Text variant="body" color="#D4D4D4">
+                  &ldquo;{p}&rdquo;
+                </Text>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
       ) : null}
 
       {conn ? (
-        <View>
-          <SectionHeader title="Recent activity" />
-          {activity.length === 0 ? (
-            <Card style={styles.empty}>
-              <Text variant="body" color={colors.textSecondary}>
-                No calls yet. Ask your assistant to use {app.name}.
-              </Text>
-            </Card>
+        <Animated.View entering={enter(3)} style={styles.section}>
+          <Text variant="label" color={colors.textTertiary}>
+            Recent
+          </Text>
+          {recent.length === 0 ? (
+            <Text variant="body" color={colors.textSecondary}>
+              Nothing yet. Try one of the prompts above.
+            </Text>
           ) : (
-            <Card>
-              {activity.map((item, i) => (
-                <View key={item._id}>
-                  {i > 0 ? <Divider inset={64} /> : null}
-                  <ActivityRow item={item} app={app} now={now} />
+            <View style={styles.recent}>
+              {recent.map((a) => (
+                <View key={a._id} style={styles.recentRow}>
+                  <Text variant="body" style={styles.flex} numberOfLines={1}>
+                    {assistantName(a.assistant)} {lowerFirst(plainSummary(a, app.name))}
+                    {a.status === "denied" ? " (you said not now)" : a.status === "error" ? " (didn't go through)" : ""}
+                  </Text>
+                  <Text variant="body" color={colors.textTertiary} style={styles.tabular}>
+                    {timeAgo(a.at, now)}
+                  </Text>
                 </View>
               ))}
-            </Card>
+            </View>
           )}
-        </View>
+        </Animated.View>
       ) : null}
 
       {conn ? (
-        <Button label="Disconnect" kind="danger" onPress={confirmDisconnect} loading={removing} fullWidth />
+        <Button label={`Remove ${app.name}`} kind="danger" onPress={confirmDisconnect} loading={removing} fullWidth />
       ) : null}
     </Screen>
   );
@@ -166,17 +186,17 @@ export default function AppDetailScreen() {
 
 const styles = StyleSheet.create({
   loading: { paddingVertical: space.xl },
-  hero: { flexDirection: "row", alignItems: "center", gap: space.lg, paddingTop: space.sm },
-  heroText: { flex: 1, gap: space.xs },
-  statusLine: { flexDirection: "row", alignItems: "center", gap: 6 },
-  tool: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: 14 },
-  toolTitle: { flex: 1 },
-  tag: {
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  empty: { padding: space.lg },
+  hero: { flexDirection: "row", alignItems: "center", gap: 14, paddingTop: space.sm },
+  heroText: { flex: 1, gap: 4 },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: colors.text },
+  section: { gap: 10 },
+  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 18, backgroundColor: colors.surface, overflow: "hidden" },
+  canRow: { flexDirection: "row", alignItems: "center", paddingVertical: 15, paddingHorizontal: space.lg, gap: space.md },
+  rowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  flex: { flex: 1 },
+  prompts: { gap: space.sm },
+  prompt: { paddingVertical: space.md, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.surface2 },
+  recent: { gap: space.md },
+  recentRow: { flexDirection: "row", gap: space.md, alignItems: "baseline" },
+  tabular: { fontVariant: ["tabular-nums"] },
 });

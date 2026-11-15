@@ -14,7 +14,7 @@ export function PaywallSuccess({ onDone }: { onDone: () => void }) {
         <Animated.View entering={enter(1)} style={styles.copy}>
           <Text style={styles.headline}>You are on Pro</Text>
           <Text variant="body" color={colors.textSecondary} style={styles.centered}>
-            Connect every app you use and text your agent from iMessage.
+            Connect every app you use. They all show up in your assistants.
           </Text>
         </Animated.View>
       </View>

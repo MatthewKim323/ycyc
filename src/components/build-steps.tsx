@@ -13,18 +13,20 @@ import Animated, {
 import type { BuildStep } from "@/lib/contract";
 import { colors, enter, layout, space, springs } from "@/theme";
 
+import { plainError } from "./app-copy";
 import { Icon } from "./icon";
 import { Text } from "./text";
 
 export type DisplayStatus = "pending" | "running" | "done" | "error";
 export type DisplayStep = { key: string; label: string; status: DisplayStatus; detail?: string };
 
-// The backend runs six steps; people see four.
+// The backend runs six steps; people see four, in plain words. Backend detail lines are never shown
+// for running steps (they can carry internals); errors go through plainError.
 const GROUPS: { key: string; label: string; from: BuildStep["key"][] }[] = [
-  { key: "signin", label: "Signed in", from: ["signin"] },
-  { key: "read", label: "Reading your account", from: ["capture", "map"] },
-  { key: "write", label: "Writing tools", from: ["generate"] },
-  { key: "test", label: "Testing a real request", from: ["verify", "publish"] },
+  { key: "signin", label: "Signing in", from: ["signin"] },
+  { key: "read", label: "Learning the app", from: ["capture", "map", "generate"] },
+  { key: "test", label: "Checking it works", from: ["verify"] },
+  { key: "ready", label: "Ready", from: ["publish"] },
 ];
 
 export function mergeSteps(steps: BuildStep[] | undefined): DisplayStep[] {
@@ -37,7 +39,7 @@ export function mergeSteps(steps: BuildStep[] | undefined): DisplayStep[] {
     if (err) status = "error";
     else if (parts.length > 0 && parts.every(settled)) status = "done";
     else if (run || parts.some(settled)) status = "running";
-    return { key: g.key, label: g.label, status, detail: (err ?? run)?.detail };
+    return { key: g.key, label: g.label, status, detail: err ? plainError(err.detail, "This step didn't finish.") : undefined };
   });
 }
 

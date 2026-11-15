@@ -7,7 +7,6 @@ const ASSISTANTS: Record<string, string> = {
   chatgpt: "ChatGPT",
   grok: "Grok",
   muse: "Muse",
-  keiki: "Keiki",
   ycyc: "ycyc",
 };
 

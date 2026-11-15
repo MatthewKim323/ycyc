@@ -1,34 +1,38 @@
-import * as Haptics from "expo-haptics";
-import { memo, useEffect, useState } from "react";
+import { memo } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { SlideOutLeft, SlideOutRight } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
-import { api, type Activity, type PendingApproval } from "@/hooks/convex";
+import type { Activity } from "@/hooks/convex";
 import { assistantName, timeAgo } from "@/hooks/format";
 import type { CatalogApp, ConnectionStatus } from "@/lib/contract";
-import { colors, enter, layout, radius, space, springs } from "@/theme";
-import { useMutation } from "convex/react";
+import { colors, enter, layout, radius, space } from "@/theme";
 
+import { looksInternal, verbForTool } from "./app-copy";
 import { AppGlyph } from "./app-glyph";
-import { Button } from "./button";
 import { PressableScale } from "./pressable-scale";
 import type { DotState } from "./status-dot";
 import { Text } from "./text";
 
-export function statusLook(status: ConnectionStatus, toolCount = 0): { dot: DotState; label: string } {
+export function statusLook(status: ConnectionStatus, _toolCount = 0): { dot: DotState; label: string } {
   switch (status) {
     case "live":
-      return { dot: "live", label: toolCount ? `Live · ${toolCount} tools` : "Live" };
+      return { dot: "live", label: "" };
     case "building":
     case "capturing":
-      return { dot: "building", label: "Building" };
+      return { dot: "building", label: "Setting up" };
     case "needs_login":
-      return { dot: "idle", label: "Needs login" };
+      return { dot: "idle", label: "Sign in" };
     case "needs_code":
       return { dot: "building", label: "Enter code" };
     case "error":
-      return { dot: "error", label: "Error" };
+      return { dot: "error", label: "Try again" };
   }
+}
+
+/** The activity summary in plain words; internal-looking text falls back to the capability verb. */
+export function plainSummary(item: { summary: string; tool: string; appSlug: string }, appName: string): string {
+  if (!looksInternal(item.summary)) return item.summary;
+  return verbForTool(item.appSlug, item.tool) ?? `Used ${appName}`;
 }
 
 function RowShell({ children, onPress, label }: { children: React.ReactNode; onPress: () => void; label: string }) {
@@ -53,6 +57,7 @@ export const ActivityRow = memo(function ActivityRow({
   onPress?: () => void;
 }) {
   const appName = app?.name ?? item.appSlug;
+  const summary = plainSummary(item, appName);
   const statusText =
     item.status === "pending_approval"
       ? "Waiting for you"
@@ -66,7 +71,7 @@ export const ActivityRow = memo(function ActivityRow({
       <AppGlyph app={app ?? { slug: item.appSlug, category: "other" }} size={36} />
       <View style={styles.rowText}>
         <Text variant="bodyMedium" numberOfLines={2}>
-          {item.summary}
+          {summary}
         </Text>
         <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
           {assistantName(item.assistant)} in {appName} · {timeAgo(item.at, now)}
@@ -83,90 +88,12 @@ export const ActivityRow = memo(function ActivityRow({
   return (
     <Animated.View entering={enter(index)} layout={layout}>
       {onPress ? (
-        <RowShell onPress={onPress} label={item.summary}>
+        <RowShell onPress={onPress} label={summary}>
           {body}
         </RowShell>
       ) : (
         <View style={styles.row}>{body}</View>
       )}
-    </Animated.View>
-  );
-});
-
-function useSecondsLeft(expiresAt: number) {
-  const [left, setLeft] = useState(() => Math.max(0, Math.round((expiresAt - Date.now()) / 1000)));
-  useEffect(() => {
-    const id = setInterval(() => setLeft(Math.max(0, Math.round((expiresAt - Date.now()) / 1000))), 1000);
-    return () => clearInterval(id);
-  }, [expiresAt]);
-  return left;
-}
-
-export const ApprovalCard = memo(function ApprovalCard({
-  approval,
-  app,
-  index = 0,
-}: {
-  approval: PendingApproval;
-  app?: Pick<CatalogApp, "slug" | "category">;
-  index?: number;
-}) {
-  const decide = useMutation(api.approvals.decide);
-  const [busy, setBusy] = useState<"approve" | "deny" | null>(null);
-  const left = useSecondsLeft(approval.expiresAt);
-
-  const act = async (decision: "approve" | "deny") => {
-    setBusy(decision);
-    try {
-      await decide({ approvalId: approval._id, decision });
-      if (decision === "approve") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    } catch {
-      setBusy(null);
-    }
-  };
-
-  return (
-    <Animated.View
-      entering={enter(index)}
-      exiting={(busy === "deny" ? SlideOutLeft : SlideOutRight)
-        .springify()
-        .damping(springs.sheet.damping)
-        .stiffness(springs.sheet.stiffness)}
-      layout={layout}
-      style={styles.approval}
-    >
-      <View style={styles.approvalHead}>
-        <AppGlyph app={app ?? { slug: approval.appSlug, category: "other" }} size={36} />
-        <View style={styles.rowText}>
-          <Text variant="label" color={colors.textSecondary}>
-            {assistantName(approval.assistant)} wants to {approval.title.toLowerCase()} in {approval.appName}
-          </Text>
-          <Text variant="bodyMedium">{approval.summary}</Text>
-        </View>
-      </View>
-      <View style={styles.approvalActions}>
-        <Text variant="caption" color={colors.textTertiary} style={styles.expires}>
-          {left > 0 ? `${left}s left` : "Expiring"}
-        </Text>
-        <Button
-          label="Deny"
-          kind="secondary"
-          size="small"
-          haptic="none"
-          loading={busy === "deny"}
-          disabled={!!busy}
-          onPress={() => act("deny")}
-        />
-        <Button
-          label="Approve"
-          size="small"
-          haptic="none"
-          loading={busy === "approve"}
-          disabled={!!busy}
-          onPress={() => act("approve")}
-        />
-      </View>
     </Animated.View>
   );
 });

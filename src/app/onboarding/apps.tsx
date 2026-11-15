@@ -1,10 +1,10 @@
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppTile } from "@/components/app-tile";
+import { PickTile } from "@/components/app-tile";
 import { useBackdropDim } from "@/components/onboarding-chrome";
 import { PressableScale } from "@/components/pressable-scale";
 import { Text } from "@/components/text";
@@ -16,6 +16,8 @@ import { colors, enter, space } from "@/theme";
 export default function PickApp() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const cardWidth = (Math.min(width, 520) - space.gutter * 2 - space.md) / 2;
   const apps = useQuery(api.apps.list);
   const { finish } = useOnboarding();
   useBackdropDim(1, 300);
@@ -48,11 +50,11 @@ export default function PickApp() {
         ) : (
           <View style={styles.grid}>
             {apps.map((a, i) => (
-              <AppTile
+              <PickTile
                 key={a.slug}
                 app={a}
                 index={i + 1}
-                state={{ kind: "available" }}
+                width={cardWidth}
                 onPress={() => router.push({ pathname: "/connect/[slug]", params: { slug: a.slug, onboarding: "1" } })}
               />
             ))}
