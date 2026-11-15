@@ -42,6 +42,8 @@
 | OpenAI | $100 API credits | Personal one-time link handed out at kickoff (platform.openai.com/p/...) |
 | Supermemory | 1 month Pro with code `CAPYSM` | Pro checkout + code drops to $0. Skipped unless it works with no card |
 
+Capy tips from #capy: Max applies once you're checked in and signed up with the hackathon email (the invite can land in spam; DM lordspline if it doesn't show). Model `particle-1` is free; use a smart captain model that delegates to cheap ones, or connect Claude Code subs under Settings → Models. If GitHub connect fails, make sure the browser and Capy are on the same account.
+
 Discord: https://discord.gg/RfTHVTVFX (sponsor channels: #capy #revyl #convex #keiki #whop #supermemory, else #general). Submit: https://vibeapps.dev/judging/consumer-mobile-hackathon/submit
 
 Revyl MCP tools worth knowing: `start_device_session`, `install_app` (URL artifact), `launch_app`, `device_instruction` (one plain-English step), `device_extract` (pull data off the screen), `device_tap/type/swipe`, `screenshot`, `get_session_info` (viewer URL). Embed sessions end after 3 min idle or 10 min active. Network capture shows method, status, URL.

@@ -4,11 +4,12 @@
 | Prize | What wins it | Fit |
 |---|---|---|
 | **Main 1st/2nd/3rd** | Best app overall. Must use Capy + Revyl + Convex or you're not eligible | **Strong.** Revyl is our runtime, not just a test rig |
-| **Best use of Keiki** | $5k credits + a phone line. Keiki = "get an agent live on iMessage" | **Strongest track fit.** Basically free to add |
-| **Best use of Whop** | iPhone Duo per teammate (ships Jan). Whop = payments, checkout, subscriptions | **OK.** ~20 min paywall add-on, real business logic |
-| Supermemory, OpenAI, Candle | No track prize. Perks: Supermemory Pro free (code `CAPYSM`), $100 OpenAI credits, Candle mentors on retention | Use as needed |
+| **Keiki: Best iMessage App** | iPhone Duo per member + 1 year of Keiki | **Strongest track fit.** Basically free to add |
+| **Whop: Best Monetizable App** | iPad per member | **OK.** ~20 min paywall add-on, real business logic |
+| **Supermemory: Best Use of Supermemory** | 1 year of Supermemory Max + merch | Possible: cross-app memory for the morning brief |
+| OpenAI, Candle | No track prize. $100 OpenAI credits, Candle mentors on retention | Use as needed |
 
-Only two themed tracks exist (Keiki, Whop). Everything stacks: one project can win main + both tracks.
+Track prizes per #general (10:43 AM, kickoff slides). Everything stacks: one project can win main + every track.
 
 ## Main prize: lean on Revyl
 Most teams use Revyl to test their own app. We use it as the product: a cloud phone running Strong (an app with zero API) while an agent taps in your workout. That's the "best use of the required stack" story without a track for it.
