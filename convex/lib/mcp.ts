@@ -12,6 +12,7 @@ type Ctx = GenericActionCtx<DataModel>;
 const SUPPORTED_VERSIONS = ["2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"];
 const NEWEST_VERSION = SUPPORTED_VERSIONS[SUPPORTED_VERSIONS.length - 1];
 const APPROVAL_WAIT_MS = 20_000;
+const RUN_WAIT_MS = 25_000;
 const POLL_MS = 500;
 const SEP = "__";
 
@@ -129,6 +130,18 @@ function listTools(mc: McpContext) {
       },
       annotations: { title: "Connect an app", readOnlyHint: true, openWorldHint: false },
     },
+    {
+      name: "check_approval",
+      title: "Check an approval",
+      description:
+        "Check on a write that was waiting for the user's approval. Returns the result if it was approved and ran, or says it was denied or is still waiting.",
+      inputSchema: {
+        type: "object",
+        properties: { id: { type: "string", description: "The approval id from the earlier reply" } },
+        required: ["id"],
+      },
+      annotations: { title: "Check an approval", readOnlyHint: true, openWorldHint: false },
+    },
   ];
   // Sessionless tools work before the app is connected.
   for (const { appSlug, recipe } of mc.publicRecipes) {
@@ -196,16 +209,39 @@ function connectApp(mc: McpContext, token: string, args: Record<string, unknown>
   return textResult(`Open this link on your phone to connect ${app.name} in ycyc: ${url}`);
 }
 
-async function waitForApproval(ctx: Ctx, approvalId: Doc<"approvals">["_id"]): Promise<"approved" | "denied" | "expired"> {
+// Wait for the phone's decision, then (if approved) for approvalRunner to store the result.
+async function waitForApproval(ctx: Ctx, approvalId: Doc<"approvals">["_id"]): Promise<Doc<"approvals"> | null> {
   const deadline = Date.now() + APPROVAL_WAIT_MS;
+  let row: Doc<"approvals"> | null = null;
   while (Date.now() < deadline) {
     await sleep(POLL_MS);
-    const a = await ctx.runQuery(internal.approvals.get, { approvalId });
-    if (!a) return "denied";
-    if (a.status === "approved" || a.status === "denied" || a.status === "expired") return a.status;
+    row = await ctx.runQuery(internal.approvals.get, { approvalId });
+    if (!row || row.status === "denied" || row.status === "expired") return row;
+    if (row.status === "approved") break;
   }
-  const final = await ctx.runMutation(internal.approvals.expire, { approvalId });
-  return final === "approved" ? "approved" : final === "denied" ? "denied" : "expired";
+  if (row?.status !== "approved") return row;
+  // Approved: the run itself may take a while (device relay waits up to 20 s).
+  const runDeadline = Date.now() + RUN_WAIT_MS;
+  while (Date.now() < runDeadline) {
+    if (row?.runState === "done") return row;
+    await sleep(POLL_MS);
+    row = await ctx.runQuery(internal.approvals.get, { approvalId });
+  }
+  return row;
+}
+
+function approvalOutcome(row: Doc<"approvals"> | null, id: string) {
+  if (!row) return textResult("Unknown approval id.", true);
+  if (row.status === "approved" && row.runState === "done" && row.resultJson) {
+    const r = JSON.parse(row.resultJson) as { ok: boolean; text: string };
+    return textResult(r.ok ? `Approved and done. Result: ${r.text}` : `Approved, but it failed: ${r.text}`, !r.ok);
+  }
+  if (row.status === "approved") return textResult(`Approved and running now. Call check_approval with id ${id} in a few seconds for the result.`);
+  if (row.status === "denied") return textResult("The user denied this on their phone. Nothing was changed.", true);
+  if (row.status === "expired" || row.expiresAt < Date.now()) {
+    return textResult("Nobody approved this in time, so nothing was changed.", true);
+  }
+  return textResult(`Waiting for approval on the user's phone. Call check_approval with id ${id} in a bit.`);
 }
 
 async function callAppTool(
@@ -251,6 +287,28 @@ async function callAppTool(
   const summary = argSummary(args) ? `${tool.title}: ${argSummary(args)}` : tool.title;
 
   if (tool.kind === "write") {
+    // "Approve for an hour" grant for this assistant + tool: run now, no prompt.
+    const grant = await ctx.runQuery(internal.approvals.activeGrant, {
+      userId: mc.user._id,
+      assistant,
+      appSlug: slug,
+      tool: tool.name,
+    });
+    if (grant) {
+      const res = await executeTool(ctx, { conn, recipe, tool, args });
+      await ctx.runMutation(internal.activity.log, {
+        userId: mc.user._id,
+        appSlug: slug,
+        assistant,
+        tool: tool.name,
+        kind: "write",
+        summary,
+        status: res.ok ? "ok" : "error",
+        detail: res.ok ? "Approved for the hour" : res.text.slice(0, 300),
+      });
+      if (res.ok) await ctx.scheduler.runAfter(0, internal.today.refresh, { userId: mc.user._id });
+      return textResult(res.text || (res.ok ? "Done." : "Failed."), !res.ok);
+    }
     const approvalId = await ctx.runMutation(internal.approvals.create, {
       userId: mc.user._id,
       connectionId: conn._id,
@@ -260,40 +318,9 @@ async function callAppTool(
       summary,
       argsJson: JSON.stringify(args ?? {}),
       assistant,
-      ttlMs: APPROVAL_WAIT_MS + 5_000,
     });
-    const activityId = await ctx.runMutation(internal.activity.log, {
-      userId: mc.user._id,
-      appSlug: slug,
-      assistant,
-      tool: tool.name,
-      kind: "write",
-      summary,
-      status: "pending_approval",
-      approvalId,
-    });
-    const decision = await waitForApproval(ctx, approvalId);
-    if (decision !== "approved") {
-      await ctx.runMutation(internal.activity.update, {
-        activityId,
-        status: "denied",
-        detail: decision === "expired" ? "No answer on phone" : "Denied on phone",
-      });
-      return textResult(
-        decision === "expired"
-          ? `The user did not approve this on their phone within ${APPROVAL_WAIT_MS / 1000} seconds, so nothing was changed. Ask them to open ycyc and try again.`
-          : "The user denied this on their phone. Nothing was changed.",
-        true,
-      );
-    }
-    const res = await executeTool(ctx, { conn, recipe, tool, args });
-    await ctx.runMutation(internal.activity.update, {
-      activityId,
-      status: res.ok ? "ok" : "error",
-      detail: res.ok ? undefined : res.text.slice(0, 300),
-    });
-    if (res.ok) await ctx.scheduler.runAfter(0, internal.today.refresh, { userId: mc.user._id });
-    return textResult(res.text || (res.ok ? "Done." : "Failed."), !res.ok);
+    // Runs once in approvalRunner when the user approves, even after this call returns.
+    return approvalOutcome(await waitForApproval(ctx, approvalId), approvalId);
   }
 
   const res = await executeTool(ctx, { conn, recipe, tool, args });
@@ -354,6 +381,10 @@ async function handleMessage(
       const session = state.isNewSession ? null : await ctx.runQuery(internal.mcpData.session, { sessionId: state.sessionId });
       const assistant = session?.assistant ?? inferAssistant(undefined, req.headers.get("user-agent"));
       if (name === "list_apps") return listApps(mc, token);
+      if (name === "check_approval") {
+        const id = String(args.id ?? "");
+        return approvalOutcome(await ctx.runQuery(internal.approvals.forUser, { id, userId: mc.user._id }), id);
+      }
       if (name === "connect_app") {
         const out = connectApp(mc, token, args);
         const app = findApp(String(args.app ?? ""));

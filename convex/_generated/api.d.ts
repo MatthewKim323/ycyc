@@ -9,6 +9,7 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as approvalRunner from "../approvalRunner.js";
 import type * as approvals from "../approvals.js";
 import type * as apps from "../apps.js";
 import type * as authNode from "../authNode.js";
@@ -47,6 +48,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  approvalRunner: typeof approvalRunner;
   approvals: typeof approvals;
   apps: typeof apps;
   authNode: typeof authNode;

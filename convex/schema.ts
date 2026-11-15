@@ -149,7 +149,22 @@ export default defineSchema({
     createdAt: v.number(),
     expiresAt: v.number(),
     decidedAt: v.optional(v.number()),
+    warning: v.optional(v.string()), // "Charges your card", "Removes it from Cronometer"
+    activityId: v.optional(v.id("activity")),
+    // Run exactly once after approval, whoever gets there first; result kept for check_approval.
+    runState: v.optional(v.union(v.literal("running"), v.literal("done"))),
+    resultJson: v.optional(v.string()), // { ok, text }
   }).index("by_user_status", ["userId", "status"]),
+
+  // "Approve for an hour": later matching writes skip the phone prompt until expiresAt.
+  approvalGrants: defineTable({
+    userId: v.id("users"),
+    assistant: assistantValidator,
+    appSlug: v.string(),
+    tool: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_scope", ["userId", "appSlug", "tool"]),
 
   // Device relay queue: executor "device" calls run in a hidden WebView on the user's phone.
   calls: defineTable({
