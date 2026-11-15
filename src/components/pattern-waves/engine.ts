@@ -169,6 +169,8 @@ export type EngineHost = {
   // Make sure the default framebuffer can hold the canvas size and return its real pixel size.
   // Web sets the canvas size like ogl does; native returns the view's drawing buffer size.
   prepareBuffer: (canvasW: number, canvasH: number, width: number, height: number) => [number, number];
+  // Called after every presented frame (the component uses the first one to drop its fallback).
+  onFrame?: () => void;
 };
 
 export type Engine = {
@@ -563,6 +565,7 @@ export const createEngine = (gl: GL, host: EngineHost): Engine => {
       drawPass(presentPass);
     }
     gl.endFrameEXP?.();
+    host.onFrame?.();
     dirty = false;
 
     if (visible && (moving || introClock < 1 || rippleActive || dirty)) raf = requestAnimationFrame(frame);

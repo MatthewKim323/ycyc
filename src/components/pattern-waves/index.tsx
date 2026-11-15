@@ -7,6 +7,7 @@
 // drive the ripple, the way the original listens on window.
 
 import { GLView } from "expo-gl";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
   AppState,
   type GestureResponderEvent,
   type HostInstance,
+  Image,
   type LayoutChangeEvent,
   PixelRatio,
   Platform,
@@ -120,6 +122,16 @@ const PatternWaves = ({
   const reducedRef = useRef(false);
   const aliveRef = useRef(false);
   const [appActive, setAppActive] = useState(AppState.currentState !== "background");
+  // If GL never presents a frame (no ES3 context, shader rejected), show the same silk frame as a still.
+  const drawnRef = useRef(false);
+  const [fallback, setFallback] = useState(false);
+  useEffect(() => {
+    if (isWeb) return undefined;
+    const t = setTimeout(() => {
+      if (!drawnRef.current) setFallback(true);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []);
   const focused = useFocusedSafe();
 
   const base = SURFACE_PRESETS[preset] || SURFACE_PRESETS.silk;
@@ -204,6 +216,11 @@ const PatternWaves = ({
       const engine = createEngine(gl, {
         getSettings: () => settingsRef.current,
         pixelRatio: () => PixelRatio.get(),
+        onFrame: () => {
+          if (drawnRef.current) return;
+          drawnRef.current = true;
+          setFallback(false);
+        },
         prepareBuffer: (canvasW, canvasH, width, height) => {
           if (isWeb) {
             // Same as ogl's renderer.setSize: the canvas holds canvasW x canvasH, CSS stretches it.
@@ -236,7 +253,8 @@ const PatternWaves = ({
       if (width > 0 && height > 0) engine.resize(width, height);
     } catch (error) {
       canvasObserver?.disconnect();
-      if (__DEV__) console.warn(error);
+      console.warn("[pattern-waves] GL init failed", error);
+      setFallback(true);
     }
   };
 
@@ -329,10 +347,30 @@ const PatternWaves = ({
         onContextCreate={onContextCreate as (gl: unknown) => void}
         {...(isWeb ? { webglContextAttributes: WEB_CONTEXT_ATTRIBUTES } : null)}
       />
+      {fallback ? <SilkStill /> : null}
       {children}
     </View>
   );
 };
+
+// Pre-rendered frame of preset="silk" (same pixels as the shader), drifting slowly.
+const SilkStill = () => {
+  const drift = useSharedValue(0);
+  useEffect(() => {
+    drift.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [drift]);
+  const animated = useAnimatedStyle(() => ({
+    opacity: 1,
+    transform: [{ scale: 1.04 + drift.value * 0.05 }, { translateY: -6 + drift.value * 12 }],
+  }));
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, animated]}>
+      <Image source={SILK_STILL} style={StyleSheet.absoluteFill} resizeMode="cover" />
+    </Animated.View>
+  );
+};
+
+const SILK_STILL = require("../../../assets/images/pattern-silk.png");
 
 const styles = StyleSheet.create({
   root: {
