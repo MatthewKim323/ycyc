@@ -67,10 +67,10 @@
     {
       "scene": "s02-islands",
       "who": "narrator",
-      "start": 6.411,
-      "end": 13.244,
+      "start": 6.331,
+      "end": 14.071,
       "text": [
-        "The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them."
+        "The answer's in your apps. Meals in MyFitnessPal. Nutrients in Cronometer. Training in Strong. Your AI can't open any of them."
       ]
     },
     {
@@ -104,7 +104,7 @@
       "scene": "s05-link",
       "who": "narrator",
       "start": 27.184,
-      "end": 30.31,
+      "end": 30.309,
       "text": [
         "Then ONE link goes into every assistant you use."
       ]
@@ -176,7 +176,7 @@
       "scene": "s13-end",
       "who": "narrator",
       "start": 76.204,
-      "end": 79.157,
+      "end": 79.156,
       "text": [
         "Yuzu. Your apps, in every AI."
       ]

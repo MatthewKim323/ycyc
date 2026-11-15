@@ -3,8 +3,8 @@
 You pay for the smartest AI there is. Ask it why you're tired this week... and it guesses.
 
 2
-00:00:06,411 --> 00:00:13,244
-The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them.
+00:00:06,331 --> 00:00:14,071
+The answer's in your apps. Meals in MyFitnessPal. Nutrients in Cronometer. Training in Strong. Your AI can't open any of them.
 
 3
 00:00:14,944 --> 00:00:15,984
@@ -19,7 +19,7 @@ It connects them. Even the ones with no API.
 Sign in once. Yuzu reads your account, writes the tools, and tests a real request.
 
 6
-00:00:27,184 --> 00:00:30,310
+00:00:27,184 --> 00:00:30,309
 Then ONE link goes into every assistant you use.
 
 7
@@ -51,5 +51,5 @@ ParkMobile. Duolingo. Whatever you open next.
 Built today at YC, with Capy, Revyl, and Convex.
 
 14
-00:01:16,204 --> 00:01:19,157
+00:01:16,204 --> 00:01:19,156
 Yuzu. Your apps, in every AI.

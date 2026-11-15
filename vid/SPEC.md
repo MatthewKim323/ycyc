@@ -28,6 +28,9 @@ OBJECTS  the phone (black slab, 68 px corner radius, 14 px bezel, real capture i
          the approval card (the app's ApprovalCard: countdown, Deny / Approve); app tiles (the app's AppTile, front glyph +
          name + capability, back "Live" + "N tools in every assistant").
 
+PACE     Director's rule: something new on screen every 2-3 s at most (a cut, a new element, a camera move that changes
+         what you read). The intro runs faster, a change every ~1.5-2 s. Only the end-card hold (3 s) is exempt.
+
 MOTION
   enter:   `KIT.ease.enter` = cubic-bezier(0.16, 1, 0.3, 1), 18 frames, rising 36 px (the app's Reveal x3)
   UI:      the app's springs via `KIT.springs`: enter (zeta 0.84, omega 13), pop (0.75, 15), flip (0.85, 11.8) for the

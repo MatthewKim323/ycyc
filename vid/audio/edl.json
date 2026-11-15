@@ -19,15 +19,16 @@
   },
   {
    "id": "s02-islands",
-   "min": 6.0,
-   "tail": 0.5,
+   "min": 7.533,
+   "tail": -0.45,
    "lines": [
     {
      "who": "narrator",
-     "src": "audio/voice/chris/v02-t2.mp3",
-     "at": 0.2,
+     "src": "audio/voice/chris/v02-t1.mp3",
+     "at": 0.12,
+     "tempo": 1.06,
      "text": [
-      "The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them."
+      "The answer's in your apps. Meals in MyFitnessPal. Nutrients in Cronometer. Training in Strong. Your AI can't open any of them."
      ]
     }
    ]
