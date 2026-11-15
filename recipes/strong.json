@@ -48,6 +48,29 @@
         "x-client-platform": "android",
         "Authorization": "Bearer {{login.accessToken}}"
       }
+    },
+    "mfa": {
+      "prompt": "Enter the code Strong emailed you",
+      "verifyRequest": {
+        "method": "POST",
+        "urlTemplate": "{{challenge.redirectUrl}}?redirectUrl=strong%3A%2F%2Fmfa",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "bodyTemplate": "Code={{code}}&ChallengeId={{challenge.challenge}}&RedirectUrl=strong%3A%2F%2Fmfa&__RequestVerificationToken={{form.__RequestVerificationToken}}"
+      },
+      "exchangeRequest": {
+        "method": "POST",
+        "urlTemplate": "https://back.strong.app/auth/mfa/verify",
+        "headers": {
+          "User-Agent": "Strong Android",
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "x-client-build": "600013",
+          "x-client-platform": "android"
+        },
+        "bodyTemplate": "{\"token\":\"{{redirect.token}}\",\"challenge\":\"{{redirect.challenge}}\",\"deviceId\":\"{{session.storage.deviceId|}}\"}"
+      }
     }
   },
   "tools": [
@@ -306,7 +329,7 @@
   ],
   "provenance": {
     "compiler": "hand",
-    "compiledAt": 1794779038252,
+    "compiledAt": 1794779478661,
     "captureCount": 0,
     "notes": "Strong v6 backend back.strong.app (ASP.NET, HAL JSON). Confidence high for reads and login (verified live on a real account 2026-11-15), see research/notes/re-phone.md for write verification. Login needs an emailed MFA code on every password login, so the executor should keep and rotate tokens (session.storage.accessToken/refreshToken) and only fall back to loginRequest. Sources: tolik518/strong-api-workout-sync, crcatala/strong-cli docs/api-inventory.md, jerhinesmith/strong-mcp (write envelope, MFA), live probes. The Strong 2.7.11 APK on Revyl talks to the retired Parse backend ws13.strongapp.co/parse (403), so the phone executor cannot log in with it; 6.x is only published as a split bundle. Extra tool fields (pages, filterContains, maxItems, compact) are handled by scripts/re/lib/template.ts runTool."
   }

@@ -178,6 +178,26 @@ export const strongRecipe: Recipe = {
       urlTemplate: "https://back.strong.app/api/users/{{login.userId}}/logs?limit=1&page=1",
       headers: AUTHED,
     },
+    // Login answers 403 {code: "MFA_REQUIRED", challenge, redirectUrl}. The app finishes it in a
+    // webview: GET the code form (hidden antiforgery input + cookies), POST the code, read
+    // token/challenge from the strong:// redirect, exchange them at /auth/mfa/verify.
+    // loginVerify in scripts/re/lib/template.ts runs these generically.
+    mfa: {
+      prompt: "Enter the code Strong emailed you",
+      verifyRequest: {
+        method: "POST",
+        urlTemplate: "{{challenge.redirectUrl}}?redirectUrl=strong%3A%2F%2Fmfa",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        bodyTemplate:
+          "Code={{code}}&ChallengeId={{challenge.challenge}}&RedirectUrl=strong%3A%2F%2Fmfa&__RequestVerificationToken={{form.__RequestVerificationToken}}",
+      },
+      exchangeRequest: {
+        method: "POST",
+        urlTemplate: "https://back.strong.app/auth/mfa/verify",
+        headers: H,
+        bodyTemplate: '{"token":"{{redirect.token}}","challenge":"{{redirect.challenge}}","deviceId":"{{session.storage.deviceId|}}"}',
+      },
+    } as NonNullable<Recipe["auth"]["mfa"]> & { exchangeRequest: unknown },
   },
   tools,
   playbook: [

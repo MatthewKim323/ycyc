@@ -130,7 +130,8 @@ function encodeValue(v: unknown, mode: Mode, inString: boolean): string {
     return v === undefined ? "null" : JSON.stringify(v);
   }
   const s = v === undefined || v === null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
-  return mode === "url" ? encodeURIComponent(s) : s;
+  // An absolute URL value (e.g. a redirect URL from a challenge) is inserted as is.
+  return mode === "url" && !/^https?:\/\//.test(s) ? encodeURIComponent(s) : s;
 }
 
 export function renderString(tpl: string, ctx: Ctx, mode: Mode): string {
@@ -173,8 +174,10 @@ export function renderRequest(t: RequestTemplate, ctx: Ctx, baseUrl?: string): R
   if (!/^https?:\/\//.test(url) && baseUrl) url = baseUrl.replace(/\/$/, "") + "/" + url.replace(/^\//, "");
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(t.headers ?? {})) headers[k] = renderString(v, ctx, "header");
-  const body = t.bodyTemplate ? renderString(t.bodyTemplate, ctx, "json") : undefined;
-  if (body !== undefined) JSON.parse(body); // fail fast on a broken template, before any network call
+  const form = /x-www-form-urlencoded/i.test(Object.entries(t.headers ?? {}).find(([k]) => k.toLowerCase() === "content-type")?.[1] ?? "");
+  // Form bodies: literal text is written pre-encoded in the template, values get URI-encoded.
+  const body = t.bodyTemplate ? renderString(t.bodyTemplate, ctx, form ? "url" : "json") : undefined;
+  if (body !== undefined && !form) JSON.parse(body); // fail fast on a broken template, before any network call
   return { method: t.method, url, headers, body };
 }
 
@@ -279,6 +282,128 @@ export async function ensureLogin(
   if (!recipe.auth.loginRequest) throw new Error("no way to authenticate: session has no tokens and recipe has no loginRequest");
   state.login = undefined;
   await authCall(recipe.auth.loginRequest, recipe, session, state, fetchImpl);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Connect flow helpers for login_api recipes (email/password -> optional code -> tokens).
+//
+// loginStart renders auth.loginRequest. 2xx -> { status: "ok", login }. A non-2xx JSON answer
+// that carries a challenge (or code /MFA/) while the recipe has auth.mfa -> { status:
+// "mfa_required", challenge } where challenge is that JSON body; keep it and pass it back.
+//
+// loginVerify renders auth.mfa.verifyRequest with {{code}}, {{challenge.*}}, {{session.*}}.
+// It also handles the common "webview form" MFA shape without app-specific code:
+//  - if the template references {{form.*}}, the URL is first fetched with GET, its hidden
+//    <input>s become form.* and its cookies are replayed on the verify call;
+//  - a redirect answer (Location header or window.location in HTML) is parsed into
+//    redirect.* (its query params) and redirect.url;
+//  - if auth.mfa.exchangeRequest exists it is rendered last (it sees redirect.*, verify.*) and
+//    its JSON is the login; otherwise the verify JSON is the login.
+export interface MfaConfig {
+  verifyRequest: RequestTemplate;
+  prompt: string;
+  exchangeRequest?: RequestTemplate;
+}
+
+export type LoginStartResult =
+  | { status: "ok"; login: Record<string, unknown> }
+  | { status: "mfa_required"; challenge: Record<string, unknown>; prompt: string };
+
+function mfaOf(recipe: Recipe): MfaConfig | undefined {
+  return (recipe.auth as { mfa?: MfaConfig }).mfa;
+}
+
+export async function loginStart(
+  recipe: Recipe,
+  session: SessionBundle,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LoginStartResult> {
+  if (!recipe.auth.loginRequest) throw new Error("recipe has no loginRequest");
+  const res = await send(renderRequest(recipe.auth.loginRequest, baseCtx(session, {}, {}), recipe.baseUrl), fetchImpl);
+  const body = res.body && typeof res.body === "object" ? (res.body as Record<string, unknown>) : null;
+  if (res.status >= 200 && res.status < 300 && body) return { status: "ok", login: normalizeLogin({ ...body }) };
+  const mfa = mfaOf(recipe);
+  if (mfa && body && (body.challenge || /mfa|code|otp|2fa/i.test(String(body.code ?? body.error ?? "")))) {
+    return { status: "mfa_required", challenge: body, prompt: mfa.prompt };
+  }
+  throw new Error(`login failed: HTTP ${res.status}`);
+}
+
+function needsForm(t: RequestTemplate): boolean {
+  return /\{\{\s*form\./.test(`${t.urlTemplate} ${t.bodyTemplate ?? ""} ${JSON.stringify(t.headers ?? {})}`);
+}
+
+function setCookies(h: Headers): string {
+  const list: string[] = typeof (h as any).getSetCookie === "function" ? (h as any).getSetCookie() : h.get("set-cookie") ? [h.get("set-cookie") as string] : [];
+  return list.map((c) => c.split(";")[0]).join("; ");
+}
+
+function hiddenInputs(html: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of html.matchAll(/<input\b[^>]*>/gi)) {
+    const tag = m[0];
+    const name = /\bname="([^"]*)"/i.exec(tag)?.[1];
+    const value = /\bvalue="([^"]*)"/i.exec(tag)?.[1];
+    if (name) out[name] = (value ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+  }
+  return out;
+}
+
+function redirectOf(res: Response, text: string): Record<string, unknown> | undefined {
+  const raw =
+    res.headers.get("location") ??
+    /window\.location(?:\.href)?\s*=\s*["']([^"']+)["']/.exec(text)?.[1] ??
+    /http-equiv=["']refresh["'][^>]*url=([^"'>]+)/i.exec(text)?.[1];
+  if (!raw) return undefined;
+  const url = raw.replace(/&amp;/g, "&");
+  const q = url.includes("?") ? url.slice(url.indexOf("?") + 1).split("#")[0] : "";
+  const params: Record<string, unknown> = { url };
+  for (const part of q.split("&").filter(Boolean)) {
+    const [k, v = ""] = part.split("=");
+    params[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, " "));
+  }
+  return params;
+}
+
+export async function loginVerify(
+  recipe: Recipe,
+  session: SessionBundle,
+  code: string,
+  challenge: Record<string, unknown>,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ login: Record<string, unknown> }> {
+  const mfa = mfaOf(recipe);
+  if (!mfa) throw new Error("recipe has no auth.mfa");
+  const ctx: Ctx = { ...baseCtx(session, {}, {}), code, challenge };
+  const t = mfa.verifyRequest;
+  const extraHeaders: Record<string, string> = {};
+  if (needsForm(t)) {
+    const formUrl = renderString(t.urlTemplate, ctx, "url");
+    const page = await fetchImpl(formUrl, { method: "GET", redirect: "manual" });
+    const html = await page.text();
+    ctx.form = hiddenInputs(html);
+    const cookie = setCookies(page.headers);
+    if (cookie) extraHeaders.Cookie = cookie;
+  }
+  const req = renderRequest(t, ctx, recipe.baseUrl);
+  const res = await fetchImpl(req.url, { method: req.method, headers: { ...req.headers, ...extraHeaders }, body: req.body, redirect: "manual" });
+  const text = await res.text();
+  let verify: unknown = null;
+  try {
+    verify = JSON.parse(text);
+  } catch {
+    /* html */
+  }
+  ctx.verify = verify;
+  ctx.redirect = redirectOf(res, text);
+  if (mfa.exchangeRequest) {
+    if (!ctx.redirect && !verify) throw new Error("code rejected or expired");
+    const ex = await send(renderRequest(mfa.exchangeRequest, ctx, recipe.baseUrl), fetchImpl);
+    if (ex.status < 200 || ex.status >= 300 || !ex.body || typeof ex.body !== "object") throw new Error(`code exchange failed: HTTP ${ex.status}`);
+    return { login: normalizeLogin({ ...(ex.body as Record<string, unknown>) }) };
+  }
+  if (res.status < 200 || res.status >= 300 || !verify || typeof verify !== "object") throw new Error(`code rejected: HTTP ${res.status}`);
+  return { login: normalizeLogin({ ...(verify as Record<string, unknown>) }) };
 }
 
 // Optional fields a recipe tool may carry beyond contract.ts (other executors ignore them and
