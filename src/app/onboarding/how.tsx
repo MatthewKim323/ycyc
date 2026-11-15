@@ -10,7 +10,7 @@ import { Text } from "@/components/text";
 import { colors, motion, space, springs } from "@/theme";
 
 const ROWS = [
-  { title: "Sign in to an app", body: "Right inside ycyc, on its own login page." },
+  { title: "Sign in to an app", body: "Right inside yuzu, on its own login page." },
   { title: "We set it up for you", body: "You watch it happen, step by step." },
   { title: "Paste one link into your assistants", body: "Then ask: log my lunch, what did I bench last week." },
 ];

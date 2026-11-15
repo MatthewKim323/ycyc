@@ -13,8 +13,8 @@ export interface RelayRequest {
 }
 
 export type RelayMessage =
-  | { __ycyc: 1; t: "relay-ready"; url: string }
-  | { __ycyc: 1; t: "relay"; callId: string; status: number; body: string; mime?: string; error?: string };
+  | { __yuzu: 1; t: "relay-ready"; url: string }
+  | { __yuzu: 1; t: "relay"; callId: string; status: number; body: string; mime?: string; error?: string };
 
 export const RELAY_MAX_BODY = 200 * 1024;
 
@@ -24,18 +24,18 @@ export function buildRelayScript(): string {
 
 // Call to run one request in the relay page. Payload is JSON-encoded twice so it is a safe JS literal.
 export function relayExecSnippet(req: RelayRequest): string {
-  return "window.__ycycRelay && window.__ycycRelay.exec(" + JSON.stringify(JSON.stringify(req)) + ");true;";
+  return "window.__yuzuRelay && window.__yuzuRelay.exec(" + JSON.stringify(JSON.stringify(req)) + ");true;";
 }
 
 const RELAY_BODY = String.raw`
 try {
-  if (window.__ycycRelay) { return; }
+  if (window.__yuzuRelay) { return; }
   var W = window;
   var f = W.fetch ? W.fetch.bind(W) : null;
   function post(o) {
-    try { o.__ycyc = 1; W.ReactNativeWebView.postMessage(JSON.stringify(o)); } catch (e) {}
+    try { o.__yuzu = 1; W.ReactNativeWebView.postMessage(JSON.stringify(o)); } catch (e) {}
   }
-  W.__ycycRelay = {
+  W.__yuzuRelay = {
     exec: function (json) {
       var req = null;
       try { req = JSON.parse(json); } catch (e) { return; }
@@ -70,10 +70,10 @@ try {
 `;
 
 export function parseRelayMessage(data: string): RelayMessage | null {
-  if (!data || data.indexOf("__ycyc") < 0) return null;
+  if (!data || data.indexOf("__yuzu") < 0) return null;
   try {
     const m = JSON.parse(data);
-    return m && m.__ycyc === 1 && (m.t === "relay" || m.t === "relay-ready") ? (m as RelayMessage) : null;
+    return m && m.__yuzu === 1 && (m.t === "relay" || m.t === "relay-ready") ? (m as RelayMessage) : null;
   } catch {
     return null;
   }

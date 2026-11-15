@@ -85,7 +85,7 @@ export default function Paywall() {
               <Icon name="star" size={28} autoPlay />
             </Animated.View>
             <Animated.View entering={enter(1)} style={styles.titleBlock}>
-              <Text style={styles.headline}>ycyc Pro</Text>
+              <Text style={styles.headline}>yuzu Pro</Text>
               <Text variant="body" color={colors.textSecondary}>
                 $9.99 a month. Free includes 1 app.
               </Text>

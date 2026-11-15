@@ -15,7 +15,7 @@ export default function Welcome() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top + space.xl, paddingBottom: insets.bottom + space.lg }]}>
       <Reveal delay={200} style={styles.top}>
-        <Text variant="heading">ycyc</Text>
+        <Text variant="heading">yuzu</Text>
       </Reveal>
 
       <View style={styles.bottom}>

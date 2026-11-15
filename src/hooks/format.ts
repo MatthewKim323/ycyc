@@ -7,7 +7,8 @@ const ASSISTANTS: Record<string, string> = {
   chatgpt: "ChatGPT",
   grok: "Grok",
   muse: "Muse",
-  ycyc: "ycyc",
+  yuzu: "yuzu",
+  ycyc: "yuzu",
 };
 
 export function assistantName(a: Assistant | string): string {

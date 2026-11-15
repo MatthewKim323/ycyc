@@ -5,8 +5,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api, type Id } from "./convex";
 import { store } from "./storage";
 
-const DEVICE_KEY = "ycyc.deviceId";
-const USER_KEY = "ycyc.user";
+const DEVICE_KEY = "yuzu.deviceId";
+const USER_KEY = "yuzu.user";
 
 type UserState = {
   userId: Id<"users"> | null;

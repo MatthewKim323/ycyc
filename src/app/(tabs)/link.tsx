@@ -32,7 +32,7 @@ const ASSISTANTS: Assistant[] = [
     letter: "C",
     tile: { bg: "#D97757", fg: "#FFFFFF" },
     hint: "Settings, Connectors, Add",
-    steps: ["Settings, Connectors, Add custom connector", "Name it ycyc and paste your link"],
+    steps: ["Settings, Connectors, Add custom connector", "Name it yuzu and paste your link"],
   },
   {
     key: "chatgpt",
@@ -44,7 +44,7 @@ const ASSISTANTS: Assistant[] = [
       "On the web, open chatgpt.com/plugins",
       "Tap +, add a custom server, paste your link, choose No authentication",
       "Create it as a plugin and install it",
-      "In a chat, type @ycyc",
+      "In a chat, type @yuzu",
     ],
   },
   {
@@ -53,7 +53,7 @@ const ASSISTANTS: Assistant[] = [
     letter: "X",
     tile: { bg: colors.surface2, fg: "#FFFFFF", border: colors.borderStrong },
     hint: "Settings, Connectors, Add",
-    steps: ["Settings, Connectors, Add", "Paste your link and save", "Ask Grok to use ycyc"],
+    steps: ["Settings, Connectors, Add", "Paste your link and save", "Ask Grok to use yuzu"],
   },
   {
     key: "muse",
@@ -61,7 +61,7 @@ const ASSISTANTS: Assistant[] = [
     letter: "M",
     tile: { bg: "#1D4ED8", fg: "#FFFFFF" },
     hint: "Settings, Connectors, Add",
-    steps: ["Settings, Connectors, Add", "Paste your link and save", "Ask Muse to use ycyc"],
+    steps: ["Settings, Connectors, Add", "Paste your link and save", "Ask Muse to use yuzu"],
   },
 ];
 
@@ -115,7 +115,7 @@ function AssistantRow({
             }}
           />
           <Text variant="micro" color={colors.textTertiary}>
-            Copies your link, then opens Claude. Paste it and name it ycyc.
+            Copies your link, then opens Claude. Paste it and name it yuzu.
           </Text>
         </View>
       ) : null}
@@ -163,8 +163,8 @@ export default function LinkScreen() {
   for (const a of feed ?? []) if (!lastUsed.has(a.assistant)) lastUsed.set(a.assistant, a.at);
 
   const link = mcpUrl ?? "";
-  const claudeCode = `claude mcp add --transport http ycyc ${link}`;
-  const codex = `codex mcp add ycyc --url ${link}`;
+  const claudeCode = `claude mcp add --transport http yuzu ${link}`;
+  const codex = `codex mcp add yuzu --url ${link}`;
 
   return (
     <Screen contentStyle={styles.content}>

@@ -1,4 +1,4 @@
-# Tracks: where ycyc fits (from the kickoff deck + consumermobilehackathon.com)
+# Tracks: where yuzu fits (from the kickoff deck + consumermobilehackathon.com)
 
 ## What's up for grabs
 | Prize | What wins it | Fit |

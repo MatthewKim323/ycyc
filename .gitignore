@@ -47,7 +47,7 @@ example
 /ios
 /android
 
-# ycyc
+# yuzu
 .env
 .env.*
 !.env.example

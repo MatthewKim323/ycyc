@@ -72,17 +72,7 @@ export function ApprovalSheet() {
     if (!current) return;
     setBusy(decision);
     try {
-      if (decision === "approve_hour") {
-        // "approve_hour" is newer than the generated types; if the backend doesn't know it yet,
-        // still approve this one request.
-        try {
-          await decide({ approvalId: current._id, decision: decision as "approve" });
-        } catch {
-          await decide({ approvalId: current._id, decision: "approve" });
-        }
-      } else {
-        await decide({ approvalId: current._id, decision });
-      }
+      await decide({ approvalId: current._id, decision });
       if (decision !== "deny") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } finally {

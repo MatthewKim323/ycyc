@@ -14,7 +14,7 @@ Shared types: `src/lib/contract.ts`. This file: who owns what, the Convex API su
 Install packages with `npx expo install <pkg>` and tell the lead which ones you added. Agents do not commit; the lead commits and pushes.
 
 ## Environment
-- Convex team `matt-5326f`, project `ycyc`, dev deployment `optimistic-newt-247`
+- Convex team `matt-5326f`, project `yuzu`, dev deployment `optimistic-newt-247`
 - `EXPO_PUBLIC_CONVEX_URL=https://optimistic-newt-247.convex.cloud` (in `.env.local`)
 - HTTP actions: `https://optimistic-newt-247.convex.site`
 - Convex CLI and Revyl CLI (`~/.revyl/bin/revyl`) are logged in on this machine
@@ -47,7 +47,7 @@ Build pipeline (internal): `signin -> capture -> map -> generate -> verify -> pu
 
 ## HTTP routes (`convex/http.ts`)
 - `POST /mcp/<token>`: MCP Streamable HTTP, JSON-RPC 2.0. Methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`. Respond `application/json` (no SSE needed). Tools exposed: every tool from the user's `live` connections as `<slug>__<tool>`, plus `connect_app({ app })` which returns a connect link + instructions when the app is not connected, and `list_apps`. Log every call to `activity`. Writes create an approval and wait up to ~20 s for a decision on the phone.
-- `GET /connect/<slug>?u=<token>`: tap-to-connect fallback; redirects to `ycyc://connect/<slug>`
+- `GET /connect/<slug>?u=<token>`: tap-to-connect fallback; redirects to `yuzu://connect/<slug>`
 - `POST /whop`: Whop sandbox webhook (`payment.succeeded`) flips user to Pro
 
 ## Design system (UI)

@@ -1,18 +1,18 @@
-# ycyc
+# yuzu
 
-**Your apps, in every AI.** ycyc connects consumer apps that have no API (MyFitnessPal, Strong, Duolingo, Cronometer, ParkMobile) to every assistant you already use: Claude, ChatGPT, Grok, Muse, Claude Code, Cursor. One link, connect once, and your assistant can log a meal, read your workouts or check your streak.
+**Your apps, in every AI.** yuzu connects consumer apps that have no API (MyFitnessPal, Strong, Duolingo, Cronometer, ParkMobile) to every assistant you already use: Claude, ChatGPT, Grok, Muse, Claude Code, Cursor. One link, connect once, and your assistant can log a meal, read your workouts or check your streak.
 
 Built in one day at the YC Consumer Mobile Hackathon (Nov 15, 2026) with Capy, Revyl and Convex.
 
 ## How it works
 
-1. **Pick an app and sign in** on its own page, inside ycyc.
-2. **ycyc learns the app.** A recorder watches the app's own private API calls in your session, and a compiler turns them into a *recipe*: a small JSON file of tools with request templates. Phone-only apps are mapped the same way and can run on a Revyl cloud phone.
+1. **Pick an app and sign in** on its own page, inside yuzu.
+2. **yuzu learns the app.** A recorder watches the app's own private API calls in your session, and a compiler turns them into a *recipe*: a small JSON file of tools with request templates. Phone-only apps are mapped the same way and can run on a Revyl cloud phone.
 3. **Paste one link into your assistants.** Every connected app shows up there as tools. Anything that changes your data asks you first, with an approve tap on your phone.
 
 **A recipe is learned once and reused by everyone.** The first person to connect an app teaches it; every user after that connects instantly and only their own session is stored. That shared, self-repairing library of connectors is the moat, the same way Plaid's bank connections were.
 
-ycyc runs no AI of its own. Like [T3 Code](https://github.com/pingdotgg/t3code) does for coding agents, it uses what you already pay for: your assistants and your app accounts.
+yuzu runs no AI of its own. Like [T3 Code](https://github.com/pingdotgg/t3code) does for coding agents, it uses what you already pay for: your assistants and your app accounts.
 
 ## Connectors (verified live on real accounts today)
 
@@ -30,7 +30,7 @@ Each one was verified end to end with a live client, including a write that was 
 
 - **Convex**: the whole backend. Per-user MCP endpoint (`convex/http.ts`, Streamable HTTP, JSON-RPC), the live build pipeline (sign in, capture, map, generate, verify, publish) streamed to the phone, the recipe registry, the executor (cloud, on-device relay, or cloud phone), approvals, the Today summary and crons.
 - **Revyl**: cloud iPhones run and test the app (remote iOS builds from `.revyl/config.yaml`), and `convex/revyl.ts` drives cloud phones as the last-resort executor for phone-only apps.
-- **Capy**: built the Whop Pro paywall ([PR #1](https://github.com/MatthewKim323/ycyc/pull/1)) and an agent integration ([PR #2](https://github.com/MatthewKim323/ycyc/pull/2)) in parallel cloud threads.
+- **Capy**: built the Whop Pro paywall ([PR #1](https://github.com/MatthewKim323/yuzu/pull/1)) and an agent integration ([PR #2](https://github.com/MatthewKim323/yuzu/pull/2)) in parallel cloud threads.
 - **Whop** (sandbox): Pro unlocks unlimited apps; checkout in `convex/whop.ts`, webhook at `/whop`.
 
 ## Run it
@@ -44,7 +44,7 @@ npx convex dev          # backend (needs your own Convex project)
 Add your link to Claude Code:
 
 ```bash
-claude mcp add --transport http ycyc https://<your-deployment>.convex.site/mcp/<token>
+claude mcp add --transport http yuzu https://<your-deployment>.convex.site/mcp/<token>
 ```
 
 ## Build a connector

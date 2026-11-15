@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 
 import { store } from "./storage";
 
-const KEY = "ycyc.onboarded";
+const KEY = "yuzu.onboarded";
 
 type OnboardingState = {
   /** null while the flag loads. */

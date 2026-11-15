@@ -145,7 +145,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
   useEffect(() => {
     if (phase !== "login") return;
     report("login");
-    const id = setInterval(() => inject("window.__ycyc && window.__ycyc.checkLogin();true;"), LOGIN_POLL_MS);
+    const id = setInterval(() => inject("window.__yuzu && window.__yuzu.checkLogin();true;"), LOGIN_POLL_MS);
     return () => clearInterval(id);
   }, [phase, inject, report]);
 
@@ -180,13 +180,13 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
         });
         const path = step.path.replace(/\{\{today\}\}/g, todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone));
         const args = [id, path, step.method ?? "GET", step.body ?? null, step.headers ?? null].map((a) => JSON.stringify(a)).join(",");
-        inject("window.__ycyc && window.__ycyc.probe(" + args + ");true;");
+        inject("window.__yuzu && window.__yuzu.probe(" + args + ");true;");
       });
 
     (async () => {
       await sleep(SETTLE_AFTER_LOGIN_MS);
       if (cancelled) return;
-      inject("window.__ycyc && window.__ycyc.runSessionProbes();true;");
+      inject("window.__yuzu && window.__yuzu.runSessionProbes();true;");
       let i = 0;
       for (const step of cfg.playbook) {
         if (cancelled) return;
@@ -194,7 +194,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
           await visit(step.path);
           await sleep(step.dwellMs ?? 3500);
           // A fresh page lost the earlier session probe results only if it reloaded mid-flight; rerun.
-          if (i === 0) inject("window.__ycyc && window.__ycyc.runSessionProbes();true;");
+          if (i === 0) inject("window.__yuzu && window.__yuzu.runSessionProbes();true;");
         } else {
           await probe(step, "p" + i);
           await sleep(600);
@@ -203,7 +203,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
         i++;
       }
       if (cancelled) return;
-      inject("window.__ycyc && (window.__ycyc.postSession(), window.__ycyc.flush());true;");
+      inject("window.__yuzu && (window.__yuzu.postSession(), window.__yuzu.flush());true;");
       await sleep(1500);
       if (cancelled || done.current) return;
       done.current = true;

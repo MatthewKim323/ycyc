@@ -8,15 +8,15 @@
 
 import type { AppCaptureConfig } from "./apps";
 
-export const MSG_TAG = "__ycyc";
+export const MSG_TAG = "__yuzu";
 
 // Messages the recorder posts to React Native (JSON strings via window.ReactNativeWebView.postMessage).
 export type RecorderMessage =
-  | { __ycyc: 1; t: "cap"; entries: RecordedEntry[] }
-  | { __ycyc: 1; t: "session"; headers: Record<string, string>; cookies: Record<string, string>; storage: Record<string, string> }
-  | { __ycyc: 1; t: "page"; url: string; title: string; loggedIn: boolean | null; signal: string }
-  | { __ycyc: 1; t: "probe"; id: string; ok: boolean; status: number }
-  | { __ycyc: 1; t: "log"; msg: string };
+  | { __yuzu: 1; t: "cap"; entries: RecordedEntry[] }
+  | { __yuzu: 1; t: "session"; headers: Record<string, string>; cookies: Record<string, string>; storage: Record<string, string> }
+  | { __yuzu: 1; t: "page"; url: string; title: string; loggedIn: boolean | null; signal: string }
+  | { __yuzu: 1; t: "probe"; id: string; ok: boolean; status: number }
+  | { __yuzu: 1; t: "log"; msg: string };
 
 export interface RecordedEntry {
   id: string;
@@ -60,9 +60,9 @@ export function buildRecorderScript(cfg: AppCaptureConfig, opts: RecorderOptions
 
 const RECORDER_BODY = String.raw`
 try {
-  if (window.__ycyc && window.__ycyc.installed) { return; }
+  if (window.__yuzu && window.__yuzu.installed) { return; }
   var W = window;
-  var Y = W.__ycyc = { installed: true, queue: [], session: { headers: {}, cookies: {}, storage: {} }, seq: 0, lastLogin: null };
+  var Y = W.__yuzu = { installed: true, queue: [], session: { headers: {}, cookies: {}, storage: {} }, seq: 0, lastLogin: null };
   var origFetch = W.fetch ? W.fetch.bind(W) : null;
   Y.origFetch = origFetch;
   var STATIC_RE = /\.(js|mjs|css|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|wasm)(\?|$)/i;
@@ -73,7 +73,7 @@ try {
   function now() { return Date.now(); }
   function post(obj) {
     try {
-      obj.__ycyc = 1;
+      obj.__yuzu = 1;
       var s = JSON.stringify(obj);
       if (W.ReactNativeWebView && W.ReactNativeWebView.postMessage) { W.ReactNativeWebView.postMessage(s); return true; }
     } catch (e) {}
@@ -486,7 +486,7 @@ export function parseRecorderMessage(data: string): RecorderMessage | null {
   if (!data || data.indexOf(MSG_TAG) < 0) return null;
   try {
     const m = JSON.parse(data);
-    return m && m.__ycyc === 1 && typeof m.t === "string" ? (m as RecorderMessage) : null;
+    return m && m.__yuzu === 1 && typeof m.t === "string" ? (m as RecorderMessage) : null;
   } catch {
     return null;
   }

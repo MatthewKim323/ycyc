@@ -1,6 +1,6 @@
-# ycyc onboarding + connect spec
+# yuzu onboarding + connect spec
 
-Research: Mobbin collection "ycyc onboarding" (private to matt's team): https://mobbin.com/collections/b69f79a2-4f4e-46a4-be89-208be7bb4d4c/mobile/screens
+Research: Mobbin collection "yuzu onboarding" (private to matt's team): https://mobbin.com/collections/b69f79a2-4f4e-46a4-be89-208be7bb4d4c/mobile/screens
 
 Ground rules for the build:
 - No account creation. Identity is the device (`src/hooks/user.tsx`), so we skip the auth wall every AI app opens with. That is our fastest-to-value edge: 2 taps from launch to picking an app.
@@ -14,7 +14,7 @@ Ground rules for the build:
 ## 1. Onboarding (2 screens, then the connect flow)
 
 ### O1. Welcome
-- **Layout:** shader full bleed at 100%. Small `ycyc` wordmark centered at top, 24pt below safe area. Headline + sub left-aligned in the bottom third, 16pt gutters. One white pill CTA (52pt tall, full width minus gutters) 16pt above the home indicator. Nothing else on screen.
+- **Layout:** shader full bleed at 100%. Small `yuzu` wordmark centered at top, 24pt below safe area. Headline + sub left-aligned in the bottom third, 16pt gutters. One white pill CTA (52pt tall, full width minus gutters) 16pt above the home indicator. Nothing else on screen.
 - **Copy:**
   - Headline (`title`, 34/40 on this screen only): **Your apps, in every AI.**
   - Sub (`body`, textSecondary): **Connect apps that have no API. Use them from Claude, ChatGPT, Grok and Muse.**
@@ -26,7 +26,7 @@ Ground rules for the build:
 - **Layout:** shader stays, overlay fades to `rgba(0,0,0,0.55)` over 400ms. Headline top-left under safe area + 32pt. Three numbered rows below (24pt number circle, `rowTitle` + one `caption` line), 24pt apart. Same CTA position as O1 so the thumb doesn't move.
 - **Copy:**
   - Headline: **Set it up once.**
-  - 1. **Sign in to an app** / Right inside ycyc, on its own login page.
+  - 1. **Sign in to an app** / Right inside yuzu, on its own login page.
   - 2. **We build your connector** / Takes about a minute. You watch it happen. **(verify timing)**
   - 3. **Paste one link into your assistants** / Then ask: log my lunch, what did I bench last week.
   - CTA: **Pick your first app**
@@ -46,17 +46,17 @@ Pick app → pre-sign-in sheet → sign-in → building → live. Steps 3 to 5 r
 - **Haptics:** `selectionAsync()` on tile tap.
 
 ### C2. Pre-sign-in (form sheet over C1)
-- **Layout:** `presentation: 'formSheet'`, detent fitted to content (about 52%), grabber on, `surface` background, radius 24. Centered lockup: ycyc mark, small link glyph, app logo (48pt each, 12pt apart). Title centered under it. Two icon rows, left-aligned. CTA pinned bottom.
+- **Layout:** `presentation: 'formSheet'`, detent fitted to content (about 52%), grabber on, `surface` background, radius 24. Centered lockup: yuzu mark, small link glyph, app logo (48pt each, 12pt apart). Title centered under it. Two icon rows, left-aligned. CTA pinned bottom.
 - **Copy:**
   - Title: **Connect Strong**
-  - Row 1 (lock): **Sign in on Strong's own page** / ycyc never stores your password. **(verify)**
+  - Row 1 (lock): **Sign in on Strong's own page** / yuzu never stores your password. **(verify)**
   - Row 2 (check): **You approve every change** / Assistants read freely. Logging or editing waits for your OK.
   - CTA: **Continue**
 - **Motion:** sheet uses native spring. Lockup: the two logos start 16pt apart further and slide together with `springs.enter` at 150ms after sheet settles, link glyph fades in at 250ms. Rows `enter(index)` from 200ms.
 - **Haptics:** `impactAsync(Light)` on Continue.
 
 ### C3. Sign in (modal, segment 1 active)
-- **Layout:** full-screen modal. Header: close (left), center stack of **Sign in to Strong** (`label`) over the domain with a lock glyph (`micro`, textTertiary). Progress bar under header. Webview fills the rest on the app's own background. No ycyc chrome over the webview.
+- **Layout:** full-screen modal. Header: close (left), center stack of **Sign in to Strong** (`label`) over the domain with a lock glyph (`micro`, textTertiary). Progress bar under header. Webview fills the rest on the app's own background. No yuzu chrome over the webview.
 - **Motion:** segment 1 fills to 33% of its width on mount (shows "you are here"), to 100% the moment login is detected (`withTiming(400, Easing.out(Easing.cubic))`). Then hold 250ms and crossfade to C4 (280ms).
 - **Haptics:** `selectionAsync()` when login is detected.
 

@@ -108,7 +108,7 @@ export interface Recipe {
   provenance: { compiler: "heuristic" | "llm" | "hand"; compiledAt: number; captureCount: number; notes?: string };
 }
 
-export type Assistant = "claude" | "chatgpt" | "grok" | "muse" | "keiki" | "ycyc";
+export type Assistant = "claude" | "chatgpt" | "grok" | "muse" | "keiki" | "ycyc"; // "ycyc" = internal id for in-app actions, shown as yuzu
 
 export interface ActivityItem {
   appSlug: AppSlug;
