@@ -1,0 +1,499 @@
+<title>Agentify Targets</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column for the calls and ranked picks, then a full-width filterable map of every app checked. */
+:root {
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --fg: #12161D;
+  --muted: #5A6371;
+  --line: #E2E6EC;
+  --accent: #1F5EFF;
+  --accent-soft: #E6EDFF;
+  --ok: #1E7F52;
+  --ok-soft: #E1F3EA;
+  --warn: #9A6514;
+  --warn-soft: #FBF0DC;
+  --bad: #B93A33;
+  --bad-soft: #F9E3E1;
+  --display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1116; --surface: #151A21; --fg: #E8ECF2; --muted: #98A2B3; --line: #262D38;
+    --accent: #7EA2FF; --accent-soft: #1A2540;
+    --ok: #57C893; --ok-soft: #12271D; --warn: #E2B25E; --warn-soft: #2A2213; --bad: #F2827A; --bad-soft: #2E1716;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1116; --surface: #151A21; --fg: #E8ECF2; --muted: #98A2B3; --line: #262D38;
+  --accent: #7EA2FF; --accent-soft: #1A2540;
+  --ok: #57C893; --ok-soft: #12271D; --warn: #E2B25E; --warn-soft: #2A2213; --bad: #F2827A; --bad-soft: #2E1716;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.col { max-width: 760px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.05; font-weight: 700; }
+h2 { font-size: 26px; line-height: 1.15; font-weight: 700; }
+h3 { font-size: 18px; line-height: 1.25; font-weight: 600; }
+p { margin: 0; }
+.lede { font-size: 17px; color: var(--muted); max-width: 64ch; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 14px; }
+.stats { display: flex; flex-wrap: wrap; gap: 10px 28px; font-variant-numeric: tabular-nums; }
+.stat { display: flex; flex-direction: column; }
+.stat b { font-family: var(--display); font-size: 28px; line-height: 1.1; }
+.stat span { font-size: 13px; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+
+/* Calls */
+.call { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.call-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.opt { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.opt.rec { border-color: var(--accent); background: var(--accent-soft); }
+.opt-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tag { display: inline-flex; align-items: center; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.tag.rec { background: var(--accent); color: var(--surface); }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.pc { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; font-size: 14px; }
+.pc dt { font-weight: 700; }
+.pc dd { margin: 0; color: var(--muted); }
+.why { border-top: 1px solid var(--line); padding-top: 14px; font-size: 15px; }
+.why b { color: var(--accent); }
+.shift { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.shift div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.shift .eyebrow { display: block; margin-bottom: 4px; }
+
+/* Ranked picks */
+.ranked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ranked li { display: grid; grid-template-columns: 36px 1fr; gap: 4px 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.ranked li:last-child { border-bottom: 1px solid var(--line); }
+.rank { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.rk-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rk-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.rk-title h3 { font-size: 19px; }
+.rk-title span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ask { font-size: 14px; font-style: italic; color: var(--muted); }
+.quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.quick div { border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
+.quick b { font-size: 15px; }
+
+/* Map */
+.controls { display: flex; flex-direction: column; gap: 10px; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chiprow .lbl { font-size: 13px; color: var(--muted); min-width: 72px; }
+.chip { font: inherit; font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 1040px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); position: sticky; top: 0; background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+td.app { font-weight: 700; white-space: nowrap; }
+td.users { font-variant-numeric: tabular-nums; color: var(--muted); }
+td.ask2 { color: var(--muted); font-style: italic; }
+.st { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.st-none { background: var(--accent-soft); color: var(--accent); }
+.st-open { background: var(--ok-soft); color: var(--ok); }
+.st-asst { background: var(--line); color: var(--muted); }
+.st-host { background: var(--bad-soft); color: var(--bad); }
+.d { display: inline-block; min-width: 28px; text-align: center; font-weight: 700; padding: 2px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.d1 { background: var(--ok-soft); color: var(--ok); }
+.d3 { background: var(--warn-soft); color: var(--warn); }
+.d4 { background: var(--bad-soft); color: var(--bad); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+.skip { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 24px; font-size: 14px; }
+.skip div { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-top: 1px solid var(--line); }
+.skip b { font-size: 15px; }
+.skip span { color: var(--muted); }
+.sources { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+.sources ul { margin: 0; padding-left: 18px; columns: 2 280px; column-gap: 32px; }
+.sources li { break-inside: avoid; margin-bottom: 4px; }
+a { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="col">
+    <span class="eyebrow">Everything MCP · target list · Nov 14, 2026</span>
+    <h1>Which apps to agentify first</h1>
+    <p class="lede">Popular consumer apps checked for a public API, a connector in Claude, ChatGPT or Muse, community hacks, a web version, and how hard they fight bots. The blue ones are the opening: lots of users, no official way in.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section class="col" aria-labelledby="calls-h">
+    <div class="sec-head">
+      <span class="eyebrow">Your calls</span>
+      <h2 id="calls-h">Two decisions before 10am</h2>
+    </div>
+
+    <div class="call">
+      <div class="sec-head">
+        <h3>1. Which app do we connect live on stage?</h3>
+        <div class="call-meta"><span>Owner: matt and team</span><span>Needed by: kickoff, 9am</span></div>
+      </div>
+      <div class="opts">
+        <div class="opt">
+          <div class="opt-top"><b>A. MyFitnessPal, web route</b></div>
+          <ol class="steps">
+            <li>In Claude: "log my Chipotle bowl"</li>
+            <li>Connect screen pops, log in to MyFitnessPal</li>
+            <li>Entry shows up in the diary</li>
+          </ol>
+          <dl class="pc"><dt>Pro</dt><dd>200M+ users. Only ChatGPT Health has it, so Claude, Grok and Muse users have nothing. Community servers already prove read and write work.</dd><dt>Con</dt><dd>Looks like a normal integration. Doesn't prove we can do apps with no web version.</dd></dl>
+        </div>
+        <div class="opt">
+          <div class="opt-top"><b>B. Strong, cloud phone</b></div>
+          <ol class="steps">
+            <li>In Claude: "log push day, bench 185 for 5x5"</li>
+            <li>A live Revyl phone opens Strong and taps it in</li>
+            <li>The room watches it happen</li>
+          </ol>
+          <dl class="pc"><dt>Pro</dt><dd>Phone-only app, no API, no web. Nobody else can do this, MoChiPi and Rube included. Most visual.</dd><dt>Con</dt><dd>Untested: third-party APK install, login on an emulator, agent taps run about 15s per step.</dd></dl>
+        </div>
+        <div class="opt rec">
+          <div class="opt-top"><b>C. Both, one story</b><span class="tag rec">Recommended</span></div>
+          <ol class="steps">
+            <li>Breakfast logged to MyFitnessPal (A)</li>
+            <li>Workout logged in Strong on the cloud phone (B)</li>
+            <li>Switch to ChatGPT: "what did I eat and lift today?" works with no setup</li>
+          </ol>
+          <dl class="pc"><dt>Pro</dt><dd>A is the safety net if the cloud phone flakes live. B is the moment people remember.</dd><dt>Con</dt><dd>Two paths in 8 hours. Build A first, done by 2pm, then B.</dd></dl>
+        </div>
+      </div>
+      <p class="why"><b>Why C:</b> the demo has to answer "isn't this just MoChiPi?" without a slide. Strong on a cloud phone answers it. MyFitnessPal keeps the demo alive if the emulator misbehaves.</p>
+    </div>
+
+    <div class="call">
+      <div class="sec-head">
+        <h3>2. Which category leads the pitch?</h3>
+        <div class="call-meta"><span>Owner: matt</span><span>Changes: the first line of the pitch and which apps get built after tomorrow</span></div>
+      </div>
+      <div class="opts">
+        <div class="opt rec">
+          <div class="opt-top"><b>Health and fitness logging</b><span class="tag rec">Recommended</span></div>
+          <p style="font-size:14px">Biggest dark spots in the map: Flo (about 80M monthly users), MyFitnessPal, Strong, Garmin, Cal AI. Logged daily, and Apple Health only carries summaries, so sets, reps, foods and symptoms are stuck in each app.</p>
+        </div>
+        <div class="opt">
+          <div class="opt-top"><b>Students</b></div>
+          <p style="font-size:14px">Relatable, and Gradescope, Piazza and Blackboard have no student API. But schools are blocking Canvas tokens because of AI doing assignments, so it reads as a cheating tool.</p>
+        </div>
+        <div class="opt">
+          <div class="opt-top"><b>Everyday ordering</b></div>
+          <p style="font-size:14px">Chipotle, ParkMobile, Lyft are open. But Gemini already drives 20 US apps and ChatGPT has Starbucks, DoorDash, Target. That window is closing fast.</p>
+        </div>
+      </div>
+      <div class="shift">
+        <div><span class="eyebrow">Pitch today</span>"Connect any app to any AI."</div>
+        <div><span class="eyebrow">Pitch with the health wedge</span>"Your AI can't see what's in your health apps. Every log, from every app, in every assistant you use."</div>
+      </div>
+    </div>
+    <p class="count">Reply in chat with a letter for call 1 and a category for call 2.</p>
+  </section>
+
+  <section class="col" aria-labelledby="top-h">
+    <div class="sec-head">
+      <span class="eyebrow">Ranked by users × how often it's used × no way in × won't fight back</span>
+      <h2 id="top-h">Top targets</h2>
+    </div>
+    <ol class="ranked" id="ranked"></ol>
+  </section>
+
+  <section class="col" aria-labelledby="quick-h">
+    <div class="sec-head">
+      <span class="eyebrow">Has an API, nobody wrapped it well</span>
+      <h2 id="quick-h">Quick wins</h2>
+    </div>
+    <div class="quick">
+      <div><b>GroupMe</b><span>The default college group chat. Public read and write API with a personal token, no connector in any assistant. "Catch me up on 400 unread in the dorm chat."</span></div>
+      <div><b>Splitwise</b><span>Free self-serve API, read and write, no official MCP. "Split the $240 dinner 4 ways."</span></div>
+      <div><b>Canvas</b><span>Full API, nothing official from Instructure. Works today wherever the school still allows student tokens.</span></div>
+      <div><b>Hevy</b><span>Pro-only read and write API. Proves lifters want this: a dozen community MCPs already.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="map-h">
+    <div class="sec-head col">
+      <span class="eyebrow">Every app checked</span>
+      <h2 id="map-h">The full map</h2>
+    </div>
+    <div class="controls">
+      <div class="chiprow" role="group" aria-label="Category">
+        <span class="lbl">Category</span>
+        <button class="chip" data-cat="all" aria-pressed="true">All</button>
+        <button class="chip" data-cat="h" aria-pressed="false">Health</button>
+        <button class="chip" data-cat="m" aria-pressed="false">Money, food, travel</button>
+        <button class="chip" data-cat="s" aria-pressed="false">School, social, life</button>
+      </div>
+      <div class="chiprow" role="group" aria-label="Status">
+        <span class="lbl">Status</span>
+        <button class="chip" data-st="all" aria-pressed="false">All</button>
+        <button class="chip" data-st="none" aria-pressed="true">No official route</button>
+        <button class="chip" data-st="open" aria-pressed="false">Public API</button>
+        <button class="chip" data-st="asst" aria-pressed="false">In an assistant</button>
+        <button class="chip" data-st="host" aria-pressed="false">Fights agents</button>
+      </div>
+      <div class="legend">
+        <span><span class="st st-none">No official route</span> no consumer API, not in Claude, ChatGPT or Muse</span>
+        <span><span class="d d1">1</span> official API</span>
+        <span><span class="d d3">3</span> web app or hack exists</span>
+        <span><span class="d d4">5</span> phone-only and locked, or hostile</span>
+      </div>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>App</th><th>Users</th><th>Status</th><th>Official API</th><th>Assistant connectors</th><th>Community hacks</th><th>Web</th><th>Watch out</th><th>What you'd ask your AI</th><th>Diff</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="col" aria-labelledby="skip-h">
+    <div class="sec-head">
+      <span class="eyebrow">Don't build these</span>
+      <h2 id="skip-h">Hostile or already covered</h2>
+    </div>
+    <div class="skip">
+      <div><b>Tinder, Hinge, Bumble</b><span>Automation violates their terms. Match's CEO announced guardrails against AI agents on Nov 11.</span></div>
+      <div><b>Instagram, Snapchat, WhatsApp</b><span>Suspend automated accounts or ban the phone number. Instagram is only in Meta's own Muse.</span></div>
+      <div><b>Life360</b><span>Actively blocking third-party clients with 403s since May 2026.</span></div>
+      <div><b>Amazon</b><span>Sued Perplexity, blocks Muse since Sep 20, requires agents to identify themselves.</span></div>
+      <div><b>Delta, United</b><span>Refuse outside agents. United's contract now bans agent purchases even when the user watches.</span></div>
+      <div><b>Chase, Zelle, banks</b><span>Block outside agents. Plaid, Monarch and Copilot already cover reads.</span></div>
+      <div><b>Strava</b><span>Developer API terms ban AI use, and it has its own read-only Claude connector.</span></div>
+      <div><b>Spotify, Notion, Uber, Instacart, Resy</b><span>Already official in Claude and ChatGPT.</span></div>
+    </div>
+  </section>
+
+  <section class="col sources" aria-labelledby="src-h">
+    <span class="eyebrow" id="src-h">Sources</span>
+    <p>Web research on Nov 14, 2026. User counts marked est. are approximate or older figures.</p>
+    <ul>
+      <li><a href="https://openai.com/index/introducing-chatgpt-health/">ChatGPT Health partners</a></li>
+      <li><a href="https://claude.com/resources/articles/connectors-for-everyday-life">Claude consumer connectors</a></li>
+      <li><a href="https://postfa.st/blog/meta-muse-connectors-list">Meta Muse connector list</a></li>
+      <li><a href="https://www.androidauthority.com/google-gemini-task-automation-target-apps-list-3734443/">Gemini task automation app list</a></li>
+      <li><a href="https://yespress.io/flo-health-inc">Flo user numbers</a></li>
+      <li><a href="https://support.helloclue.com/hc/en-us/articles/20199556038813">Clue and Apple Health</a></li>
+      <li><a href="https://glama.ai/mcp/servers/atfinke/loseit-mcp">Lose It community MCP</a></li>
+      <li><a href="https://pypi.org/project/cronometer-mcp">Cronometer community MCP</a></li>
+      <li><a href="https://github.com/sjawhar/macrofactor">MacroFactor client, archived after App Check</a></li>
+      <li><a href="https://clawhub.ai/skills/strong-app">Strong reverse-engineered API</a></li>
+      <li><a href="https://glama.ai/mcp/servers/chrisdoc/hevy-mcp">Hevy MCP</a></li>
+      <li><a href="https://garth.readthedocs.io/en/latest/">Garmin login library break</a></li>
+      <li><a href="https://techcrunch.com/2026/06/01/strava-declares-war-on-scrapers-ahead-of-ipo">Strava vs scrapers</a></li>
+      <li><a href="https://247wallst.com/cards/duolingo-q3-2026-earnings-duol-01m6hkzaqtk5596n48x4pxv0q5">Duolingo Q3 2026</a></li>
+      <li><a href="https://community.canvaslms.com/t5/The-Product-Blog/Strengthening-Security-in-Canvas-Updates-to-User-Access-Token/ba-p/660299">Canvas student token changes</a></li>
+      <li><a href="https://dev.groupme.com/docs/v3">GroupMe API</a></li>
+      <li><a href="https://www.dexerto.com/entertainment/tinder-and-hinge-ban-ai-agents-from-running-profiles-and-dating-for-you-3427393/">Tinder and Hinge on AI agents</a></li>
+      <li><a href="https://restauranttechnologynews.com/2026/07/chipotle-tests-new-payment-technology-to-expand-in-restaurant-loyalty-as-rewards-membership-reaches-23-million/">Chipotle rewards</a></li>
+      <li><a href="https://supergood.ai/api-report-card/parkmobile">ParkMobile API</a></li>
+      <li><a href="https://www.shopifreaks.com/costco-jumps-182-spots-in-ai-shopping-readiness-on-bot-access-as-many-top-retailers-still-block-ai-agents-per-refibuys-ai1000/">Costco opens to AI bots</a></li>
+      <li><a href="https://www.lyft.com/blog/posts/lyft-reports-strong-q3-2026-financial-results">Lyft Q3 2026</a></li>
+      <li><a href="https://aiweekly.co/alerts/amazon-yelp-delta-join-banks-blocking-third-party-ai-agents">Amazon, Yelp, Delta block agents</a></li>
+      <li><a href="https://www.spokesman.com/stories/2026/nov/11/united-blocks-ai-agents-from-booking-flights-ahead/">United bans agent bookings</a></li>
+      <li><a href="https://claudemarket.ai/mcp/markswendsen-code/mcp-venmo">Venmo MCP pulled</a></li>
+    </ul>
+  </section>
+</div>
+
+<script>
+// [name, cat, users, status, api, connectors, community, web, watch, ask, diff]
+// status: none = no consumer API and not in Claude/ChatGPT/Muse; open = consumer API; asst = in an assistant; host = fights agents
+const A = [
+  ["Flo","h","~80M MAU","none","None","None","None","No","Very sensitive data","Log cramps, when's my fertile window?","4"],
+  ["Clue","h","~4M MAU est.","none","None","None","None","No","Apple Health gets period and flow only","Same as Flo","4"],
+  ["Natural Cycles","h","n/a","none","None","None","None","Account only","FDA-cleared, regulated","Green or red day today?","5"],
+  ["Apple Cycle Tracking","h","Built into iOS","asst","HealthKit, on device","Read via Apple Health in Claude, ChatGPT","Read-only exports","No","Writes need an iOS app","Summarize my last 6 cycles","3"],
+  ["MyFitnessPal","h","200M+ registered","asst","Closed, partners only","ChatGPT Health only","Several, cookie-based, can log food","Yes","Cloudflare","Log my Chipotle bowl, how much protein is left?","2"],
+  ["Lose It","h","n/a","none","None","None","2, one logs food","Yes","","Log lunch","3"],
+  ["Cronometer","h","n/a","none","None","None","3+, read and write","Yes","Breaks on web deploys","Am I low on magnesium this week?","3"],
+  ["MacroFactor","h","n/a","none","Export only","None","Export files only","No","Firebase App Check since May 2026","Log this meal, what's my new target?","5"],
+  ["Noom","h","n/a","none","None","None","None","Sign-up only","","Am I on track with GLP-1 protein?","4"],
+  ["Yazio","h","n/a","none","None","None","3, reverse-engineered","No","","Log this meal","3"],
+  ["Cal AI","h","15M+ downloads","none","None","None","None","No","Owned by MyFitnessPal","Here's a photo, log it","4"],
+  ["Strong","h","n/a","none","None","None","Reverse-engineered v6 API","No","Sets and reps never reach Apple Health","Build next push day from my last 8 sessions","3"],
+  ["Hevy","h","n/a","open","Pro only, read and write","None","Many","Yes","","Build next push day from my last 8 sessions","1"],
+  ["Fitbod","h","n/a","none","None","None","Read-only, needs password","No","","What should I lift today?","3"],
+  ["Ladder","h","n/a","none","None","None","None","No","","Swap today's session, my knee hurts","4"],
+  ["Peloton","h","~3.2M subs","asst","None","ChatGPT app, ChatGPT Health","Some","Yes","","Pick a 20-min recovery class","2"],
+  ["Strava","h","200M+","host","Paid, terms ban AI use","Claude, read-only, subscribers","Many, policy bars them","Yes","Terms ban AI use of data","Analyze my training block","5"],
+  ["Nike Run Club","h","n/a","none","None","None","Old exporters","No","","Plan my 10K","4"],
+  ["Oura","h","5M+ members","open","OAuth, read-only","None","Many","Yes","","Why was my readiness low?","1"],
+  ["Whoop","h","n/a","open","OAuth, read-only, membership","None","Several","Yes","Slow approval","Why was my recovery low?","2"],
+  ["Sleep Cycle","h","n/a","asst","None","ChatGPT app","None","No","","Start my wind-down","3"],
+  ["Garmin Connect","h","Huge, not published","none","Business only","None in Claude or ChatGPT","Many, login broke Mar 2026","Yes","TLS fingerprinting, login changes","Push 4 weeks of workouts to my watch","4"],
+  ["Fitbit","h","n/a","open","Google Health API, restricted","Gemini coach","Several","Partial","Old API off Nov 2, 2026","How did I sleep this week?","2"],
+  ["Eight Sleep","h","n/a","none","None","None","Several, mobile API","No","Endpoints change without notice","Make the bed 2 degrees cooler tonight","3"],
+  ["Calm","h","100M+ downloads","none","None","None","Unclear","Yes","","Play a 10-min sleep story","3"],
+  ["Headspace","h","n/a","none","None","None","None","Yes","","Start a 5-min breathing session","3"],
+  ["Finch","h","#13 Health and Fitness","none","None","None","None","No","","Check off my goals, log my mood","4"],
+  ["How We Feel","h","n/a","none","None","None","None","No","Mood partly in Apple Health","What's driving my bad days?","3"],
+  ["Streaks","h","n/a","none","Shortcuts only","None","None","No","","Mark meditate done","3"],
+  ["Medisafe","h","n/a","none","None","None","None","No","","Did I take my 8am meds?","4"],
+  ["MyChart","h","n/a","asst","FHIR, per health system","Read: Claude, Muse, ChatGPT Health","Browser scrapers","Yes","Writes have no official path","Message my doctor, request a refill","3 to 4"],
+
+  ["Venmo","m","~67M MAU","none","None for consumers","None","Unofficial, one pulled Jun 2026","Limited","2FA, PayPal risk checks","Who owes me from Tahoe? Request them","4"],
+  ["Cash App","m","60M monthly actives","none","None","None","Thin","Limited","","Send rent to my roommate on the 1st","4"],
+  ["Zelle","m","~150M enrolled","host","None","None","None","Via banks","Banks block agents","Zelle my landlord","5"],
+  ["Robinhood","m","~26M funded","open","Crypto API","Official trading MCP, beta","Many","Yes","","How's my portfolio this week?","1"],
+  ["Coinbase","m","~9M MTU","open","Yes","Official MCP","Many","Yes","","Buy $50 of ETH","1"],
+  ["Splitwise","m","n/a","open","Free, read and write","None","Many","Yes","","Split the $240 dinner 4 ways","1"],
+  ["Rocket Money","m","Millions","none","None","None","Export workarounds","Yes","Plaid already covers balances","Cancel every sub I haven't used in 60 days","3"],
+  ["Copilot Money","m","Niche","asst","None","Official read-only MCP","Some","Yes","","What did I spend on food?","1"],
+  ["YNAB","m","Niche","open","Read and write","ChatGPT app","Many","Yes","","How much is left in groceries?","1"],
+  ["Monarch","m","Niche","asst","None","Official MCP","Many","Yes","","What did I spend on food?","1"],
+  ["Chase","m","~70M digital","host","None, Plaid covers reads","None","","Yes","Blocks outside agents (Oct 2026)","Dining spend in October?","5"],
+  ["Amazon","m","300M+","host","None for consumers","None","Order-history MCPs","Yes","Sued Perplexity, blocks Muse","Reorder my usual","5"],
+  ["Target","m","~100M Circle","asst","None","ChatGPT, Gemini","","Yes","","Restock my bathroom stuff","2"],
+  ["Walmart","m","~150M weekly","asst","None","ChatGPT, Gemini, Muse","","Yes","","Restock my pantry","2"],
+  ["Costco","m","~81M households","none","None","Gemini test list only","Receipt scrapers","Yes","Opened up to AI bots","What did I buy here this year? Is X in stock?","3"],
+  ["Shein, Temu","m","Huge","none","None","Gemini, Android only","Scrapers","Yes","Heavy anti-bot","Track my orders","3 to 4"],
+  ["Kroger","m","Large","open","Public API incl. cart","Gemini","Some","Yes","","Add my usual groceries","1"],
+  ["DoorDash","m","~42M MAU","asst","None for consumers","ChatGPT groceries only, Gemini","Playwright MCP","Yes","Restaurant reorders not covered","Reorder Friday's Thai","3"],
+  ["Uber Eats","m","Part of Uber's 215M","asst","None","ChatGPT, Claude browse, Gemini","","Yes","","What's fast near me?","2"],
+  ["Instacart","m","Large","open","Yes","ChatGPT, Claude","","Yes","","Build my grocery cart","1"],
+  ["Starbucks","m","35.5M US Rewards","asst","None","ChatGPT, discovery only","Few","Yes","Ordering not covered","Order my usual at the closest store","2 to 3"],
+  ["Chipotle","m","~24M rewards","none","None","None anywhere","Playwright MCP, rated risky","Yes","None reported","My usual bowl, pickup 12:15","3"],
+  ["Sweetgreen","m","Small","none","None","None","Browser automation","Yes","None reported","My usual, pickup at noon","3"],
+  ["McDonald's","m","~175M loyalty, global","none","None in US","Gemini, Android only","China only","App mostly","","Use my best deal","4"],
+  ["Resy","m","Amex-owned","asst","None","Claude, ChatGPT","","Yes","","Table for 2 Friday at 8","1"],
+  ["OpenTable","m","Large","asst","Partner only","ChatGPT","Apify booker","Yes","","Table for 4 Saturday","1"],
+  ["Yelp","m","Large","asst","Paid","ChatGPT, Gemini","","Yes","Agents must license data","Best ramen nearby","4"],
+  ["Uber","m","215M MAPCs","asst","Restricted","ChatGPT, Claude, Gemini","","Yes","","Ride to SFO at 6am","1"],
+  ["Lyft","m","31.6M riders","none","Partners only","Gemini, Android only","Browser MCPs","Yes","None reported","Uber or Lyft to SFO at 6am, book the cheaper one","3"],
+  ["Airbnb","m","Large","none","None for guests","None","Search only","Yes","robots.txt blocks agents","3BR Tahoe under $400 with a hot tub","3 to 4"],
+  ["Hopper","m","100M+ downloads","none","None","None","Scraper","Yes","","Watch SFO to JFK, buy under $300","3"],
+  ["Delta","m","~200M flyers a year","host","None","Gemini, Android only","","Yes","Refuses outside agents","Move me to the earlier flight","5"],
+  ["United","m","Large","host","None","Gemini, Android only","","Yes","Bans agent purchases (Nov 11)","Move me to the earlier flight","5"],
+  ["Southwest","m","Large","asst","None","ChatGPT, search only","","Yes","Has sued scrapers","Cheapest flight home","4"],
+  ["ParkMobile","m","66M+ registered","none","Commercial deals only","None","None maintained","Yes","None known","Extend my parking 30 min","3"],
+  ["SpotHero","m","Being bought by Uber","none","Partner key","None","Wrapper","Yes","Folding into Uber","Garage near Chase Center, Sat 7pm","2 to 3"],
+  ["GasBuddy","m","10M to 90M, conflicting","none","None","None","Unofficial library","Yes","Maps already shows prices","Cheapest gas on my way home","2"],
+
+  ["Canvas","s","~30M+ est.","open","Yes, schools can block student tokens","None official","Many","Yes","Token blocks spreading","What's due this week across my classes?","2 to 4"],
+  ["Blackboard","s","Large","none","School-registered only","None","None","Yes","Gated by school","New announcements and deadlines","3"],
+  ["Google Classroom","s","150M+ est.","open","Classroom API","MCP preview, teacher tools","Composio","Yes","Admins can restrict","What am I missing?","1"],
+  ["Schoology","s","K-12","none","Per-school keys","None","Few","Yes","Gated by district","What's due tomorrow?","3"],
+  ["Brightspace","s","Higher ed, K-12","none","Gated by school","None","Several","Yes","","What's my grade in bio?","3"],
+  ["Quizlet","s","~60M MAU","asst","None","ChatGPT app","Few","Yes","Terms ban scraping","Turn my notes into a set and quiz me","2 to 4"],
+  ["Duolingo","s","64.9M daily","none","None","None anywhere","Sparse","Yes","Terms ban scraping","Drill the words I keep missing","3"],
+  ["Anki","s","Millions est.","open","Local add-on only","None","Several","Limited","Desktop must be running","Make cards from this PDF","2"],
+  ["GoodNotes","s","~24M MAU, older","none","None","None","None","Yes","Proprietary format","Find where the prof explained X","4"],
+  ["Notability","s","n/a","none","None","None","None","View only","Proprietary format","Find where the prof explained X","4"],
+  ["Gradescope","s","Thousands of schools","none","None for students","None","Needs your password","Web only","School SSO","Why did I lose points? Draft a regrade","3"],
+  ["Piazza","s","Declining","none","None","None","Needs your password","Web only","","Has anyone asked about HW3 Q2?","3"],
+  ["Ed Discussion","s","Growing","open","Personal tokens, unofficial","None","Several","Web only","","Has anyone asked about HW3 Q2?","2"],
+  ["Handshake","s","~20M students est.","none","Employer side only","None","None","Yes","Terms ban bots","Find paid SWE internships in NYC","3 to 4"],
+  ["Instagram","s","3B MAU","host","Business accounts only","Muse only","Bridges","Yes","Suspends automated accounts","Who haven't I replied to?","5"],
+  ["TikTok","s","200M US","none","Your own videos only","None","Few","Yes","Strong anti-bot","Save recipes from my likes","4"],
+  ["Snapchat","s","495M daily","host","Login and share only","None","None","Yes","Bans third-party clients","What did the group plan for Friday?","5"],
+  ["GroupMe","s","Default college chat","open","Public API, read and write","None","One","Yes","","Catch me up on 400 unread in the dorm chat","1"],
+  ["Discord","s","200M+ MAU","none","Bots only","None","Bot MCPs","Yes","Automating your account gets banned","Summarize my class server","3 to 5"],
+  ["WhatsApp","s","3B+","host","Business only","None","Unofficial","Yes","Bans the phone number","Summarize the family chat","5"],
+  ["iMessage","s","~1B+ iPhones est.","asst","None","Claude, Mac only","Many, Mac only","No","Nothing on iPhone","Who haven't I answered today?","2 to 5"],
+  ["Partiful","s","~500K MAU, +2M in 2025","none","None","None","Reverse-engineered client","Yes, full","None known","Invite my roommates Sat 9pm, who RSVP'd?","2 to 3"],
+  ["Life360","s","107.7M MAU","host","None","None","Blocked (403s)","Limited","Actively blocking","Tell me when my sister leaves campus","5"],
+  ["Tinder","s","~50M MAU est.","host","None","None","Old libraries","Yes","Guardrails against AI agents","Triage my matches","5"],
+  ["Hinge","s","n/a","host","None","None","None","No","Any automation violates terms","Triage my matches","5"],
+  ["Bumble","s","n/a","host","None","None","None","Yes","Terms ban bots","Triage my matches","5"],
+  ["Spotify","s","~700M MAU est.","asst","Limited since Feb 2026","ChatGPT, Claude, Gemini, Muse","Many","Yes","","Make a playlist for my run","1"],
+  ["Apple Music","s","~100M subs est.","asst","MusicKit, $99 dev account","ChatGPT","Some","Yes","","Make a playlist for my run","2"],
+  ["Letterboxd","s","~17M+ est.","none","By request only","None","Scrapers, RSS","Yes","Scrapers get 403s","Log Dune 2, 4 stars","3"],
+  ["Goodreads","s","150M+ est.","none","Retired 2020","None","Unofficial CLI and MCP","Yes","Light enforcement","Mark it finished, add the next 3","3"],
+  ["Netflix","s","300M+ paid","none","None since 2014","None","Few","Yes","Terms bar automation","What on my list leaves this month?","4"],
+  ["YouTube","s","~2.7B est.","open","Read and write","Gemini","Many","Yes","","Turn Watch Later into a study playlist","1"],
+  ["Ticketmaster","s","n/a","asst","Discovery only","ChatGPT, Gemini, Muse","Few","Yes","Bot defense at checkout","2 tix under $100","2 to 4"],
+  ["StubHub","s","n/a","asst","Partner","Claude, ChatGPT","","Yes","","2 tix under $100","1"],
+  ["AMC","s","~30M+ Stubs est.","none","None","None","None","Yes","Bot protection at checkout","2 seats tonight at 7 with my A-List","3"],
+  ["Fandango","s","n/a","none","Affiliate only","None","None","Yes","","What's playing near me?","3"],
+  ["Ring","s","Tens of millions est.","none","Partners only","Alexa+ only","ring-client-api","Yes","Libraries break","Who came to the door today?","3"],
+  ["Google Nest","s","n/a","open","$5 Device Access","Gemini","Some","Yes","","68 degrees before I get home","2"],
+  ["Tesla","s","~7M+ cars est.","open","Fleet API, paid","Tessie in Muse","Many","No","","Precondition at 7:45","2"],
+  ["SimpliSafe","s","n/a","none","None","None","Python library","Yes","Auth changes break it","Arm away","3"],
+  ["Apple Notes","s","Built in","none","None, local only","Claude Mac (unverified)","Mac only","iCloud","Nothing on iPhone","Save this to my class notes","2 to 4"],
+  ["Apple Reminders","s","Built in","none","EventKit, local","None","Mac only","iCloud","Nothing on iPhone","Remind me Thu 9pm to submit lab","2 to 4"],
+  ["Notion","s","100M+ est.","open","Yes","Official MCP","Many","Yes","","Add this to my reading list","1"],
+  ["Todoist","s","n/a","open","Yes","Official MCP, Muse","Many","Yes","","Add groceries to my list","1"]
+];
+
+const TOP = [
+  ["MyFitnessPal","200M+ registered · daily","Only ChatGPT Health connects it. Claude, Grok and Muse users have nothing, and community servers already prove we can log food through the web app.","Log my Chipotle bowl, how much protein is left?"],
+  ["Flo","~80M monthly users · daily","No connector or hack anywhere. Apple Health only gets period dates; symptoms, notes and predictions stay locked. Phone-only, so it needs the cloud phone, and the data is as sensitive as it gets.","Log cramps, when's my fertile window?"],
+  ["Strong (plus Fitbod, Ladder)","Biggest lifting apps without an API · several times a week","Sets, reps and weights never reach Apple Health. Hevy opened an API and got a dozen community MCPs, which shows the demand.","Build next push day from my last 8 sessions"],
+  ["Duolingo","64.9M daily users","No connector in any assistant and a full web version. A daily habit loop with a streak to protect.","Drill the words I keep missing"],
+  ["Chipotle (then Sweetgreen)","~24M rewards members · weekly","No connector anywhere, not even Gemini's list, while Starbucks and Burger King already have ChatGPT apps. Web ordering works. Window closes if Chipotle ships its own.","My usual bowl, pickup 12:15"],
+  ["Garmin Connect","Huge, no published count · daily","Full web app, no consumer API. Pushing workouts to the watch is a write nobody covers. Garmin fights scrapers, so expect breakage.","Push 4 weeks of workouts to my watch"],
+  ["Cal AI","15M+ downloads · daily","Phone-only photo logging, now owned by MyFitnessPal. No route at all.","Here's a photo, log it"],
+  ["ParkMobile","66M+ registered · urgent","No API, no MCP, web app exists. With SpotHero going to Uber, it's the open lane.","Extend my parking 30 min"],
+  ["Partiful","Gen Z party default","Full web app, no anti-bot stance, invites and RSVPs are perfect agent work.","Invite my roommates Sat 9pm, who RSVP'd?"],
+  ["Goodreads","150M+ members est.","API dead since 2020. Shelving and progress are simple web forms, light enforcement.","Mark it finished, add the next 3"],
+  ["Gradescope and Piazza","Most college STEM courses","No student API, web only. Keep it read-first so schools don't treat it as cheating.","Why did I lose points on HW3?"],
+  ["Lyft","31.6M riders","Uber is in ChatGPT and Claude, Lyft is in neither. Comparing the two is the killer ask.","Uber or Lyft to SFO at 6am, book the cheaper one"]
+];
+
+const STLABEL = { none: "No official route", open: "Public API", asst: "In an assistant", host: "Fights agents" };
+const STCLASS = { none: "st-none", open: "st-open", asst: "st-asst", host: "st-host" };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const dnum = d => parseInt(d, 10) || 3;
+const dclass = d => { const n = dnum(d); return n <= 2 ? "d1" : n === 3 ? "d3" : "d4"; };
+
+const stats = [
+  [A.length, "apps checked"],
+  [A.filter(r => r[3] === "none").length, "with no official route"],
+  [A.filter(r => r[3] === "host").length, "that fight agents"],
+  [A.filter(r => r[3] === "none" && dnum(r[10]) <= 3).length, "open targets at difficulty 3 or under"]
+];
+document.getElementById("stats").innerHTML = stats.map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
+
+document.getElementById("ranked").innerHTML = TOP.map((t, i) => `
+  <li><span class="rank">${i + 1}</span><div class="rk-body">
+    <div class="rk-title"><h3>${esc(t[0])}</h3><span>${esc(t[1])}</span></div>
+    <p>${esc(t[2])}</p><p class="ask">"${esc(t[3])}"</p>
+  </div></li>`).join("");
+
+let cat = "all", st = "none";
+function render() {
+  const rows = A.filter(r => (cat === "all" || r[1] === cat) && (st === "all" || r[3] === st))
+    .sort((a, b) => dnum(a[10]) - dnum(b[10]) || a[0].localeCompare(b[0]));
+  document.getElementById("rows").innerHTML = rows.map(r => `<tr>
+    <td class="app">${esc(r[0])}</td><td class="users">${esc(r[2])}</td>
+    <td><span class="st ${STCLASS[r[3]]}">${STLABEL[r[3]]}</span></td>
+    <td>${esc(r[4])}</td><td>${esc(r[5])}</td><td>${esc(r[6] || "None found")}</td><td>${esc(r[7])}</td>
+    <td>${esc(r[8])}</td><td class="ask2">${esc(r[9])}</td>
+    <td><span class="d ${dclass(r[10])}">${esc(r[10])}</span></td></tr>`).join("") ||
+    `<tr><td colspan="10">No apps match these filters.</td></tr>`;
+  document.getElementById("count").textContent = `Showing ${rows.length} of ${A.length}, easiest first`;
+}
+document.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
+  cat = b.dataset.cat;
+  document.querySelectorAll("[data-cat]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  render();
+}));
+document.querySelectorAll("[data-st]").forEach(b => b.addEventListener("click", () => {
+  st = b.dataset.st;
+  document.querySelectorAll("[data-st]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  render();
+}));
+render();
+</script>
