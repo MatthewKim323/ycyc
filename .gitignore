@@ -66,3 +66,5 @@ vid/audio/.cut/
 vid/assets/audio/mix.wav
 # Mixkit-derived sfx: free license, but no redistributing raw files from a public repo. Local only.
 vid/assets/sfx/
+# temp music bed (not ours to redistribute)
+vid/assets/music/

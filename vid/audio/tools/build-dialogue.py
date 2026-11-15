@@ -37,7 +37,8 @@ def cut(line, index):
         trim = "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05"
         filters += [trim, "areverse", trim, "areverse"]
     # Squeeze any pause over 0.32s down to ~0.16s so the dialogue plays at a natural, tight pace.
-    filters += ["silenceremove=stop_periods=-1:stop_duration=0.32:stop_threshold=-42dB:stop_silence=0.16"]
+    if not line.get("keep_pauses"):  # "keep_pauses": true keeps a deliberate beat (an "..." in the read)
+        filters += ["silenceremove=stop_periods=-1:stop_duration=0.32:stop_threshold=-42dB:stop_silence=0.16"]
     tempo = line.get("tempo", TEMPO.get(line["who"], 1.0))
     if tempo != 1.0:
         filters += [f"atempo={tempo}"]
