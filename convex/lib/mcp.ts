@@ -148,7 +148,7 @@ function listTools(mc: McpContext) {
     }
   }
   for (const { conn, recipe } of mc.live) {
-    const app = catalogApp(conn.appSlug);
+    const app = appInfo(mc, conn.appSlug);
     for (const t of recipe.tools) {
       tools.push({
         name: `${conn.appSlug}${SEP}${t.name}`,
@@ -167,8 +167,16 @@ function listTools(mc: McpContext) {
   return { tools };
 }
 
+// Built-in app, or one the user added from search.
+function appInfo(mc: McpContext, slug: string): { slug: string; name: string; blurb: string } | undefined {
+  const known = catalogApp(slug);
+  if (known) return known;
+  return mc.discovered.find((d) => d.slug === slug);
+}
+
 function listApps(mc: McpContext, token: string) {
-  const apps = CATALOG.map((a) => {
+  const extra = mc.discovered.filter((d, i, all) => all.findIndex((x) => x.slug === d.slug) === i);
+  const apps = [...CATALOG, ...extra].map((a) => {
     const conn = mc.connections.find((c) => c.appSlug === a.slug);
     const live = mc.live.find((l) => l.conn.appSlug === a.slug);
     const status = live ? "connected" : conn?.status === "building" ? "connecting" : conn?.status === "error" ? "error" : "not connected";
@@ -244,7 +252,7 @@ async function callAppTool(
   args: Record<string, unknown>,
 ) {
   const [slug, toolName] = name.split(SEP);
-  const app = catalogApp(slug);
+  const app = appInfo(mc, slug);
   const entry = mc.live.find((l) => l.conn.appSlug === slug);
   if (!app) throw new RpcError(-32602, `Unknown tool: ${name}`);
   const pub = entry ? undefined : mc.publicRecipes.find((p) => p.appSlug === slug);

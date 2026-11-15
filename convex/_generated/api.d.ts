@@ -21,6 +21,7 @@ import type * as crons from "../crons.js";
 import type * as executor from "../executor.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
+import type * as lib_appResolver from "../lib/appResolver.js";
 import type * as lib_compilerShim from "../lib/compilerShim.js";
 import type * as lib_env from "../lib/env.js";
 import type * as lib_fallbackCompiler from "../lib/fallbackCompiler.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   executor: typeof executor;
   health: typeof health;
   http: typeof http;
+  "lib/appResolver": typeof lib_appResolver;
   "lib/compilerShim": typeof lib_compilerShim;
   "lib/env": typeof lib_env;
   "lib/fallbackCompiler": typeof lib_fallbackCompiler;

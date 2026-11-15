@@ -1,0 +1,181 @@
+import { useQuery } from "convex/react";
+import { type Href, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler, StyleSheet, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useScrim } from "@/components/onboarding-chrome";
+import { PressableScale } from "@/components/pressable-scale";
+import { Text } from "@/components/text";
+import { api } from "@/hooks/convex";
+import { useOnboarding } from "@/hooks/onboarding";
+import { useUser } from "@/hooks/user";
+import { useInstalledApps } from "@/lib/installed-apps";
+import { colors, space, stageIn, stageOut } from "@/theme";
+
+import { ConnectStep } from "./connect-step";
+import { ProgressDots } from "./progress-dots";
+import { Assistant, How, Pick, Ready, Welcome } from "./steps";
+
+type Step = "welcome" | "how" | "pick" | "connect" | "ready" | "assistant";
+type ConnectPhase = "intro" | "loading" | "signin" | "code" | "build" | "error";
+
+const DOTS: Step[] = ["how", "pick", "connect", "ready", "assistant"];
+const BACK: Partial<Record<Step, Step>> = {
+  how: "welcome",
+  pick: "how",
+  connect: "pick",
+};
+// Light scrim only where text sits on the dots. Never black.
+const SCRIM: Record<Step, number> = {
+  welcome: 0,
+  how: 0.3,
+  pick: 0.3,
+  connect: 0.32,
+  ready: 0.15,
+  assistant: 0.3,
+};
+
+/**
+ * The whole first run as one screen over one shader: steps crossfade in place, the dots
+ * spring between them, and the first app is connected without leaving onboarding.
+ */
+export function OnboardingFlow() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { userId, mcpUrl } = useUser();
+  const { finish } = useOnboarding();
+  const apps = useQuery(api.apps.list);
+  const installed = useInstalledApps();
+
+  const [step, setStep] = useState<Step>("welcome");
+  const [slug, setSlug] = useState<string | null>(null);
+  const [ready, setReady] = useState<{ slug: string; name: string } | null>(null);
+  const [connectPhase, setConnectPhase] = useState<ConnectPhase>("intro");
+
+  useScrim(SCRIM[step]);
+
+  // Mid-build there is nothing to go back to; the connection keeps going either way.
+  const canBack = !!BACK[step] && !(step === "connect" && (connectPhase === "build" || connectPhase === "loading"));
+  const back = useCallback(() => {
+    const to = BACK[step];
+    if (to) setStep(to);
+  }, [step]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!canBack) return step !== "welcome";
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [canBack, back, step]);
+
+  const leave = async (to: Href) => {
+    await finish();
+    router.replace(to);
+  };
+
+  const onReady = useCallback((app: { slug: string; name: string }) => {
+    setReady(app);
+    setStep("ready");
+  }, []);
+
+  const dotIndex = DOTS.indexOf(step);
+  const bottom = insets.bottom;
+
+  return (
+    <View style={[styles.flex, { paddingTop: insets.top }]}>
+      {/* The bar's height is always reserved so content never jumps when it fades in. */}
+      <View style={styles.barSlot}>
+        {step !== "welcome" ? (
+          <Animated.View entering={FadeIn.duration(280)} exiting={FadeOut.duration(200)} style={styles.bar}>
+            <View style={styles.side}>
+              {canBack ? (
+                <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)}>
+                  <PressableScale
+                    onPress={back}
+                    hitSlop={12}
+                    scaleTo={0.94}
+                    haptic="selection"
+                    accessibilityLabel="Back"
+                  >
+                    <Text variant="bodyMedium" color={colors.textSecondary}>
+                      Back
+                    </Text>
+                  </PressableScale>
+                </Animated.View>
+              ) : null}
+            </View>
+            <ProgressDots count={DOTS.length} index={Math.max(0, dotIndex)} />
+            <View style={[styles.side, styles.sideRight]}>
+              {step !== "assistant" ? (
+                <PressableScale
+                  onPress={() => leave("/")}
+                  hitSlop={12}
+                  scaleTo={0.94}
+                  haptic="selection"
+                  accessibilityLabel="Skip for now"
+                >
+                  <Text variant="bodyMedium" color={colors.textTertiary}>
+                    Skip
+                  </Text>
+                </PressableScale>
+              ) : null}
+            </View>
+          </Animated.View>
+        ) : null}
+      </View>
+
+      <View style={styles.flex}>
+        <Animated.View key={step} entering={stageIn} exiting={stageOut} style={StyleSheet.absoluteFill}>
+          {step === "welcome" ? <Welcome bottomInset={bottom} onNext={() => setStep("how")} /> : null}
+          {step === "how" ? <How bottomInset={bottom} onNext={() => setStep("pick")} /> : null}
+          {step === "pick" ? (
+            <Pick
+              apps={apps}
+              installed={installed}
+              userId={userId}
+              bottomInset={bottom}
+              onPick={(s) => {
+                setSlug(s);
+                setConnectPhase("intro");
+                setStep("connect");
+              }}
+            />
+          ) : null}
+          {step === "connect" && slug ? (
+            <ConnectStep
+              slug={slug}
+              bottomInset={bottom}
+              onPhase={setConnectPhase}
+              onReady={onReady}
+              onPickAnother={() => setStep("pick")}
+            />
+          ) : null}
+          {step === "ready" && ready ? (
+            <Ready app={ready} bottomInset={bottom} onNext={() => setStep("assistant")} />
+          ) : null}
+          {step === "assistant" ? (
+            <Assistant mcpUrl={mcpUrl} bottomInset={bottom} onDone={() => leave("/")} onOthers={() => leave("/link")} />
+          ) : null}
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  barSlot: { height: 48 },
+  bar: {
+    ...StyleSheet.absoluteFill,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: space.gutter + 4,
+  },
+  side: { width: 72 },
+  sideRight: { alignItems: "flex-end" },
+});

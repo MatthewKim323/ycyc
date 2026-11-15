@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { catalogApp } from "./catalog";
+import { displayName } from "./catalog";
+import { resolveApp } from "./lib/appResolver";
 import { assistantValidator } from "./schema";
 import { sanitizeForConvex } from "./lib/sanitize";
 
@@ -12,7 +13,7 @@ const GRANT_MS = 60 * 60_000;
 // One line for the approval sheet when a write has consequences worth saying out loud.
 export function warningFor(appSlug: string, tool: string): string | undefined {
   if (appSlug === "parkmobile" && (tool === "start_parking" || tool === "extend_parking")) return "Charges your card";
-  if (/(^|_)(delete|remove)(_|$)/.test(tool)) return `Removes it from ${catalogApp(appSlug)?.name ?? appSlug}`;
+  if (/(^|_)(delete|remove)(_|$)/.test(tool)) return `Removes it from ${displayName(appSlug)}`;
   return undefined;
 }
 
@@ -25,12 +26,14 @@ export const pending = query({
       .withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", "pending"))
       .order("desc")
       .collect();
-    return rows
-      .filter((r) => r.expiresAt > now)
+    const live = rows.filter((r) => r.expiresAt > now);
+    const names: Record<string, string> = {};
+    for (const r of live) names[r.appSlug] ??= (await resolveApp(ctx, r.appSlug))?.name ?? displayName(r.appSlug);
+    return live
       .map((r) => ({
         _id: r._id,
         appSlug: r.appSlug,
-        appName: catalogApp(r.appSlug)?.name ?? r.appSlug,
+        appName: names[r.appSlug],
         tool: r.tool,
         title: r.title,
         summary: r.summary,

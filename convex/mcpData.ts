@@ -3,6 +3,7 @@ import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { assistantValidator } from "./schema";
 import { CATALOG } from "./catalog";
+import { resolveApp } from "./lib/appResolver";
 import { bestRecipe, recipeAt, stripSource } from "./lib/recipeStore";
 import { isPublicTool } from "./lib/recipeOverrides";
 
@@ -38,6 +39,15 @@ export const context = internalQuery({
     return {
       user,
       connections: conns.map((c) => ({ appSlug: c.appSlug, status: c.status, error: c.error })),
+      // Names and blurbs for apps added from search (app_<trackId>), which aren't in CATALOG.
+      discovered: await Promise.all(
+        conns
+          .filter((c) => c.appSlug.startsWith("app_"))
+          .map(async (c) => {
+            const a = await resolveApp(ctx, c.appSlug);
+            return { slug: c.appSlug, name: a?.name ?? "App", blurb: a?.blurb ?? "" };
+          }),
+      ),
       live,
       publicRecipes,
     };

@@ -3,7 +3,6 @@ import type { CaptureEntry, CatalogApp, Recipe, SessionBundle } from "../src/lib
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
-import { catalogApp } from "./catalog";
 import { executeRequest, executeTool, isAuthFailure, recordHealth } from "./executor";
 import { compileCapture, HAS_COMPILER } from "./lib/compilerShim";
 import { fallbackCompile } from "./lib/fallbackCompiler";
@@ -112,11 +111,16 @@ async function loginApiSignin(
 }
 
 // Web/session sign-in: count what the phone captured.
-async function sessionSignin(b: BuildCtx, session: SessionBundle): Promise<void> {
+async function sessionSignin(b: BuildCtx, session: SessionBundle, app: CatalogApp & { discovered?: boolean }): Promise<void> {
   const nCookies = Object.keys(session.cookies ?? {}).length;
   const nHeaders = Object.keys(session.headers ?? {}).length;
-  const nStorage = Object.keys(session.storage ?? {}).length;
+  const nStorage = Object.keys((session.storage ?? {}) as Record<string, string>).filter((k) => k !== "tz").length;
   if (!nCookies && !nHeaders && !nStorage) {
+    // Learned apps often keep the session in HttpOnly cookies only; calls run in the phone's browser.
+    if (app.discovered) {
+      await b.step("signin", "done", "Signed in on your phone");
+      return;
+    }
     throw new BuildError("No session received. Sign in again.");
   }
   const parts = [
@@ -161,7 +165,7 @@ export const run = internalAction({
     try {
       const conn = await ctx.runQuery(internal.connections.get, { connectionId: build.connectionId });
       if (!conn) throw new BuildError("Connection was removed");
-      const app = catalogApp(conn.appSlug);
+      const app = await ctx.runQuery(internal.apps.resolve, { slug: conn.appSlug });
       if (!app) throw new BuildError(`Unknown app ${conn.appSlug}`);
       const session: SessionBundle = conn.sessionJson ? JSON.parse(conn.sessionJson) : { capturedAt: 0 };
 
@@ -180,7 +184,7 @@ export const run = internalAction({
         if (derived) {
           await ctx.runMutation(internal.connections.updateSession, { connectionId: conn._id, json: JSON.stringify(derived) });
         }
-        await sessionSignin(b, derived ?? session);
+        await sessionSignin(b, derived ?? session, app);
       }
       await afterSignin(b, build.connectionId, app);
     } catch (e) {
@@ -199,7 +203,7 @@ export const resume = internalAction({
     try {
       const conn = await ctx.runQuery(internal.connections.get, { connectionId: build.connectionId });
       if (!conn) throw new BuildError("Connection was removed");
-      const app = catalogApp(conn.appSlug);
+      const app = await ctx.runQuery(internal.apps.resolve, { slug: conn.appSlug });
       if (!app) throw new BuildError(`Unknown app ${conn.appSlug}`);
       if (!conn.pendingJson) throw new BuildError("Code expired. Sign in again.");
       const recipe = await authRecipeFor(ctx, app.slug);

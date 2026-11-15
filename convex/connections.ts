@@ -3,7 +3,7 @@ import type { BuildStep, CaptureEntry, SessionBundle } from "../src/lib/contract
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { catalogApp } from "./catalog";
+import { resolveApp } from "./lib/appResolver";
 import { connectionStatus } from "./schema";
 import { recipeAt } from "./lib/recipeStore";
 
@@ -61,7 +61,7 @@ function trimEntry(e: CaptureEntry): CaptureEntry {
 export const start = mutation({
   args: { userId: v.id("users"), appSlug: v.string() },
   handler: async (ctx, { userId, appSlug }): Promise<Id<"connections">> => {
-    if (!catalogApp(appSlug)) throw new Error(`Unknown app: ${appSlug}`);
+    if (!(await resolveApp(ctx, appSlug))) throw new Error(`Unknown app: ${appSlug}`);
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("Unknown user");
     const now = Date.now();
@@ -179,7 +179,7 @@ export const mine = query({
       .collect();
     const out = [];
     for (const c of rows) {
-      const app = catalogApp(c.appSlug);
+      const app = await resolveApp(ctx, c.appSlug);
       if (!app) continue;
       const recipe = c.status === "live" ? await recipeAt(ctx, c.appSlug, c.recipeVersion) : null;
       out.push({

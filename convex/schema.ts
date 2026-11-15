@@ -206,6 +206,40 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user_app", ["userId", "appSlug"]),
 
+  // Apps added from App Store search ("connect any app"). slug = app_<trackId>; route web.
+  discoveredApps: defineTable({
+    slug: v.string(),
+    trackId: v.number(),
+    bundleId: v.optional(v.string()),
+    name: v.string(),
+    developer: v.optional(v.string()),
+    genre: v.optional(v.string()),
+    iconUrl: v.optional(v.string()),
+    webUrl: v.string(),
+    loginUrl: v.string(),
+    webOrigin: v.string(),
+    blurb: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_trackId", ["trackId"]),
+
+  // App Store search results, 10 minute cache per normalized query.
+  searchCache: defineTable({
+    key: v.string(),
+    json: v.string(),
+    at: v.number(),
+  }).index("by_key", ["key"]),
+
+  // "Ask for it" on phone-only apps, one per user per app.
+  appRequests: defineTable({
+    userId: v.id("users"),
+    trackId: v.number(),
+    name: v.string(),
+    createdAt: v.number(),
+  }).index("by_track", ["trackId", "userId"]),
+
   // Latest live metrics for the Today screen (needs tool calls, so an action fills it).
   todaySummaries: defineTable({
     userId: v.id("users"),

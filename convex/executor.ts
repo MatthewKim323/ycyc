@@ -4,7 +4,7 @@ import type { Executor, Recipe, RecipeTool, RequestTemplate, SessionBundle } fro
 import { internal } from "./_generated/api";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { internalAction } from "./_generated/server";
-import { catalogApp } from "./catalog";
+import { catalogApp, displayName } from "./catalog";
 import {
   extractPath,
   fitToolText,
@@ -187,7 +187,7 @@ async function ensureLogin(
   const req = buildRequest(recipe, tpl, { ...scope, login: undefined }, false);
   const res = await cloudFetch(req);
   if (res.status >= 400) {
-    throw new Error(`Sign-in to ${catalogApp(recipe.appSlug)?.name ?? recipe.appSlug} failed (${res.status})`);
+    throw new Error(`Sign-in to ${displayName(recipe.appSlug)} failed (${res.status})`);
   }
   const parsed = parseBody(res.body);
   const login = { ...(parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : { value: parsed ?? res.body }), _headers: res.headers };
@@ -325,7 +325,7 @@ async function executeViaRecipeRunner(
   if (!r.ok) {
     const err = r.error ?? "Failed";
     const friendly = /no way to authenticate|auth failed/i.test(err)
-      ? `${catalogApp(conn.appSlug)?.name ?? conn.appSlug} session expired. Reconnect it in yuzu.`
+      ? `${displayName(conn.appSlug)} session expired. Reconnect it in yuzu.`
       : err;
     return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
   }
@@ -535,7 +535,7 @@ function retryable(res: ExecResult): boolean {
 }
 
 export function signedOutText(appSlug: string): string {
-  return `${catalogApp(appSlug)?.name ?? appSlug} signed you out. Reconnect it in yuzu.`;
+  return `${displayName(appSlug)} signed you out. Reconnect it in yuzu.`;
 }
 
 // Per recipe version health; never lets bookkeeping break a call.

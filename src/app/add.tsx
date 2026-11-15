@@ -2,25 +2,33 @@ import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { memo, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { taglineFor } from "@/components/app-copy";
-import { AppGlyph } from "@/components/app-glyph";
 import { Icon } from "@/components/icon";
+import { AppIcon, PopularChips, SearchField, SearchResults } from "@/components/onboarding/app-search";
 import { PressableScale } from "@/components/pressable-scale";
 import { Text } from "@/components/text";
 import { api, type MyConnection } from "@/hooks/convex";
 import { useUser } from "@/hooks/user";
 import type { CatalogApp } from "@/lib/contract";
-import { colors, enter, space } from "@/theme";
+import { installedFirst, useInstalledApps } from "@/lib/installed-apps";
+import { colors, enter, layout, space } from "@/theme";
 
 const TILE = 88;
 const GUTTER = 20;
 const COL_GAP = 18;
 const ORDER = ["myfitnesspal", "strong", "duolingo", "cronometer", "parkmobile"];
 const IN_PROGRESS = new Set(["building", "capturing", "needs_code"]);
-const STATUS_RANK: Record<string, number> = { live: 0, building: 1, capturing: 1, needs_code: 1, needs_login: 2, error: 3 };
+const STATUS_RANK: Record<string, number> = {
+  live: 0,
+  building: 1,
+  capturing: 1,
+  needs_code: 1,
+  needs_login: 2,
+  error: 3,
+};
 
 const rank = (slug: string) => {
   const i = ORDER.indexOf(slug);
@@ -60,6 +68,7 @@ const PickerTile = memo(function PickerTile({
   app,
   tagline,
   connected,
+  onPhone,
   index,
   width,
   onPress,
@@ -67,6 +76,7 @@ const PickerTile = memo(function PickerTile({
   app: Pick<CatalogApp, "slug" | "name" | "category">;
   tagline?: string;
   connected: boolean;
+  onPhone: boolean;
   index: number;
   width: number;
   onPress: () => void;
@@ -80,7 +90,7 @@ const PickerTile = memo(function PickerTile({
         style={styles.tile}
       >
         <View style={styles.logo}>
-          <AppGlyph app={app} size={TILE} />
+          <AppIcon app={app} size={TILE} />
           {connected ? (
             <View style={styles.badge}>
               <Icon name="checkBlack" size={16} />
@@ -90,7 +100,11 @@ const PickerTile = memo(function PickerTile({
         <Text variant="label" numberOfLines={1} style={styles.center}>
           {app.name}
         </Text>
-        {tagline ? (
+        {onPhone ? (
+          <Text variant="micro" color={colors.textSecondary} numberOfLines={1} style={styles.center}>
+            On your phone
+          </Text>
+        ) : tagline ? (
           <Text variant="micro" color={colors.textTertiary} numberOfLines={1} style={styles.center}>
             {tagline}
           </Text>
@@ -110,11 +124,14 @@ export default function AddApp() {
   const connections = useQuery(api.connections.mine, userId ? { userId } : "skip");
   const tileWidth = Math.floor((Math.min(width, 520) - GUTTER * 2 - COL_GAP * 2) / 3);
 
-  const sorted = [...(apps ?? [])].sort((a, b) => rank(a.slug) - rank(b.slug));
-  const { fits, probe } = useTaglinesFit(
-    sorted.map((a) => taglineFor(a)).filter(Boolean),
-    tileWidth,
+  const installed = useInstalledApps();
+  const [query, setQuery] = useState("");
+  const searching = query.trim().length > 0;
+  const sorted = installedFirst(
+    [...(apps ?? [])].sort((a, b) => rank(a.slug) - rank(b.slug)),
+    installed,
   );
+  const { fits, probe } = useTaglinesFit(sorted.map((a) => taglineFor(a)).filter(Boolean), tileWidth);
 
   // One connection per app: the most useful one when there are several.
   const bySlug = new Map<string, MyConnection>();
@@ -129,43 +146,72 @@ export default function AddApp() {
     router.back();
     if (status === "live") router.push({ pathname: "/app/[slug]", params: { slug } });
     else if (c && status && IN_PROGRESS.has(status))
-      router.push({ pathname: "/build/[connectionId]", params: { connectionId: c._id, slug } });
+      router.push({
+        pathname: "/build/[connectionId]",
+        params: { connectionId: c._id, slug },
+      });
     else router.push({ pathname: "/connect/[slug]", params: { slug } });
   };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.bar}>
-        <PressableScale onPress={() => router.back()} hitSlop={12} scaleTo={0.94} haptic="selection" accessibilityLabel="Close">
+        <PressableScale
+          onPress={() => router.back()}
+          hitSlop={12}
+          scaleTo={0.94}
+          haptic="selection"
+          accessibilityLabel="Close"
+        >
           <Text variant="bodyMedium" color={colors.textSecondary}>
             Close
           </Text>
         </PressableScale>
       </View>
       <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={enter(0)}>
           <Text style={styles.title}>Add an app</Text>
         </Animated.View>
-        {apps === undefined ? (
+        <Animated.View entering={enter(1)}>
+          <SearchField value={query} onChange={setQuery} />
+        </Animated.View>
+        {searching ? (
+          <Animated.View key="results" entering={FadeIn.duration(200)} layout={layout} style={styles.results}>
+            <SearchResults
+              query={query}
+              userId={userId}
+              onConnect={(slug) => {
+                router.back();
+                router.push({ pathname: "/connect/[slug]", params: { slug } });
+              }}
+            />
+          </Animated.View>
+        ) : apps === undefined ? (
           <ActivityIndicator color={colors.textTertiary} style={styles.loading} />
         ) : (
-          <View style={styles.grid}>
-            {probe}
-            {sorted.map((a, i) => (
-              <PickerTile
-                key={a.slug}
-                app={a}
-                tagline={fits ? taglineFor(a) : undefined}
-                connected={bySlug.get(a.slug)?.status === "live"}
-                index={i + 1}
-                width={tileWidth}
-                onPress={() => pick(a.slug)}
-              />
-            ))}
-          </View>
+          <Animated.View key="ready" entering={FadeIn.duration(200)} style={styles.readyBlock}>
+            <View style={styles.grid}>
+              {probe}
+              {sorted.map((a, i) => (
+                <PickerTile
+                  key={a.slug}
+                  app={a}
+                  tagline={fits ? taglineFor(a) : undefined}
+                  connected={bySlug.get(a.slug)?.status === "live"}
+                  onPhone={!!installed[a.slug]}
+                  index={i + 2}
+                  width={tileWidth}
+                  onPress={() => pick(a.slug)}
+                />
+              ))}
+            </View>
+            <PopularChips onPick={setQuery} />
+          </Animated.View>
         )}
       </ScrollView>
     </View>
@@ -174,11 +220,35 @@ export default function AddApp() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  bar: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: GUTTER },
+  bar: {
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: GUTTER,
+  },
   content: { paddingHorizontal: GUTTER, paddingTop: space.sm, gap: space.xxl },
-  title: { fontFamily: "Inter_600SemiBold", fontSize: 30, lineHeight: 36, letterSpacing: -0.6, color: colors.text },
+  title: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+    color: colors.text,
+  },
   loading: { paddingVertical: space.xl },
-  grid: { flexDirection: "row", flexWrap: "wrap", columnGap: COL_GAP, rowGap: 28 },
+  readyBlock: { gap: space.xxl },
+  results: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    columnGap: COL_GAP,
+    rowGap: 28,
+  },
   probe: { position: "absolute", top: 0, left: 0, opacity: 0 },
   tile: { alignItems: "center", gap: 6 },
   logo: { width: TILE, height: TILE, marginBottom: 4 },

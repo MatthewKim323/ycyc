@@ -60,6 +60,20 @@ export const PAUSED: CatalogApp[] = [
   },
 ];
 
+// App Store ids of the built-in apps, so search results map onto them.
+export const CATALOG_TRACK_IDS: Record<number, string> = {
+  341232718: "myfitnesspal",
+  464254577: "strong",
+  1145935738: "cronometer",
+  365399299: "parkmobile",
+  570060128: "duolingo",
+};
+
+// User-facing name when only a slug is at hand (discovered app_* slugs are never shown).
+export function displayName(slug: string): string {
+  return catalogApp(slug)?.name ?? (slug.startsWith("app_") ? "The app" : slug);
+}
+
 export function catalogApp(slug: string): CatalogApp | undefined {
   return CATALOG.find((a) => a.slug === slug);
 }

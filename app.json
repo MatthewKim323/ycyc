@@ -9,7 +9,13 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "ai.yuzu.app"
+      "bundleIdentifier": "ai.yuzu.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "duolingo",
+          "cronometer"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {

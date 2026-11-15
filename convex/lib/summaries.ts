@@ -1,7 +1,7 @@
 // Plain-language summaries for approvals and activity ("Log Banana (1 serving) to Snacks"), and short
 // receipts for writes whose response body is empty. Never shows long numeric ids or uuids.
 import type { RecipeTool } from "../../src/lib/contract";
-import { catalogApp } from "../catalog";
+import { displayName } from "../catalog";
 
 export type Names = Record<string, string>; // id -> label, learned from recent search results
 
@@ -15,7 +15,7 @@ const CRONOMETER_MEALS: Record<string, string> = {
 const UNITS = /^(g|gram|grams|kg|oz|ounce|ounces|lb|lbs|ml|l|cup|cups|tbsp|tsp|serving|servings|piece|pieces|slice|slices|container|each|unit|portion|scoop|bar|item)$/i;
 
 function appName(slug: string): string {
-  return catalogApp(slug)?.name ?? slug;
+  return displayName(slug);
 }
 
 function plural(n: number, word: string): string {
