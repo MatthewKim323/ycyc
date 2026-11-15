@@ -1,4 +1,4 @@
-# haahehl
+# ycyc
 
 Plaid for consumer apps, for AI: connect any app on your phone, even ones with no API, to every AI assistant you use. One link, connect once, works in Claude, ChatGPT, Grok and Muse.
 
