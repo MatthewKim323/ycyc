@@ -1,0 +1,10 @@
+{
+  "total": 5.0,
+  "scenes": {
+    "s01": {
+      "start": 0.0,
+      "duration": 5
+    }
+  },
+  "lines": []
+}

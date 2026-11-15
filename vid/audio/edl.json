@@ -1,0 +1,6 @@
+{
+  "_": "Scene order + voice lines. build-dialogue.py lays scenes end to end: a scene lasts max(min, last line end + tail). Line: {who, src, text, at|gap|after, tempo?, pan?, gain?, phone?} or a silent caption {who, text, dur, silent: true}. Scene ids = launch/compositions/<id>.html.",
+  "scenes": [
+    { "id": "s01", "min": 5, "tail": 0, "lines": [] }
+  ]
+}

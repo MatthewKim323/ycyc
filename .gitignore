@@ -54,3 +54,15 @@ example
 .revyl/device-sessions.*
 .gstack/
 scripts/re/*/captures/
+
+# vid (HyperFrames demo video)
+vid/.hyperframes/
+vid/.thumbnails/
+vid/.transcode-cache/
+vid/.waveform-cache/
+vid/.remount.lock
+vid/renders/
+vid/audio/.cut/
+vid/assets/audio/mix.wav
+# Mixkit-derived sfx: free license, but no redistributing raw files from a public repo. Local only.
+vid/assets/sfx/
