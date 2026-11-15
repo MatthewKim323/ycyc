@@ -1,4 +1,4 @@
-<!-- s08-chatgpt: out of the s07 screen into ChatGPT on the same link. The Strong call flashes beside the phone, then
+<!-- s08-chatgpt: out of the s07 screen into ChatGPT on the same link. The Strong read flashes beside the phone, then
      the camera pushes into the answer (msg-in) and holds; whips left into s09. -->
 <!-- sfx: t=0.80 name=case-pop gain=0.35 -->
 <!-- sfx: t=1.60 name=msg-in gain=0.6 -->
@@ -17,12 +17,10 @@
       border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap;
       font: 500 36px "Inter", sans-serif; color: #fff; }
     #s08-rim { position: absolute; inset: 0; border-radius: 60px; box-shadow: inset 0 0 0 1.5px #fff; pointer-events: none; }
-    .s08-g { width: 84px; height: 84px; border-radius: 42px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      display: flex; align-items: center; justify-content: center; flex: none; }
-    .s08-g .k-icon { width: 52px; height: 52px; }
+    .s08-logo { width: 84px; height: 84px; border-radius: 23px; background: #141414; flex: none; display: block; }
     .s08-app { font-weight: 600; letter-spacing: -0.01em; }
     .s08-sep { color: #6b6b6b; margin: 0 -8px; }
-    .s08-tool { color: #a1a1a1; }
+    .s08-verb { color: #a1a1a1; }
     #s08-ok { width: 48px; height: 48px; flex: none; margin-left: 4px; }
   </style>
   <div id="root" data-composition-id="s08-chatgpt" data-width="1920" data-height="1080">
@@ -38,8 +36,8 @@
         </div>
       </div>
       <div id="s08-chip">
-        <div class="s08-g"><div id="s08-ic" class="k-icon"></div></div>
-        <span class="s08-app">Strong</span><span class="s08-sep">·</span><span class="s08-tool">get_exercise_history</span>
+        <img id="s08-logo" class="s08-logo" src="assets/apps/strong.png" alt="" />
+        <span class="s08-app">Strong</span><span class="s08-sep">·</span><span class="s08-verb">See your lift history</span>
         <div id="s08-ok" class="k-icon"></div>
         <div id="s08-rim"></div>
       </div>
@@ -66,7 +64,6 @@
       gsap.set("#s08-ok", { opacity: 0, scale: 0.6 });
       tl.fromTo(chip, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 0.8);
       tl.fromTo(chip, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 0.8);
-      KIT.icon(tl, $("#s08-ic"), "person-pushups", { at: 0.8 });
       KIT.icon(tl, $("#s08-ok"), "check", { at: 1.18 });
       tl.fromTo("#s08-ok", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 1.18);
       tl.fromTo("#s08-rim", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.18);

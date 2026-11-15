@@ -6,6 +6,9 @@
 <!-- sfx: t=4.08 name=whoosh-soft gain=0.3 -->
 <!-- duck: t=4.40 len=0.40 -->
 <!-- sfx: t=4.80 name=slam-impact gain=0.8 -->
+<!-- sfx: t=6.81 name=row-tick gain=0.5 -->
+<!-- sfx: t=7.49 name=row-tick gain=0.5 -->
+<!-- sfx: t=8.17 name=row-tick gain=0.5 -->
 <template>
   <style>
     #root { position: absolute; inset: 0; }
@@ -21,13 +24,17 @@
       font: 500 36px "Inter", sans-serif; color: #fff; }
     #s06-c1 { top: 328px; } #s06-c2 { top: 480px; } #s06-c3 { top: 632px; }
     .s06-rim { position: absolute; inset: 0; border-radius: 60px; box-shadow: inset 0 0 0 1.5px #fff; pointer-events: none; }
-    .s06-g { width: 84px; height: 84px; border-radius: 42px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      display: flex; align-items: center; justify-content: center; flex: none; }
-    .s06-g .k-icon { width: 52px; height: 52px; }
+    /* App Store logos, rounded as AppGlyph renders them (radius = size x 0.27). */
+    .s06-logo { width: 84px; height: 84px; border-radius: 23px; background: #141414; flex: none; display: block; }
     .s06-app { font-weight: 600; letter-spacing: -0.01em; }
     .s06-sep { color: #6b6b6b; margin: 0 -8px; }
-    .s06-tool { color: #a1a1a1; }
+    .s06-verb { color: #a1a1a1; }
     .s06-ok { width: 48px; height: 48px; flex: none; margin-left: 4px; }
+    /* Sources: after the answer lands, the three apps it read light up beside the phone on the beats (6.81 / 7.49 / 8.17). */
+    .s06-src { position: absolute; left: 1384px; height: 96px; display: flex; align-items: center; gap: 20px; padding: 0 34px 0 14px;
+      border-radius: 999px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; font: 600 36px "Inter", sans-serif; letter-spacing: -0.01em; color: #fff; white-space: nowrap; }
+    .s06-slogo { width: 68px; height: 68px; border-radius: 18px; background-color: #141414; background-size: cover; flex: none; }
+    #s06-s1 { top: 372px; } #s06-s2 { top: 492px; } #s06-s3 { top: 612px; }
   </style>
   <div id="root" data-composition-id="s06-knows" data-width="1920" data-height="1080">
     <div id="s06-wrap" class="clip k-canvas" data-start="0" data-duration="10.000" data-track-index="0">
@@ -42,20 +49,23 @@
         </div>
       </div>
       <div id="s06-c1" class="s06-chip">
-        <div class="s06-g"><div id="s06-c1-ic" class="k-icon"></div></div>
-        <span class="s06-app">Flo</span><span class="s06-sep">·</span><span class="s06-tool">get_cycle_status</span>
+        <img id="s06-c1-logo" class="s06-logo" src="assets/apps/myfitnesspal.png" alt="" />
+        <span class="s06-app">MyFitnessPal</span><span class="s06-sep">·</span><span class="s06-verb">Read your diary</span>
         <div id="s06-c1-ok" class="s06-ok k-icon"></div>
         <div id="s06-c1-rim" class="s06-rim"></div>
       </div>
       <div id="s06-c2" class="s06-chip">
-        <div class="s06-g"><div id="s06-c2-ic" class="k-icon"></div></div>
-        <span class="s06-app">Cronometer</span><span class="s06-sep">·</span><span class="s06-tool">get_daily_nutrition</span>
+        <img id="s06-c2-logo" class="s06-logo" src="assets/apps/cronometer.png" alt="" />
+        <span class="s06-app">Cronometer</span><span class="s06-sep">·</span><span class="s06-verb">Check your nutrients</span>
         <div id="s06-c2-ok" class="s06-ok k-icon"></div>
         <div id="s06-c2-rim" class="s06-rim"></div>
       </div>
+      <div id="s06-s1" class="s06-src"><div id="s06-s1-logo" class="s06-slogo" style="background-image: url(assets/apps/myfitnesspal.png)"></div><span>MyFitnessPal</span></div>
+      <div id="s06-s2" class="s06-src"><div id="s06-s2-logo" class="s06-slogo" style="background-image: url(assets/apps/cronometer.png)"></div><span>Cronometer</span></div>
+      <div id="s06-s3" class="s06-src"><div id="s06-s3-logo" class="s06-slogo" style="background-image: url(assets/apps/strong.png)"></div><span>Strong</span></div>
       <div id="s06-c3" class="s06-chip">
-        <div class="s06-g"><div id="s06-c3-ic" class="k-icon"></div></div>
-        <span class="s06-app">Strong</span><span class="s06-sep">·</span><span class="s06-tool">get_recent_workouts</span>
+        <img id="s06-c3-logo" class="s06-logo" src="assets/apps/strong.png" alt="" />
+        <span class="s06-app">Strong</span><span class="s06-sep">·</span><span class="s06-verb">Read your workouts</span>
         <div id="s06-c3-ok" class="s06-ok k-icon"></div>
         <div id="s06-c3-rim" class="s06-rim"></div>
       </div>
@@ -80,9 +90,9 @@
 
       // Tool-call chips: arrive one by one, the newest is lit, earlier ones dim and get their check.
       const chips = [
-        { id: "s06-c1", icon: "lotus", at: 1.4 },
-        { id: "s06-c2", icon: "apple", at: 2.4 },
-        { id: "s06-c3", icon: "person-pushups", at: 3.4 },
+        { id: "s06-c1", at: 1.4 },
+        { id: "s06-c2", at: 2.4 },
+        { id: "s06-c3", at: 3.4 },
       ];
       chips.forEach((c, i) => {
         const el = $("#" + c.id), rim = $("#" + c.id + "-rim"), ok = $("#" + c.id + "-ok");
@@ -92,7 +102,6 @@
         tl.fromTo(el, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, c.at);
         tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, c.at);
         tl.fromTo(rim, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, c.at);
-        KIT.icon(tl, $("#" + c.id + "-ic"), c.icon, { at: c.at });
         // Call returns: check pops, rim drops, chip dims as the next one takes the light.
         KIT.icon(tl, ok, "check", { at: done });
         tl.fromTo(ok, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, done);
@@ -119,6 +128,13 @@
       tl.to("#s06-cam", { filter: "blur(0px)", duration: 0.21, ease: "power2.out" }, 4.99);
       tl.fromTo("#s06-cam", cam(1.8, 960, ANS), { ...cam(1.86, 960, ANS), duration: D - 5.2, ease: "sine.inOut", immediateRender: false }, 5.2);
 
+      // Sources light up beside the phone on the beats while the VO lands "Now it actually knows you", then clear before s07.
+      [["s06-s1", 6.81], ["s06-s2", 7.49], ["s06-s3", 8.17]].forEach(([id, at]) => {
+        gsap.set("#" + id, { opacity: 0, x: 36, filter: "blur(8px)" });
+        tl.fromTo("#" + id, { x: 36 }, { x: 0, duration: S.enter.dur * 0.7, ease: S.enter.ease, immediateRender: false }, at);
+        tl.fromTo("#" + id, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power2.out", immediateRender: false }, at);
+      });
+      tl.fromTo(".s06-src", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", x: 24, duration: 0.3, ease: "power2.in", stagger: 0.04, immediateRender: false }, 9.45);
       window.__timelines["s06-knows"] = tl;
     })();
   </script>
