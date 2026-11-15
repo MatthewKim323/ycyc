@@ -5,7 +5,7 @@
 // Runs in Expo Go: no native cookie access, so HttpOnly cookies stay in the WebView's cookie store
 // (shared with DeviceRelay) and we capture the bearer tokens and headers the site's JS can see.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
 import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
@@ -39,8 +39,9 @@ export function CaptureWebView({ app, onDone, onProgress }: CaptureWebViewProps)
   const [uri, setUri] = useState(cfg.loginUrl);
   const [phase, setPhase] = useState<Phase>("login");
 
+  const [startedAt] = useState(() => Date.now());
   const entries = useRef<CaptureEntry[]>([]);
-  const session = useRef<SessionBundle>({ headers: {}, cookies: {}, storage: {}, capturedAt: Date.now() });
+  const session = useRef<SessionBundle>({ headers: {}, cookies: {}, storage: {}, capturedAt: startedAt });
   const loggedIn = useRef(false);
   const done = useRef(false);
   const loadWaiter = useRef<(() => void) | null>(null);
@@ -49,8 +50,10 @@ export function CaptureWebView({ app, onDone, onProgress }: CaptureWebViewProps)
 
   const onDoneRef = useRef(onDone);
   const onProgressRef = useRef(onProgress);
-  onDoneRef.current = onDone;
-  onProgressRef.current = onProgress;
+  useLayoutEffect(() => {
+    onDoneRef.current = onDone;
+    onProgressRef.current = onProgress;
+  });
 
   const report = useCallback((p: Phase) => {
     const payload = { phase: p, requests: entries.current.length, loggedIn: loggedIn.current };
@@ -61,7 +64,9 @@ export function CaptureWebView({ app, onDone, onProgress }: CaptureWebViewProps)
   }, []);
 
   const phaseRef = useRef<Phase>("login");
-  phaseRef.current = phase;
+  useLayoutEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const inject = useCallback((js: string) => {
     webRef.current?.injectJavaScript(js);
