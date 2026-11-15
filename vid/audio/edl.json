@@ -148,6 +148,21 @@
    ]
   },
   {
+   "id": "s09b-any",
+   "min": 8.1675,
+   "tail": 0.3,
+   "lines": [
+    {
+     "who": "narrator",
+     "src": "audio/voice/chris/v09b-t2.mp3",
+     "at": 0.35,
+     "text": [
+      "Yuzu runs no model of its own. It plugs into the AI you already pay for, and any agent that speaks MCP."
+     ]
+    }
+   ]
+  },
+  {
    "id": "s10-more",
    "min": 5.0,
    "tail": 0.4,

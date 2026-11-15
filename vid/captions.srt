@@ -39,17 +39,21 @@ Same link in ChatGPT.
 Or just text it.
 
 11
-00:00:57,584 --> 00:01:01,429
-Every app yuzu learns, it learns once, for everyone.
+00:00:57,634 --> 00:01:03,958
+Yuzu runs no model of its own. It plugs into the AI you already pay for, and any agent that speaks MCP.
 
 12
-00:01:03,484 --> 00:01:06,995
-ParkMobile. Duolingo. Whatever you open next.
+00:01:05,751 --> 00:01:09,596
+Every app yuzu learns, it learns once, for everyone.
 
 13
-00:01:09,684 --> 00:01:14,005
-Built today at YC, with Capy, Revyl, and Convex.
+00:01:11,651 --> 00:01:15,162
+ParkMobile. Duolingo. Whatever you open next.
 
 14
-00:01:16,204 --> 00:01:19,156
+00:01:17,851 --> 00:01:22,172
+Built today at YC, with Capy, Revyl, and Convex.
+
+15
+00:01:24,371 --> 00:01:27,324
 Yuzu. Your apps, in every AI.

@@ -1,5 +1,5 @@
 {
-  "total": 81.924,
+  "total": 90.091,
   "scenes": {
     "s01-guess": {
       "start": 0.0,
@@ -37,20 +37,24 @@
       "start": 52.284,
       "duration": 5.0
     },
-    "s10-more": {
+    "s09b-any": {
       "start": 57.284,
+      "duration": 8.168
+    },
+    "s10-more": {
+      "start": 65.451,
       "duration": 5.0
     },
     "s11-endless": {
-      "start": 62.284,
+      "start": 70.451,
       "duration": 7.0
     },
     "s12-built": {
-      "start": 69.284,
+      "start": 77.451,
       "duration": 6.0
     },
     "s13-end": {
-      "start": 75.284,
+      "start": 83.451,
       "duration": 6.64
     }
   },
@@ -146,10 +150,19 @@
       ]
     },
     {
+      "scene": "s09b-any",
+      "who": "narrator",
+      "start": 57.634,
+      "end": 63.958,
+      "text": [
+        "Yuzu runs no model of its own. It plugs into the AI you already pay for, and any agent that speaks MCP."
+      ]
+    },
+    {
       "scene": "s10-more",
       "who": "narrator",
-      "start": 57.584,
-      "end": 61.429,
+      "start": 65.751,
+      "end": 69.596,
       "text": [
         "Every app yuzu learns, it learns once, for everyone."
       ]
@@ -157,8 +170,8 @@
     {
       "scene": "s11-endless",
       "who": "narrator",
-      "start": 63.484,
-      "end": 66.995,
+      "start": 71.651,
+      "end": 75.162,
       "text": [
         "ParkMobile. Duolingo. Whatever you open next."
       ]
@@ -166,8 +179,8 @@
     {
       "scene": "s12-built",
       "who": "narrator",
-      "start": 69.684,
-      "end": 74.005,
+      "start": 77.851,
+      "end": 82.172,
       "text": [
         "Built today at YC, with Capy, Revyl, and Convex."
       ]
@@ -175,8 +188,8 @@
     {
       "scene": "s13-end",
       "who": "narrator",
-      "start": 76.204,
-      "end": 79.156,
+      "start": 84.371,
+      "end": 87.324,
       "text": [
         "Yuzu. Your apps, in every AI."
       ]

@@ -50,6 +50,11 @@
   "style": "casual, a little amused"
  },
  {
+  "id": "v09b",
+  "text": "Yuzu runs no model of its own. It plugs into the AI you already pay for, and any agent that speaks MCP.",
+  "style": "confident, brisk, a little proud"
+ },
+ {
   "id": "v10",
   "text": "Every app yuzu learns, it learns once, for everyone.",
   "style": "confident, building"
