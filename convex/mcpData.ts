@@ -65,3 +65,32 @@ export const saveSession = internalMutation({
     await ctx.db.insert("mcpSessions", { ...args, createdAt: Date.now() });
   },
 });
+
+export const names = internalQuery({
+  args: { userId: v.id("users"), appSlug: v.string() },
+  handler: async (ctx, { userId, appSlug }): Promise<Record<string, string>> => {
+    const row = await ctx.db
+      .query("lookupNames")
+      .withIndex("by_user_app", (q) => q.eq("userId", userId).eq("appSlug", appSlug))
+      .first();
+    return row ? (JSON.parse(row.json) as Record<string, string>) : {};
+  },
+});
+
+// Merge newly seen id -> label pairs, keeping the most recent 200.
+export const rememberNames = internalMutation({
+  args: { userId: v.id("users"), appSlug: v.string(), json: v.string() },
+  handler: async (ctx, { userId, appSlug, json }) => {
+    const fresh = JSON.parse(json) as Record<string, string>;
+    if (Object.keys(fresh).length === 0) return;
+    const row = await ctx.db
+      .query("lookupNames")
+      .withIndex("by_user_app", (q) => q.eq("userId", userId).eq("appSlug", appSlug))
+      .first();
+    const old = row ? (JSON.parse(row.json) as Record<string, string>) : {};
+    for (const k of Object.keys(fresh)) delete old[k];
+    const merged = Object.fromEntries([...Object.entries(old), ...Object.entries(fresh)].slice(-200));
+    if (row) await ctx.db.patch(row._id, { json: JSON.stringify(merged), updatedAt: Date.now() });
+    else await ctx.db.insert("lookupNames", { userId, appSlug, json: JSON.stringify(merged), updatedAt: Date.now() });
+  },
+});

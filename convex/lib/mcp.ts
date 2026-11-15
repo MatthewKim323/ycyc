@@ -6,6 +6,7 @@ import type { DataModel, Doc } from "../_generated/dataModel";
 import { CATALOG, catalogApp, findApp } from "../catalog";
 import { executeTool } from "../executor";
 import { SITE_URL } from "./env";
+import { extractNames, isEmptyResult, receiptFrom, summarizeCall } from "./summaries";
 
 type Ctx = GenericActionCtx<DataModel>;
 
@@ -78,16 +79,6 @@ function json(body: unknown, status: number, headers: Record<string, string>): R
 function toolSchema(t: RecipeTool): Record<string, unknown> {
   const s = (t.inputSchema ?? {}) as Record<string, unknown>;
   return { ...s, type: "object", properties: (s.properties as object) ?? {} };
-}
-
-function argSummary(args: Record<string, unknown> | undefined): string {
-  if (!args) return "";
-  const vals = Object.values(args)
-    .filter((v) => v !== undefined && v !== null && v !== "")
-    .map((v) => (typeof v === "string" || typeof v === "number" || typeof v === "boolean" ? String(v) : JSON.stringify(v)))
-    .slice(0, 4);
-  const s = vals.join(", ");
-  return s.length > 90 ? s.slice(0, 87) + "..." : s;
 }
 
 function textResult(text: string, isError = false) {
@@ -262,7 +253,8 @@ async function callAppTool(
     // No connection needed: run from the cloud without a session.
     const pseudo = { userId: mc.user._id, appSlug: slug, status: "live", createdAt: 0, updatedAt: 0 } as unknown as Doc<"connections">;
     const res = await executeTool(ctx, { conn: pseudo, recipe: pub.recipe, tool: pubTool, args });
-    const summary = argSummary(args) ? `${pubTool.title}: ${argSummary(args)}` : pubTool.title;
+    const summary = summarizeCall(slug, pubTool, args);
+    if (res.ok) await rememberFrom(ctx, mc.user._id, slug, res.data);
     await ctx.runMutation(internal.activity.log, {
       userId: mc.user._id,
       appSlug: slug,
@@ -284,7 +276,8 @@ async function callAppTool(
   const { conn, recipe } = entry;
   const tool = recipe.tools.find((t) => t.name === toolName);
   if (!tool) throw new RpcError(-32602, `Unknown tool: ${name}`);
-  const summary = argSummary(args) ? `${tool.title}: ${argSummary(args)}` : tool.title;
+  const names = tool.kind === "write" ? await ctx.runQuery(internal.mcpData.names, { userId: mc.user._id, appSlug: slug }) : {};
+  const summary = summarizeCall(slug, tool, args, names);
 
   if (tool.kind === "write") {
     // "Approve for an hour" grant for this assistant + tool: run now, no prompt.
@@ -307,7 +300,8 @@ async function callAppTool(
         detail: res.ok ? "Approved for the hour" : res.text.slice(0, 300),
       });
       if (res.ok) await ctx.scheduler.runAfter(0, internal.today.refresh, { userId: mc.user._id });
-      return textResult(res.text || (res.ok ? "Done." : "Failed."), !res.ok);
+      if (res.ok && isEmptyResult(res.text)) return textResult(receiptFrom(summary, slug));
+      return textResult(res.text || "Failed.", !res.ok);
     }
     const approvalId = await ctx.runMutation(internal.approvals.create, {
       userId: mc.user._id,
@@ -334,7 +328,18 @@ async function callAppTool(
     status: res.ok ? "ok" : "error",
     detail: res.ok ? undefined : res.text.slice(0, 300),
   });
+  if (res.ok) await rememberFrom(ctx, mc.user._id, slug, res.data);
   return textResult(res.text || (res.ok ? "No data." : "Failed."), !res.ok);
+}
+
+// Remember food names / zone numbers from search results so later approvals read plainly.
+async function rememberFrom(ctx: Ctx, userId: Doc<"users">["_id"], appSlug: string, data: unknown) {
+  try {
+    const found = extractNames(data);
+    if (Object.keys(found).length) await ctx.runMutation(internal.mcpData.rememberNames, { userId, appSlug, json: JSON.stringify(found) });
+  } catch (e) {
+    console.error("rememberNames", e instanceof Error ? e.message : String(e));
+  }
 }
 
 async function handleMessage(

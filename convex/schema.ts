@@ -198,6 +198,14 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_app_version", ["appSlug", "version"]),
 
+  // id -> label from recent search results (food names, zone numbers), for plain approval summaries.
+  lookupNames: defineTable({
+    userId: v.id("users"),
+    appSlug: v.string(),
+    json: v.string(), // Record<string, string>
+    updatedAt: v.number(),
+  }).index("by_user_app", ["userId", "appSlug"]),
+
   // Latest live metrics for the Today screen (needs tool calls, so an action fills it).
   todaySummaries: defineTable({
     userId: v.id("users"),

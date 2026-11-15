@@ -31,6 +31,7 @@ import type * as lib_recipeStore from "../lib/recipeStore.js";
 import type * as lib_render from "../lib/render.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
 import type * as lib_sessionDerive from "../lib/sessionDerive.js";
+import type * as lib_summaries from "../lib/summaries.js";
 import type * as lib_templateShim from "../lib/templateShim.js";
 import type * as lib_webhook from "../lib/webhook.js";
 import type * as mcpData from "../mcpData.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "lib/render": typeof lib_render;
   "lib/sanitize": typeof lib_sanitize;
   "lib/sessionDerive": typeof lib_sessionDerive;
+  "lib/summaries": typeof lib_summaries;
   "lib/templateShim": typeof lib_templateShim;
   "lib/webhook": typeof lib_webhook;
   mcpData: typeof mcpData;

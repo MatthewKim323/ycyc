@@ -5,6 +5,7 @@ import type { Recipe } from "../src/lib/contract";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { executeTool } from "./executor";
+import { isEmptyResult, receiptFrom } from "./lib/summaries";
 
 export const run = internalAction({
   args: { approvalId: v.id("approvals") },
@@ -21,7 +22,8 @@ export const run = internalAction({
     if (!recipe || !tool) return void (await finish(false, "That action is no longer available. Nothing was changed."));
     try {
       const res = await executeTool(ctx, { conn, recipe, tool, args: JSON.parse(a.argsJson) });
-      await finish(res.ok, res.text || (res.ok ? "Done." : "Failed."));
+      // Empty write responses (Strong answers null) get a receipt built from the approval summary.
+      await finish(res.ok, res.ok && isEmptyResult(res.text) ? receiptFrom(a.summary, a.appSlug) : res.text || "Failed.");
       if (res.ok) await ctx.scheduler.runAfter(0, internal.today.refresh, { userId: a.userId });
     } catch (e) {
       await finish(false, e instanceof Error ? e.message.slice(0, 300) : "Failed.");
