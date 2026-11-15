@@ -3,9 +3,96 @@ import type { Recipe } from "../../src/lib/contract";
 
 export const HAND_RECIPES: Recipe[] = [
   {
-    "appSlug": "myfitnesspal",
+    "appSlug": "flo",
     "version": 1,
     "status": "draft",
+    "executor": "phone",
+    "auth": {
+      "type": "login_api",
+      "sessionKeys": [
+        "credentials.username",
+        "credentials.password"
+      ]
+    },
+    "tools": [
+      {
+        "name": "get_cycle_status",
+        "title": "Cycle status",
+        "kind": "read",
+        "description": "Today's cycle day, current phase, days until the next predicted period and the fertile window, read from the Flo home screen.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "phoneInstruction": "Open the Today tab of Flo ||| Read the cycle day, the current phase, the days until the next period and the fertile window dates shown on screen"
+      },
+      {
+        "name": "get_recent_logs",
+        "title": "Recent logs",
+        "kind": "read",
+        "description": "Symptoms, moods, flow and notes logged in Flo for the last few days.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 14,
+              "default": 7
+            }
+          }
+        },
+        "phoneInstruction": "Open the Flo calendar and tap each of the last {{days}} days in turn ||| List the logged period flow, symptoms, moods and notes for each day you saw"
+      },
+      {
+        "name": "log_symptoms",
+        "title": "Log symptoms",
+        "kind": "write",
+        "description": "Log symptoms (and optionally period flow) for today in Flo. Health data: needs the user's approval.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "symptoms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Flo symptom names, e.g. Cramps, Headache, Bloating"
+            },
+            "flow": {
+              "type": "string",
+              "enum": [
+                "none",
+                "light",
+                "medium",
+                "heavy"
+              ]
+            }
+          },
+          "required": [
+            "symptoms"
+          ]
+        },
+        "phoneInstruction": "On the Flo Today tab tap 'Log your symptoms', select {{symptoms}} and period flow {{flow}} if given, then tap Apply ||| Confirm which symptoms now show as logged for today"
+      }
+    ],
+    "playbook": [
+      "Upload a plain Flo APK to Revyl (APKMirror removed Flo after a DMCA; Uptodown/APKPure have none; APKCube only has a 160 MB .apks split bundle)",
+      "Sign in on the cloud phone with the user's Flo email + password once (Auth0 at auth.flo.health)",
+      "Run tools as Revyl instruction/extract steps",
+      "Map the direct API later: Auth0 password grant at auth.flo.health/oauth/token needs the Android client_id from the APK; data API host is api.owhealth.com"
+    ],
+    "provenance": {
+      "compiler": "hand",
+      "compiledAt": 1794779026728,
+      "captureCount": 0,
+      "notes": "Draft, unverified. No community reverse engineering of Flo exists (Flo files DMCA takedowns: github/dmca 2022-09, 2023-11). Found from Flo's public web app bundle (app.flo.health): Auth0 tenant on custom domain auth.flo.health (OIDC discovery lists /oauth/token, /mfa/challenge), backend API https://api.owhealth.com (web paths /v1/web_app/sessions, /v1/web_app/users), web Auth0 client ids present. Mobile cycle/symptom endpoints unknown without the APK or traffic: Revyl network capture is iOS-only and Android logcat shows no URLs. Phone executor blocked until a Flo build is on Revyl (set REVYL_FLO_BUILD_ID). phoneInstruction format: '<instruction> ||| <extract>' (convex/revyl.ts runTool splits on |||)."
+    }
+  },
+  {
+    "appSlug": "myfitnesspal",
+    "version": 1,
+    "status": "verified",
     "executor": "cloud",
     "baseUrl": "https://api.myfitnesspal.com/v2",
     "auth": {
@@ -66,7 +153,15 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": "items"
+        "extract": "items",
+        "sample": {
+          "args": {
+            "query": "banana",
+            "limit": 5
+          },
+          "ok": true,
+          "at": 1794779051918
+        }
       },
       {
         "name": "get_diary",
@@ -93,7 +188,12 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": "items"
+        "extract": "items",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794779051918
+        }
       },
       {
         "name": "log_food",
@@ -163,7 +263,20 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "{\"items\":[{\"type\":\"food_entry\",\"date\":\"{{date}}\",\"meal_name\":\"{{meal}}\",\"servings\":{{servings}},\"food\":{\"id\":\"{{food_id}}\",\"version\":\"{{food_version}}\"},\"serving_size\":{\"value\":{{serving_value}},\"unit\":\"{{serving_unit}}\",\"nutrition_multiplier\":{{serving_multiplier}}}}]}"
         },
-        "extract": "items.0"
+        "extract": "items.0",
+        "sample": {
+          "args": {
+            "food_id": "90048150924533",
+            "food_version": "233815641308285",
+            "meal": "Snacks",
+            "servings": 1,
+            "serving_value": 1,
+            "serving_unit": "banana",
+            "serving_multiplier": 1.26
+          },
+          "ok": true,
+          "at": 1794779051918
+        }
       },
       {
         "name": "delete_food_entry",
@@ -192,7 +305,14 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "entry_id": "aae416c9-43d6-44db-a385-f3c89abbe4cd"
+          },
+          "ok": true,
+          "at": 1794779051918
+        }
       },
       {
         "name": "get_goals",
@@ -219,7 +339,12 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": "items.0"
+        "extract": "items.0",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794779051918
+        }
       }
     ],
     "playbook": [
@@ -232,15 +357,15 @@ export const HAND_RECIPES: Recipe[] = [
     ],
     "provenance": {
       "compiler": "hand",
-      "compiledAt": 0,
-      "captureCount": 0,
-      "notes": "pending live verification"
+      "compiledAt": 1794779051918,
+      "captureCount": 9,
+      "notes": "Verified live 2026-11-15 on a real account with scripts/re/mfp/client.ts: auth.check, get_goals, search_food, get_diary pass on the cloud path (plain fetch, residential IP) and on the device path (in-page fetch from www.myfitnesspal.com, cookies omitted for the API host, CORS allows it); log_food (201) then get_diary showed the entry, delete_food_entry (204) then get_diary showed it gone. Confirmed live: /user/auth_token?refresh=true returns {token_type, access_token, expires_in: 864000, refresh_token, user_id} from the cookie session (HttpOnly NextAuth cookie, so it must run on the device); /api/auth/session returns {} when signed out. Confirmed in source: same token exchange and headers (Authorization Bearer, mfp-client-id mfp-main-js, mfp-user-id) in coddingtonbear/python-myfitnesspal client.py; POST /v2/diary body and DELETE /v2/diary/{id} in AdamWalt/myfitnesspal-mcp-python and zN3utr4l/MFP-Auto. The website itself never calls api.myfitnesspal.com from the browser: it proxies through www.myfitnesspal.com/api/services/* (cookie only), which the device path can also use. Assumed, not tested: api.myfitnesspal.com accepts calls from Convex datacenter IPs (www is Cloudflare-fronted and blocks datacenter traffic more often); each auth_token call rotates tokens."
     }
   },
   {
     "appSlug": "strong",
     "version": 1,
-    "status": "draft",
+    "status": "verified",
     "executor": "cloud",
     "baseUrl": "https://back.strong.app",
     "auth": {
@@ -287,6 +412,29 @@ export const HAND_RECIPES: Recipe[] = [
           "x-client-platform": "android",
           "Authorization": "Bearer {{login.accessToken}}"
         }
+      },
+      "mfa": {
+        "prompt": "Enter the code Strong emailed you",
+        "verifyRequest": {
+          "method": "POST",
+          "urlTemplate": "{{challenge.redirectUrl}}?redirectUrl=strong%3A%2F%2Fmfa",
+          "headers": {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          "bodyTemplate": "Code={{code}}&ChallengeId={{challenge.challenge}}&RedirectUrl=strong%3A%2F%2Fmfa&__RequestVerificationToken={{form.__RequestVerificationToken}}"
+        },
+        "exchangeRequest": {
+          "method": "POST",
+          "urlTemplate": "https://back.strong.app/auth/mfa/verify",
+          "headers": {
+            "User-Agent": "Strong Android",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "x-client-build": "600013",
+            "x-client-platform": "android"
+          },
+          "bodyTemplate": "{\"token\":\"{{redirect.token}}\",\"challenge\":\"{{redirect.challenge}}\",\"deviceId\":\"{{session.storage.deviceId|}}\"}"
+        }
       }
     },
     "tools": [
@@ -325,7 +473,14 @@ export const HAND_RECIPES: Recipe[] = [
           }
         },
         "extract": "_embedded.log",
-        "compact": true
+        "compact": true,
+        "sample": {
+          "args": {
+            "limit": 2
+          },
+          "ok": true,
+          "at": 1794781800000
+        }
       },
       {
         "name": "search_exercises",
@@ -360,7 +515,14 @@ export const HAND_RECIPES: Recipe[] = [
         "pages": 3,
         "filterContains": "{{query}}",
         "maxItems": 15,
-        "compact": true
+        "compact": true,
+        "sample": {
+          "args": {
+            "query": "bench press"
+          },
+          "ok": true,
+          "at": 1794781800000
+        }
       },
       {
         "name": "get_exercise_history",
@@ -401,7 +563,15 @@ export const HAND_RECIPES: Recipe[] = [
         "pages": 2,
         "filterContains": "{{exerciseId}}",
         "maxItems": "{{limit|5}}",
-        "compact": true
+        "compact": true,
+        "sample": {
+          "args": {
+            "exerciseId": "d5ec7625-fa68-49c2-95d4-748cd5205c9a",
+            "limit": 2
+          },
+          "ok": true,
+          "at": 1794781800000
+        }
       },
       {
         "name": "log_workout",
@@ -488,7 +658,30 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "{\"id\":\"{{login.userId}}\",\"strongAnalytics\":false,\"_embedded\":{\"template\":[],\"measurement\":[],\"widget\":[],\"tag\":[],\"folder\":[],\"metric\":[],\"measuredValue\":[],\"log\":[{\"id\":\"{{$uuid}}\",\"logType\":\"WORKOUT\",\"name\":{\"custom\":\"{{name|Workout}}\"},\"isHidden\":false,\"isArchived\":false,\"access\":\"PRIVATE\",\"isGlobal\":false,\"created\":\"{{$now}}\",\"lastChanged\":\"{{$now}}\",\"startDate\":\"{{startDate|$now}}\",\"endDate\":\"{{endDate|$now}}\",\"_links\":{\"user\":{\"href\":\"/api/users/{{login.userId}}\"}},\"_embedded\":{\"cellSetGroup\":[{{#each exercises}}{\"id\":\"{{$uuid}}\",\"isHidden\":false,\"groupIndex\":null,\"_links\":{\"measurement\":{\"href\":\"/api/users/{{login.userId}}/measurements/{{exerciseId}}\"}},\"cellSets\":[{{#each sets}}{\"id\":\"{{$uuid}}\",\"cellSetTag\":null,\"isCompleted\":true,\"isHidden\":false,\"cells\":[{\"id\":\"{{$uuid}}\",\"cellType\":\"{{weightCellType|OTHER_WEIGHT}}\",\"value\":\"{{weightKg}}\",\"isHidden\":false},{\"id\":\"{{$uuid}}\",\"cellType\":\"REPS\",\"value\":\"{{reps}}\",\"isHidden\":false},{\"id\":\"{{$uuid}}\",\"cellType\":\"RPE\",\"value\":null,\"isHidden\":false}]}{{/each}}]}{{/each}}]}}]}}"
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "name": "ycyc test",
+            "exercises": [
+              {
+                "exerciseId": "6b6456e0-3725-4a0a-8306-1bd555f4e5b5",
+                "weightCellType": "BARBELL_WEIGHT",
+                "sets": [
+                  {
+                    "weightKg": 20,
+                    "reps": 5
+                  },
+                  {
+                    "weightKg": 20,
+                    "reps": 5
+                  }
+                ]
+              }
+            ]
+          },
+          "ok": true,
+          "at": 1794781800000
+        }
       }
     ],
     "playbook": [
@@ -500,7 +693,7 @@ export const HAND_RECIPES: Recipe[] = [
     ],
     "provenance": {
       "compiler": "hand",
-      "compiledAt": 1794778595345,
+      "compiledAt": 1794779478661,
       "captureCount": 0,
       "notes": "Strong v6 backend back.strong.app (ASP.NET, HAL JSON). Confidence high for reads and login (verified live on a real account 2026-11-15), see research/notes/re-phone.md for write verification. Login needs an emailed MFA code on every password login, so the executor should keep and rotate tokens (session.storage.accessToken/refreshToken) and only fall back to loginRequest. Sources: tolik518/strong-api-workout-sync, crcatala/strong-cli docs/api-inventory.md, jerhinesmith/strong-mcp (write envelope, MFA), live probes. The Strong 2.7.11 APK on Revyl talks to the retired Parse backend ws13.strongapp.co/parse (403), so the phone executor cannot log in with it; 6.x is only published as a split bundle. Extra tool fields (pages, filterContains, maxItems, compact) are handled by scripts/re/lib/template.ts runTool."
     }

@@ -6,6 +6,7 @@ import { v } from "convex/values";
 
 export const connectionStatus = v.union(
   v.literal("needs_login"),
+  v.literal("needs_code"),
   v.literal("capturing"),
   v.literal("building"),
   v.literal("live"),
@@ -68,6 +69,10 @@ export default defineSchema({
     error: v.optional(v.string()),
     authCacheJson: v.optional(v.string()), // login/refresh response, reused by the executor
     authCacheAt: v.optional(v.number()),
+    // MFA in progress: the app's challenge (no credentials), when it started, what to show the user.
+    pendingJson: v.optional(v.string()),
+    pendingAt: v.optional(v.number()),
+    codePrompt: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
     liveAt: v.optional(v.number()),
@@ -162,6 +167,17 @@ export default defineSchema({
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
   }).index("by_user_status", ["userId", "status"]),
+
+  // Latest live metrics for the Today screen (needs tool calls, so an action fills it).
+  todaySummaries: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // YYYY-MM-DD in the user's zone
+    fuel: v.optional(v.object({ value: v.number(), goal: v.number() })),
+    protein: v.optional(v.object({ value: v.number(), goal: v.number() })),
+    training: v.optional(v.object({ value: v.number(), goal: v.number() })),
+    errors: v.optional(v.array(v.string())),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   mcpSessions: defineTable({
     sessionId: v.string(),

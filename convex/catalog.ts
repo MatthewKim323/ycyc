@@ -19,6 +19,10 @@ export const CATALOG: CatalogApp[] = [
     revylAppId: "2bab1be3-763b-4a29-8580-83b56aa475f4",
     blurb: "Log workouts and read your training history.",
   },
+];
+
+// Paused: not listed, not connectable. Move back into CATALOG when its recipe is ready.
+export const PAUSED: CatalogApp[] = [
   {
     slug: "flo",
     name: "Flo",

@@ -16,7 +16,7 @@ const POLL_MS = 500;
 const SEP = "__";
 
 const INSTRUCTIONS =
-  "ycyc connects you to the user's consumer apps (MyFitnessPal, Strong, Flo). " +
+  `ycyc connects you to the user's consumer apps (${CATALOG.map((a) => a.name).join(", ")}). ` +
   "Call list_apps to see what is connected. If an app the user mentions is not connected, call connect_app " +
   "and give the user the link to open on their phone. Write actions ask the user to approve on their phone first.";
 
@@ -258,6 +258,7 @@ async function callAppTool(
       status: res.ok ? "ok" : "error",
       detail: res.ok ? undefined : res.text.slice(0, 300),
     });
+    if (res.ok) await ctx.scheduler.runAfter(0, internal.today.refresh, { userId: mc.user._id });
     return textResult(res.text || (res.ok ? "Done." : "Failed."), !res.ok);
   }
 

@@ -280,6 +280,63 @@ async function executeTemplated(
   }
 }
 
+// login_api recipes (Strong) run through the phone RE agent's verified runner in convex/revyl.ts
+// (scripts/re/lib/template.ts runTool: token refresh, {{#each}}, paging, compact). The rotated
+// login comes back and is stored on the connection. No password login happens here.
+async function executeViaRecipeRunner(
+  ctx: Ctx,
+  opts: { conn: Doc<"connections">; recipe: Recipe; toolName: string; args: Record<string, unknown>; template?: RequestTemplate },
+): Promise<ExecResult> {
+  const { conn } = opts;
+  let recipe = opts.recipe;
+  let toolName = opts.toolName;
+  if (opts.template) {
+    // A bare RequestTemplate (auth.check): wrap it as a throwaway read tool.
+    toolName = "__auth_check";
+    recipe = {
+      ...recipe,
+      tools: [
+        ...recipe.tools,
+        { name: toolName, title: "Auth check", description: "", kind: "read", inputSchema: { type: "object", properties: {} }, request: opts.template },
+      ],
+    };
+  }
+  const sessionJson = conn.sessionJson ?? JSON.stringify({ capturedAt: 0 });
+  let r: { ok: boolean; status: number; data: unknown; error: string | null; login: string | null };
+  try {
+    r = await ctx.runAction(internal.revyl.runRecipeTool, {
+      recipeJson: JSON.stringify(recipe),
+      tool: toolName,
+      args: opts.args,
+      sessionJson: JSON.stringify(withoutCreds(sessionJson)),
+      loginJson: conn.authCacheJson,
+    });
+  } catch (e) {
+    return { ok: false, text: errText(e).slice(0, 300) };
+  }
+  if (r.login && r.login !== conn.authCacheJson) {
+    await ctx.runMutation(internal.connections.saveAuthCache, { connectionId: conn._id, json: r.login });
+  }
+  if (!r.ok) {
+    const err = r.error ?? "Failed";
+    const friendly = /no way to authenticate|auth failed/i.test(err)
+      ? `${catalogApp(conn.appSlug)?.name ?? conn.appSlug} session expired. Reconnect it in ycyc.`
+      : err;
+    return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
+  }
+  return { ok: true, status: r.status, text: truncateText(toText(r.data, "Done.")), data: r.data };
+}
+
+// Executor runs never see the password (it is stripped after sign-in anyway).
+function withoutCreds(sessionJson: string): SessionBundle {
+  try {
+    const { credentials, ...rest } = JSON.parse(sessionJson) as SessionBundle;
+    return rest as SessionBundle;
+  } catch {
+    return { capturedAt: 0 };
+  }
+}
+
 // MFP-style refresh for bearer recipes: mint a fresh token from the site session, store it on the
 // connection's session (headers.authorization, and the user id header when returned).
 async function refreshBearer(
@@ -336,6 +393,9 @@ export async function executeRequest(
 ): Promise<ExecResult> {
   const { conn, recipe, template } = opts;
   const executor = opts.executor ?? recipe.executor ?? "cloud";
+  if (executor !== "device" && recipe.auth?.type === "login_api") {
+    return executeViaRecipeRunner(ctx, { conn, recipe, toolName: opts.toolName, args: opts.args, template });
+  }
   if (executor !== "device" && isTemplated(recipe)) {
     return executeTemplated(ctx, { conn, recipe, args: opts.args, template, extract: opts.extract });
   }
@@ -429,6 +489,9 @@ export async function executeTool(
   const executor: Executor = toolExecutor ?? (opts.tool.request ? opts.recipe.executor ?? "cloud" : "phone");
   if (executor === "phone" || !opts.tool.request) {
     return executePhone(ctx, { recipe: opts.recipe, tool: opts.tool, args });
+  }
+  if (executor === "cloud" && opts.recipe.auth?.type === "login_api") {
+    return executeViaRecipeRunner(ctx, { conn: opts.conn, recipe: opts.recipe, toolName: opts.tool.name, args });
   }
   if (executor === "cloud" && isTemplated(opts.recipe)) {
     return executeTemplated(ctx, { conn: opts.conn, recipe: opts.recipe, args, tool: opts.tool });

@@ -22,8 +22,24 @@ export const INITIAL_STEPS: BuildStep[] = [
 ];
 
 function publicConnection(c: Doc<"connections">) {
-  const { sessionJson, authCacheJson, authCacheAt, ...rest } = c;
-  return { ...rest, hasSession: !!sessionJson };
+  const { sessionJson, authCacheJson, authCacheAt, pendingJson, pendingAt, ...rest } = c;
+  return { ...rest, hasSession: !!sessionJson || !!authCacheJson };
+}
+
+// Credentials live only until the sign-in call is made (or 10 minutes, whichever comes first).
+export const CREDENTIAL_TTL_MS = 10 * 60_000;
+export const CODE_TTL_MS = 10 * 60_000;
+
+export function withoutCredentials(sessionJson: string | undefined): string | undefined {
+  if (!sessionJson) return sessionJson;
+  try {
+    const s = JSON.parse(sessionJson) as SessionBundle;
+    if (!s.credentials) return sessionJson;
+    const { credentials, ...rest } = s;
+    return JSON.stringify(rest);
+  } catch {
+    return undefined;
+  }
 }
 
 function trimEntry(e: CaptureEntry): CaptureEntry {
@@ -46,7 +62,14 @@ export const start = mutation({
       .withIndex("by_user_app", (q) => q.eq("userId", userId).eq("appSlug", appSlug))
       .first();
     if (existing) {
-      await ctx.db.patch(existing._id, { status: "needs_login", error: undefined, updatedAt: now });
+      await ctx.db.patch(existing._id, {
+        status: "needs_login",
+        error: undefined,
+        pendingJson: undefined,
+        pendingAt: undefined,
+        codePrompt: undefined,
+        updatedAt: now,
+      });
       return existing._id;
     }
     return await ctx.db.insert("connections", {
@@ -114,9 +137,16 @@ export const submitLogin = mutation({
       sessionJson: JSON.stringify(bundle),
       authCacheJson: undefined,
       authCacheAt: undefined,
+      pendingJson: undefined,
+      pendingAt: undefined,
+      codePrompt: undefined,
       error: undefined,
       updatedAt: now,
     });
+    if (bundle.credentials) {
+      // Safety net: the pipeline strips credentials right after signing in.
+      await ctx.scheduler.runAfter(CREDENTIAL_TTL_MS, internal.connections.scrubCredentials, { connectionId });
+    }
 
     const buildId = await ctx.db.insert("builds", {
       connectionId,
@@ -252,5 +282,98 @@ export const updateSession = internalMutation({
     const conn = await ctx.db.get(connectionId);
     if (!conn) return;
     await ctx.db.patch(connectionId, { sessionJson: json });
+  },
+});
+
+// The phone sends the emailed/texted code; the pipeline resumes from sign-in.
+export const submitCode = mutation({
+  args: { connectionId: v.id("connections"), code: v.string() },
+  handler: async (ctx, { connectionId, code }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (!conn) throw new Error("Unknown connection");
+    if (conn.status !== "needs_code" || !conn.pendingJson) throw new Error("No code requested for this connection");
+    if (!conn.pendingAt || Date.now() - conn.pendingAt > CODE_TTL_MS) throw new Error("Code expired. Sign in again.");
+    const trimmed = code.replace(/\s+/g, "");
+    if (!/^[A-Za-z0-9-]{3,12}$/.test(trimmed)) throw new Error("Enter the code from the email");
+    const build = await ctx.db
+      .query("builds")
+      .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
+      .order("desc")
+      .first();
+    if (!build) throw new Error("No build for this connection");
+    await ctx.db.patch(connectionId, { status: "building", updatedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.pipeline.resume, { buildId: build._id, code: trimmed });
+    return { buildId: build._id };
+  },
+});
+
+export const scrubCredentials = internalMutation({
+  args: { connectionId: v.id("connections") },
+  handler: async (ctx, { connectionId }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (!conn?.sessionJson) return;
+    const next = withoutCredentials(conn.sessionJson);
+    if (next !== conn.sessionJson) await ctx.db.patch(connectionId, { sessionJson: next });
+  },
+});
+
+export const setNeedsCode = internalMutation({
+  args: { connectionId: v.id("connections"), pendingJson: v.string(), prompt: v.string() },
+  handler: async (ctx, { connectionId, pendingJson, prompt }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (!conn) return;
+    const now = Date.now();
+    await ctx.db.patch(connectionId, {
+      status: "needs_code",
+      pendingJson,
+      pendingAt: now,
+      codePrompt: prompt,
+      error: undefined,
+      updatedAt: now,
+    });
+    await ctx.scheduler.runAfter(CODE_TTL_MS, internal.connections.expireCode, { connectionId, pendingAt: now });
+  },
+});
+
+export const clearPending = internalMutation({
+  args: { connectionId: v.id("connections") },
+  handler: async (ctx, { connectionId }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (!conn) return;
+    await ctx.db.patch(connectionId, { pendingJson: undefined, pendingAt: undefined, codePrompt: undefined });
+  },
+});
+
+// Nobody entered the code within 10 minutes: drop the challenge and end the build.
+export const expireCode = internalMutation({
+  args: { connectionId: v.id("connections"), pendingAt: v.number() },
+  handler: async (ctx, { connectionId, pendingAt }) => {
+    const conn = await ctx.db.get(connectionId);
+    if (!conn || conn.status !== "needs_code" || conn.pendingAt !== pendingAt) return;
+    const now = Date.now();
+    await ctx.db.patch(connectionId, {
+      status: "error",
+      error: "Code expired. Sign in again.",
+      pendingJson: undefined,
+      pendingAt: undefined,
+      codePrompt: undefined,
+      sessionJson: withoutCredentials(conn.sessionJson),
+      updatedAt: now,
+    });
+    const build = await ctx.db
+      .query("builds")
+      .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
+      .order("desc")
+      .first();
+    if (build && build.status === "running") {
+      const steps = build.steps.map((st) =>
+        st.key === "signin"
+          ? { ...st, status: "error" as const, detail: "Code expired. Sign in again.", at: now }
+          : st.status === "pending" || st.status === "running"
+            ? { ...st, status: "skipped" as const, at: now }
+            : st,
+      );
+      await ctx.db.patch(build._id, { status: "error", error: "Code expired. Sign in again.", steps, updatedAt: now });
+    }
   },
 });

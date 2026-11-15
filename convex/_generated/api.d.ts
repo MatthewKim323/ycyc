@@ -11,10 +11,12 @@
 import type * as activity from "../activity.js";
 import type * as approvals from "../approvals.js";
 import type * as apps from "../apps.js";
+import type * as authNode from "../authNode.js";
 import type * as builds from "../builds.js";
 import type * as calls from "../calls.js";
 import type * as catalog from "../catalog.js";
 import type * as connections from "../connections.js";
+import type * as crons from "../crons.js";
 import type * as executor from "../executor.js";
 import type * as http from "../http.js";
 import type * as lib_compilerShim from "../lib/compilerShim.js";
@@ -31,6 +33,7 @@ import type * as mcpData from "../mcpData.js";
 import type * as pipeline from "../pipeline.js";
 import type * as recipes from "../recipes.js";
 import type * as revyl from "../revyl.js";
+import type * as today from "../today.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,10 +46,12 @@ declare const fullApi: ApiFromModules<{
   activity: typeof activity;
   approvals: typeof approvals;
   apps: typeof apps;
+  authNode: typeof authNode;
   builds: typeof builds;
   calls: typeof calls;
   catalog: typeof catalog;
   connections: typeof connections;
+  crons: typeof crons;
   executor: typeof executor;
   http: typeof http;
   "lib/compilerShim": typeof lib_compilerShim;
@@ -63,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   pipeline: typeof pipeline;
   recipes: typeof recipes;
   revyl: typeof revyl;
+  today: typeof today;
   users: typeof users;
 }>;
 
