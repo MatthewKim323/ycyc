@@ -16,7 +16,8 @@ export type RouteKind = "web" | "cloudPhone" | "official";
 //  phone  : a Revyl cloud phone performs the action through the app UI (slow, last resort).
 export type Executor = "device" | "cloud" | "phone";
 
-export type ConnectionStatus = "needs_login" | "capturing" | "building" | "live" | "error";
+export type ConnectionStatus = "needs_login" | "needs_code" | "capturing" | "building" | "live" | "error";
+// needs_code: the app emailed/texted a verification code (e.g. Strong MFA); the phone shows a code field and calls connections.submitCode.
 
 export type BuildStepKey = "signin" | "capture" | "map" | "generate" | "verify" | "publish";
 export type BuildStepStatus = "pending" | "running" | "done" | "error" | "skipped";
@@ -100,6 +101,7 @@ export interface Recipe {
     refresh?: RequestTemplate; // how to mint a fresh token from the session (e.g. MFP /user/auth_token)
     loginRequest?: RequestTemplate; // login_api: exchange credentials for a token
     check?: RequestTemplate; // cheap call that proves the session works
+    mfa?: { verifyRequest: RequestTemplate; prompt: string }; // login_api apps that answer login with a code challenge; template sees {{code}}
   };
   tools: RecipeTool[];
   playbook: string[]; // ordered steps that reproduce the capture (pages to visit / actions to take)
