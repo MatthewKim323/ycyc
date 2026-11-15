@@ -22,6 +22,8 @@ const ICONS = {
   plus: require("@/assets/icons/plus-circle.json"),
   key: require("@/assets/icons/one-key.json"),
   arrow: require("@/assets/icons/arrows-right.json"),
+  // system-regular-161-trending-flat (cdn id vduvxizq), mirrored to point left.
+  back: require("@/assets/icons/arrow-back.json"),
   eye: require("@/assets/icons/eye.json"),
   api: require("@/assets/icons/api.json"),
   restApi: require("@/assets/icons/rest-api.json"),

@@ -17,6 +17,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppGlyph } from "@/components/app-glyph";
+import { BackButton } from "@/components/back-button";
 import { mergeSteps, StepList, useDwell, type DisplayStep } from "@/components/build-steps";
 import { Button } from "@/components/button";
 import { CaptureWebView } from "@/components/capture-webview";
@@ -370,11 +371,7 @@ export default function ConnectFlow() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.side}>
-          <PressableScale onPress={close} hitSlop={12} scaleTo={0.94} haptic="selection" accessibilityLabel="Close">
-            <Text variant="bodyMedium" color={colors.textSecondary}>
-              Close
-            </Text>
-          </PressableScale>
+          <BackButton onPress={close} />
         </View>
         <View style={styles.headCenter}>
           <Text variant="label" numberOfLines={1}>
@@ -389,8 +386,7 @@ export default function ConnectFlow() {
             </View>
           ) : null}
         </View>
-        <View style={[styles.side, styles.sideRight]}>
-        </View>
+        <View style={[styles.side, styles.sideRight]} />
       </View>
 
       <FlowProgress fills={fills} active={active} />

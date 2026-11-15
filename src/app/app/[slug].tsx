@@ -7,8 +7,9 @@ import Animated from "react-native-reanimated";
 
 import { copyFor, plainError } from "@/components/app-copy";
 import { AppGlyph } from "@/components/app-glyph";
+import { BackButton } from "@/components/back-button";
 import { Button } from "@/components/button";
-import { Screen, TopBar } from "@/components/layout";
+import { Screen } from "@/components/layout";
 import { plainSummary, statusLook } from "@/components/rows";
 import { Text } from "@/components/text";
 import { api } from "@/hooks/convex";
@@ -71,7 +72,7 @@ export default function AppDetail() {
 
   if (!app) {
     return (
-      <Screen header={<TopBar left="Your apps" onLeft={back} />}>
+      <Screen header={<Header onBack={back} />}>
         {app === undefined ? (
           <ActivityIndicator color={colors.textTertiary} style={styles.loading} />
         ) : (
@@ -89,7 +90,7 @@ export default function AppDetail() {
   const status = conn?.status as string | undefined;
 
   return (
-    <Screen header={<TopBar left="Your apps" onLeft={back} />}>
+    <Screen header={<Header onBack={back} />}>
       <Animated.View entering={enter(0)} style={styles.hero}>
         <AppGlyph app={app} size={60} />
         <View style={styles.heroText}>
@@ -184,7 +185,16 @@ export default function AppDetail() {
   );
 }
 
+function Header({ onBack }: { onBack: () => void }) {
+  return (
+    <View style={styles.header}>
+      <BackButton onPress={onBack} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  header: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: space.gutter },
   loading: { paddingVertical: space.xl },
   hero: { flexDirection: "row", alignItems: "center", gap: 14, paddingTop: space.sm },
   heroText: { flex: 1, gap: 4 },

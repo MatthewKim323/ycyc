@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BackButton } from "@/components/back-button";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
 import { BenefitRow } from "@/components/paywall/benefit-row";
@@ -60,11 +61,7 @@ export default function Paywall() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
-        <PressableScale onPress={close} hitSlop={12} scaleTo={0.94} haptic="selection" accessibilityLabel="Close">
-          <Text variant="bodyMedium" color={colors.textSecondary}>
-            Close
-          </Text>
-        </PressableScale>
+        <BackButton onPress={close} />
         {!isPro ? (
           <PressableScale onPress={restore} hitSlop={12} scaleTo={0.94} haptic="selection" accessibilityLabel="Restore">
             <Text variant="bodyMedium" color={colors.textSecondary}>
