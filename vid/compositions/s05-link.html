@@ -1,7 +1,132 @@
 <template>
-  <style>#root { position: absolute; inset: 0; } #s05-link-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <!-- s05-link (4.5 s). Flo is live, Copy your link, the link lifts out and drops into the assistant's connector settings. -->
+  <!-- sfx: t=0.42 name=ding-success gain=0.5 -->
+  <!-- sfx: t=1.50 name=ui-confirm gain=0.5 -->
+  <!-- sfx: t=1.70 name=whoosh-soft gain=0.5 -->
+  <!-- sfx: t=2.46 name=ui-confirm gain=0.4 -->
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s05-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
+    #s05-stage { position: absolute; inset: 0; overflow: hidden; }
+    #s05-camfx { position: absolute; left: 0; top: 0; width: 1920px; height: 1400px; }
+    #s05-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1400px; }
+    #s05-panel { position: absolute; left: 348.5px; top: 110px; width: 943px; height: 1225px; border-radius: 60px; background: #000; box-shadow: 0 0 0 1.5px #1f1f1f; }
+
+    /* live stage at 2.4x */
+    #s05-live { position: absolute; left: 406.5px; top: 283px; width: 827px; display: flex; flex-direction: column; align-items: center; gap: 29px; font-family: "Inter", sans-serif; }
+    #s05-ok { width: 173px; height: 173px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 29px; opacity: 0; }
+    #s05-chk { width: 95px; height: 95px; }
+    #s05-title { font: 600 67px/82px "Inter", sans-serif; letter-spacing: -1.2px; color: #fff; text-align: center; margin: 0; }
+    #s05-body { font: 400 36px/50px "Inter", sans-serif; color: #a1a1a1; text-align: center; margin: 0; }
+    #s05-sum { margin-top: 38px; align-self: stretch; display: flex; justify-content: space-between; align-items: center; background: #0b0b0b; border-radius: 38px;
+      box-shadow: inset 0 0 0 1.5px #1f1f1f; padding: 34px 38px; }
+    #s05-sum b { font: 500 36px/50px "Inter", sans-serif; color: #fff; }
+    #s05-sum span { font: 400 33px/43px "Inter", sans-serif; color: #a1a1a1; }
+    #s05-foot { position: absolute; left: 386.5px; top: 973px; width: 867px; display: flex; flex-direction: column; gap: 19px; font-family: "Inter", sans-serif; }
+    #s05-copy { position: relative; height: 125px; border-radius: 999px; background: #fff; }
+    #s05-copy span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 36px "Inter", sans-serif; color: #000; }
+    #s05-copied { opacity: 0; }
+    #s05-done { height: 108px; display: flex; align-items: center; justify-content: center; font: 500 36px "Inter", sans-serif; color: #a1a1a1; }
+
+    /* the link chip */
+    #s05-chip-w { position: absolute; left: 960px; top: 600px; width: 0; height: 0; opacity: 0; }
+    #s05-chip { left: 0; top: 0; transform: translate(-50%, -50%); }
+    #s05-chip .k-icon { width: 40px; height: 40px; }
+
+    /* second phone with capture placeholder */
+    #s05-phone-w { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    #s05-phone { left: 0; top: 0; }
+    .s05-ph { display: flex !important; align-items: center; justify-content: center; text-align: center; padding: 0 48px; box-sizing: border-box;
+      background: #141414 !important; font: 500 32px/1.35 "Inter", sans-serif; color: #a1a1a1; }
+  </style>
+
   <div id="root" data-composition-id="s05-link" data-width="1920" data-height="1080">
-    <div id="s05-link-wrap" class="clip k-canvas" data-start="0" data-duration="4.500" data-track-index="0"><p id="s05-link-ph">s05-link</p></div>
+    <div id="s05-wrap" class="clip k-canvas" data-start="0" data-duration="4.500" data-track-index="0" data-layout-allow-overflow>
+      <canvas id="s05-waves" class="k-waves"></canvas>
+      <div id="s05-dim"></div>
+      <div id="s05-stage">
+        <div id="s05-camfx">
+          <div id="s05-cam">
+            <div id="s05-panel"></div>
+            <div id="s05-live">
+              <div id="s05-ok"><div id="s05-chk" class="k-icon"></div></div>
+              <p id="s05-title">Flo is live</p>
+              <p id="s05-body">Ask any assistant: "when does my next period start?"</p>
+              <div id="s05-sum"><b>3 tools</b><span>1 need your OK</span></div>
+            </div>
+            <div id="s05-foot">
+              <div id="s05-copy"><span id="s05-copylbl">Copy your link</span><span id="s05-copied">Copied</span></div>
+              <div id="s05-done">Done</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="s05-phone-w">
+          <div id="s05-phone" class="k-phone">
+            <!-- footage: assets/footage/r4-claude-connector.mp4 -->
+            <div id="s05-r4" class="k-screen s05-ph">R4 · Claude: Settings → Connectors → paste link</div>
+          </div>
+        </div>
+
+        <div id="s05-chip-w">
+          <div id="s05-chip" class="k-chip"><div id="s05-lk" class="k-icon"></div>Your yuzu link</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <script>window.__timelines["s05-link"] = gsap.timeline({ paused: true });</script>
+
+  <script>
+    (function () {
+      const ID = "s05-link", D = 4.5;
+      const tl = gsap.timeline({ paused: true });
+      const $ = (s) => document.querySelector(s);
+      const E = KIT.ease.enter, SP = KIT.springs;
+
+      KIT.waves(tl, $("#s05-waves"), { from: 0, to: D, offset: 26.779 });
+
+      // camera: picks up exactly where s04 left the panel, then pushes onto Copy your link
+      gsap.set("#s05-cam", { transformOrigin: "0px 0px", x: 106.6, y: -88.1, scale: 0.87 });
+      const cam = (a, b, at, dur, ease) => tl.fromTo("#s05-cam", a, { ...b, duration: dur, ease, immediateRender: false }, at);
+      const K0 = { x: 106.6, y: -88.1, scale: 0.87 }, K1 = { x: 98.4, y: -95.4, scale: 0.88 };
+      const K2 = { x: -229, y: -901.5, scale: 1.45 }, K3 = { x: -270, y: -953.25, scale: 1.5 }, K4 = { x: -65, y: -694.4, scale: 1.25 };
+      cam(K0, K1, 0, 1.0, "sine.inOut");
+      cam(K1, K2, 1.0, 0.45, "power2.inOut");
+      tl.fromTo("#s05-camfx", { filter: "blur(0px)" }, { filter: "blur(5px)", duration: 0.22, ease: "power2.in", immediateRender: false }, 1.0);
+      tl.fromTo("#s05-camfx", { filter: "blur(5px)" }, { filter: "blur(0px)", duration: 0.23, ease: "power2.out", immediateRender: false }, 1.22);
+      cam(K2, K3, 1.45, 0.3, "sine.inOut");
+      // the panel falls back as the link comes forward
+      cam(K3, K4, 1.75, 0.35, "power2.in");
+      tl.fromTo("#s05-camfx", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(12px)", duration: 0.35, ease: "power2.in", immediateRender: false }, 1.75);
+
+      // the success mark: white circle pops, check draws
+      tl.fromTo("#s05-ok", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out", immediateRender: false }, 0.05);
+      tl.fromTo("#s05-ok", { scale: 0.6 }, { scale: 1, duration: 0.5, ease: SP.pop.ease, immediateRender: false }, 0.05);
+      KIT.icon(tl, $("#s05-chk"), "check-black", { at: 0.17 });
+      KIT.words(tl, $("#s05-title"), 0.3, { gap: 4 * KIT.F });
+      gsap.set(["#s05-body", "#s05-sum", "#s05-foot"], { opacity: 0 });
+      tl.fromTo("#s05-body", { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.28, ease: "power2.out", immediateRender: false }, 0.36);
+      tl.fromTo("#s05-sum", { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power1.out", immediateRender: false }, 0.42);
+      tl.fromTo("#s05-foot", { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power1.out", immediateRender: false }, 0.46);
+
+      // Copy your link: press spring, label swaps to Copied
+      KIT.press(tl, $("#s05-copy"), 1.5);
+      tl.fromTo("#s05-copylbl", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.13, ease: "power2.in", immediateRender: false }, 1.6);
+      tl.fromTo("#s05-copied", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power2.out", immediateRender: false }, 1.68);
+
+      // the link lifts out toward camera, then drops into the second phone
+      gsap.set("#s05-chip-w", { transformOrigin: "0px 0px", scale: 0.8, x: 0, y: 0 });
+      KIT.icon(tl, $("#s05-lk"), "link", { at: 1.7 });
+      tl.fromTo("#s05-chip-w", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 1.68);
+      tl.fromTo("#s05-chip-w", { scale: 0.8, y: 0 }, { scale: 2.3, y: -170, duration: 0.5, ease: "power3.out", immediateRender: false }, 1.68);
+      tl.fromTo("#s05-chip-w", { scale: 2.3, y: -170 }, { scale: 1.1, y: -20, duration: 0.28, ease: "power2.in", immediateRender: false }, 2.18);
+      tl.fromTo("#s05-chip-w", { opacity: 1, scale: 1.1, filter: "blur(0px)" }, { opacity: 0, scale: 0.85, filter: "blur(6px)", duration: 0.18, ease: "power2.in", immediateRender: false }, 2.46);
+
+      gsap.set("#s05-phone-w", { transformOrigin: "50% 50%", scale: 0.966, y: 1100 });
+      tl.fromTo("#s05-phone-w", { y: 1100 }, { y: 0, duration: 0.6, ease: E, immediateRender: false }, 1.85);
+      tl.fromTo("#s05-phone-w", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 1.85);
+      tl.fromTo("#s05-phone-w", { scale: 0.966 }, { scale: 0.99, duration: 2.05, ease: "sine.inOut", immediateRender: false }, 2.45);
+
+      window.__timelines[ID] = tl;
+    })();
+  </script>
 </template>
