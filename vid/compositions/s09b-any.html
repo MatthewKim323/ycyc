@@ -1,71 +1,99 @@
-<!-- s09b-any: yuzu runs no model of its own. A: the Today ask bar (ask-bar.tsx) types a request and switches its
-     target Claude, ChatGPT, Grok on the beats, Ask. B: the Link tab's assistant card (link.tsx ASSISTANTS), one check a
-     beat. C: scroll to "For developers", it opens, each agent's Copy turns to Copied on the beats, then the card exits so
-     s10 opens on the clean dim wave. Copy is the app's, rebuilt at 3x. -->
-<!-- sfx: t=0.25 name=text-tick gain=0.25 -->
-<!-- sfx: t=0.54 name=ui-roll gain=0.4 -->
+<!-- s09b-any: yuzu runs no model of its own.
+     A (0-2.6): the Agent tab (agent.tsx, composer.tsx, assistant-menu.tsx, suggestions.tsx, send-button.tsx) at 3x: a
+     suggestion fills the composer, the assistant menu switches Claude, ChatGPT, Grok, send; zoom through the composer.
+     B (2.6-5.3): the handoff lands in Grok (capture R11), the Grok + Duolingo chip, push in on the answer.
+     C (5.3-8.1): the Link tab rows at speed, one check every half beat, the card drifting up as it grows; exits clean. -->
+<!-- sfx: t=0.54 name=text-tick gain=0.35 -->
+<!-- sfx: t=0.88 name=ui-open gain=0.35 -->
 <!-- sfx: t=1.22 name=ui-roll gain=0.4 -->
+<!-- sfx: t=1.64 name=ui-open gain=0.3 -->
 <!-- sfx: t=1.90 name=ui-roll gain=0.4 -->
 <!-- sfx: t=2.24 name=ui-confirm gain=0.55 -->
 <!-- sfx: t=2.32 name=whoosh-soft gain=0.3 -->
-<!-- sfx: t=2.58 name=row-tick gain=0.5 -->
-<!-- sfx: t=3.26 name=row-tick gain=0.5 -->
-<!-- sfx: t=3.94 name=row-tick gain=0.5 -->
-<!-- sfx: t=4.62 name=row-tick gain=0.5 -->
-<!-- sfx: t=4.98 name=card-morph gain=0.4 -->
-<!-- sfx: t=5.30 name=row-tick gain=0.5 -->
-<!-- sfx: t=5.98 name=row-tick gain=0.5 -->
-<!-- sfx: t=6.66 name=row-tick gain=0.5 -->
-<!-- sfx: t=7.35 name=row-tick gain=0.5 -->
-<!-- sfx: t=7.70 name=whoosh-soft gain=0.3 -->
+<!-- sfx: t=3.26 name=case-pop gain=0.45 -->
+<!-- sfx: t=3.94 name=msg-in gain=0.5 -->
+<!-- sfx: t=5.00 name=whoosh-soft gain=0.3 -->
+<!-- sfx: t=5.30 name=row-tick gain=0.45 -->
+<!-- sfx: t=5.64 name=row-tick gain=0.45 -->
+<!-- sfx: t=5.98 name=row-tick gain=0.45 -->
+<!-- sfx: t=6.32 name=row-tick gain=0.45 -->
+<!-- sfx: t=6.66 name=row-tick gain=0.45 -->
+<!-- sfx: t=7.00 name=row-tick gain=0.45 -->
+<!-- sfx: t=7.35 name=row-tick gain=0.45 -->
+<!-- sfx: t=7.69 name=row-tick gain=0.45 -->
+<!-- sfx: t=7.80 name=whoosh-soft gain=0.3 -->
 <template>
   <style>
     #root { position: absolute; inset: 0; }
     #s09b-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
     .s9-f { font-family: "Inter", sans-serif; }
+    .s9-cam { position: absolute; inset: 0; transform-origin: 0 0; }
 
-    /* A: ask bar at 3x (bar 48pt -> 144, send 36pt -> 108, chips 26pt -> 78). Wider than a phone so the helper never truncates. */
-    #s09b-acam { position: absolute; left: 300px; top: 417px; width: 1320px; }
-    #s09b-ask { display: flex; flex-direction: column; gap: 24px; }
-    .s9-bar { height: 144px; border-radius: 72px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      padding: 0 18px 0 48px; display: flex; align-items: center; gap: 24px; }
-    .s9-input { position: relative; flex: 1; height: 63px; font: 400 45px/63px "Inter", sans-serif; color: #fff; white-space: nowrap; }
-    #s09b-ph, #s09b-typed { position: absolute; left: 0; top: 0; }
+    /* A: Agent tab at 3x. Stack = hero, one suggestion, composer (wrap padding 12pt -> box 1107 wide). */
+    #s09b-stack { position: absolute; left: 406px; top: 130px; width: 1107px; display: flex; flex-direction: column; align-items: center; }
+    .s9-prompt { font: 600 72px/90px "Inter", sans-serif; letter-spacing: -1.5px; color: #fff; text-align: center; }
+    .s9-logos { display: flex; margin-top: 48px; }
+    .s9-li { border-radius: 24px; box-shadow: 0 0 0 6px #000; background: #000; }
+    .s9-li + .s9-li { margin-left: -18px; }
+    .s9-li img { width: 66px; height: 66px; border-radius: 18px; display: block; }
+    #s09b-sug { margin-top: 72px; width: 1083px; display: flex; align-items: center; gap: 36px; padding: 36px 48px; border-radius: 48px;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; }
+    #s09b-sug img { width: 72px; height: 72px; border-radius: 19px; flex: none; display: block; }
+    .s9-sugt { flex: 1; font: 400 45px/63px "Inter", sans-serif; color: #fff; white-space: nowrap; }
+    #s09b-cwrap { position: relative; width: 1107px; padding-top: 72px; }
+    #s09b-box { border-radius: 78px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; padding: 36px 24px 24px; }
+    .s9-input { position: relative; height: 66px; margin: 0 24px; font: 400 48px/66px "Inter", sans-serif; white-space: nowrap; }
+    .s9-input span { position: absolute; left: 0; top: 0; }
     #s09b-ph { color: #6b6b6b; }
-    #s09b-send { height: 108px; padding: 0 42px; border-radius: 54px; background: #fff; color: #000; display: flex; align-items: center;
-      font: 500 39px/54px "Inter", sans-serif; flex: none; }
-    .s9-under { display: flex; align-items: center; gap: 24px; }
-    .s9-chips { display: flex; gap: 18px; flex: none; }
-    .s9-chip { height: 78px; padding: 0 30px; border-radius: 39px; display: flex; align-items: center;
-      font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #a1a1a1; background: rgba(255,255,255,0); box-shadow: inset 0 0 0 1.5px #2a2a2a; }
-    .s9-helper { position: relative; flex: 1; height: 42px; font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #6b6b6b; }
-    .s9-helper span { position: absolute; right: 0; top: 0; white-space: nowrap; }
+    #s09b-q { color: #fff; }
+    .s9-crow { position: relative; margin-top: 36px; height: 102px; }
+    .s9-pill { position: absolute; left: 0; top: 0; height: 102px; padding: 0 42px; border-radius: 51px; background: #141414;
+      box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; font: 500 39px/54px "Inter", sans-serif; color: #fff; white-space: nowrap; }
+    #s09b-send { position: absolute; right: 0; top: 0; width: 102px; height: 102px; border-radius: 51px; background: #141414; overflow: hidden; }
+    #s09b-fill { position: absolute; inset: 0; border-radius: 51px; background: #fff; }
+    .s9-arrow { position: absolute; left: 21px; top: 21px; width: 60px; height: 60px; }
+    .s9-arrow .k-icon { width: 60px; height: 60px; transform: rotate(90deg); }
+    .s9-foot { position: relative; height: 48px; margin-top: 24px; font: 400 36px/48px "Inter", sans-serif; color: #6b6b6b; }
+    .s9-foot span { position: absolute; left: 0; right: 0; top: 0; text-align: center; white-space: nowrap; }
+    #s09b-menu { position: absolute; left: 24px; bottom: calc(100% - 48px); min-width: 660px; padding: 18px 0; border-radius: 54px;
+      background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a; }
+    .s9-mrow { height: 132px; padding: 0 48px; display: flex; align-items: center; gap: 36px; font: 500 45px/63px "Inter", sans-serif; color: #fff; }
+    .s9-mrow > span { flex: 1; }
+    .s9-mcheck { width: 54px; height: 54px; }
 
-    /* B + C: the Link tab column at 3x (content 353pt -> 1059). */
-    #s09b-bcam { position: absolute; inset: 0; }
-    #s09b-col { position: absolute; left: 430px; top: 117px; width: 1059px; display: flex; flex-direction: column; gap: 78px; }
+    /* B: phone with the R11 capture placeholder + the Grok, Duolingo chip. */
+    #s09b-ph11 { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    #s09b-phone { left: 0; top: 0; }
+    #s09b-scr { position: relative; background: #141414; }
+    #s09b-lab { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
+      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+    #s09b-chip { position: absolute; left: 1100px; top: 480px; display: flex; align-items: center; gap: 24px; height: 120px; padding: 0 36px 0 18px;
+      border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #fff; }
+    #s09b-chip img { width: 84px; height: 84px; border-radius: 23px; display: block; flex: none; }
+    .s9-ca { font-weight: 600; letter-spacing: -0.01em; }
+    .s9-cs { color: #6b6b6b; margin: 0 -8px; }
+    .s9-cb { color: #a1a1a1; }
+
+    /* C: the Link tab column at 3x, shown at 0.8 (2.4x). Fixed row heights so the growth is exact. */
+    #s09b-cpos { position: absolute; left: 536px; top: 0; width: 1059px; }
+    #s09b-col { width: 1059px; transform-origin: 0 0; display: flex; flex-direction: column; gap: 78px; }
     .s9-card { border-radius: 54px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; overflow: hidden; }
-    .s9-row { padding: 42px 48px; display: flex; align-items: center; gap: 42px; }
+    .s9-row { height: 210px; padding: 0 48px; display: flex; align-items: center; gap: 42px; }
     .s9-row + .s9-row { box-shadow: inset 0 1.5px 0 #1f1f1f; }
     .s9-letter { width: 120px; height: 120px; border-radius: 36px; display: flex; align-items: center; justify-content: center; flex: none;
       font: 500 48px/66px "Inter", sans-serif; }
     .s9-rtext { flex: 1; display: flex; flex-direction: column; gap: 6px; }
     .s9-name { font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; }
-    .s9-cap { display: grid; font: 400 39px/54px "Inter", sans-serif; color: #a1a1a1; }
-    .s9-cap span, .s9-right > * { grid-area: 1 / 1; }
-    .s9-right { display: grid; justify-items: end; align-items: center; flex: none; }
-    .s9-how { height: 108px; padding: 0 48px; border-radius: 54px; box-shadow: inset 0 0 0 1.5px #2a2a2a; display: flex; align-items: center;
-      font: 600 45px/60px "Inter", sans-serif; color: #fff; }
-    .s9-check { width: 66px; height: 66px; border-radius: 33px; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .s9-cap { font: 400 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-check { width: 66px; height: 66px; border-radius: 33px; background: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
     .s9-check .k-icon { width: 42px; height: 42px; }
     #s09b-dev { background: #000; }
-    .s9-devhead { padding: 48px; display: flex; justify-content: space-between; align-items: center; }
+    .s9-devhead { height: 159px; padding: 0 48px; display: flex; justify-content: space-between; align-items: center; }
     .s9-devtitle { font: 500 45px/63px "Inter", sans-serif; color: #a1a1a1; }
-    .s9-toggle { display: grid; justify-items: end; font: 500 39px/54px "Inter", sans-serif; color: #6b6b6b; }
-    .s9-toggle span { grid-area: 1 / 1; }
+    .s9-hide { font: 500 39px/54px "Inter", sans-serif; color: #6b6b6b; }
     .s9-devbody { padding: 0 48px 48px; display: flex; flex-direction: column; gap: 48px; }
     .s9-dev { display: flex; align-items: center; justify-content: space-between; height: 108px; }
-    .s9-devlabel { font: 500 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-devlabel { font: 500 45px/63px "Inter", sans-serif; color: #fff; }
     .s9-copy { display: grid; justify-items: center; align-items: center; height: 108px; padding: 0 48px; border-radius: 54px;
       box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 45px/60px "Inter", sans-serif; color: #fff; }
     .s9-copy span { grid-area: 1 / 1; white-space: nowrap; }
@@ -75,72 +103,89 @@
       <canvas id="s09b-waves" class="k-waves"></canvas>
       <div id="s09b-dim"></div>
 
-      <!-- A: the Today ask bar -->
-      <div id="s09b-acam">
-        <div id="s09b-ask" class="s9-f">
-          <div class="s9-bar">
-            <div class="s9-input"><span id="s09b-ph">Log food, a workout, or ask anything</span><span id="s09b-typed">what did I bench last week?</span></div>
-            <div id="s09b-send">Ask</div>
+      <!-- A: Agent tab -->
+      <div id="s09b-acam" class="s9-cam">
+        <div id="s09b-stack" class="s9-f" data-layout-allow-overlap>
+          <div id="s09b-hero">
+            <div class="s9-prompt">Ask your apps anything</div>
+            <div style="display:flex;justify-content:center"><div class="s9-logos">
+              <div class="s9-li"><img src="assets/apps/myfitnesspal.png" alt="" /></div>
+              <div class="s9-li"><img src="assets/apps/strong.png" alt="" /></div>
+              <div class="s9-li"><img src="assets/apps/cronometer.png" alt="" /></div>
+            </div></div>
           </div>
-          <div id="s09b-under" class="s9-under">
-            <div class="s9-chips">
-              <div id="s09b-t1" class="s9-chip">Claude</div>
-              <div id="s09b-t2" class="s9-chip">ChatGPT</div>
-              <div id="s09b-t3" class="s9-chip">Grok</div>
+          <div id="s09b-sug"><div id="s09b-suglogo" style="width:72px;height:72px;border-radius:19px;flex:none;background:#141414 url(assets/apps/myfitnesspal.png) center/cover"></div><div class="s9-sugt">How much protein do I have left today?</div></div>
+          <div id="s09b-cwrap">
+            <div id="s09b-box">
+              <div class="s9-input"><span id="s09b-ph">Ask anything</span><span id="s09b-q">How much protein do I have left today?</span></div>
+              <div class="s9-crow">
+                <div id="s09b-p1" class="s9-pill">Claude</div>
+                <div id="s09b-p2" class="s9-pill">ChatGPT</div>
+                <div id="s09b-p3" class="s9-pill">Grok</div>
+                <div id="s09b-send">
+                  <div id="s09b-fill"></div>
+                  <div id="s09b-aw" class="s9-arrow"><div id="s09b-aw-ic" class="k-icon"></div></div>
+                  <div id="s09b-ab" class="s9-arrow"><div id="s09b-ab-ic" class="k-icon"></div></div>
+                </div>
+              </div>
             </div>
-            <div class="s9-helper">
-              <span id="s09b-h1">Opens in Claude with your apps attached</span>
-              <span id="s09b-h2">Opens in ChatGPT with your apps attached</span>
-              <span id="s09b-h3">Opens in Grok with your apps attached</span>
+            <div class="s9-foot">
+              <span id="s09b-f1">Opens in Claude with your apps attached</span>
+              <span id="s09b-f2">Opens in ChatGPT with your apps attached</span>
+              <span id="s09b-f3">Opens in Grok with your apps attached</span>
+            </div>
+            <div id="s09b-menu">
+              <div id="s09b-m1" class="s9-mrow"><span>Claude</span><div id="s09b-m1-ok" class="s9-mcheck k-icon"></div></div>
+              <div id="s09b-m2" class="s9-mrow"><span>ChatGPT</span><div id="s09b-m2-ok" class="s9-mcheck k-icon"></div></div>
+              <div id="s09b-m3" class="s9-mrow"><span>Grok</span><div id="s09b-m3-ok" class="s9-mcheck k-icon"></div></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- B + C: the Link tab -->
-      <div id="s09b-bcam">
+      <!-- B: the handoff lands in Grok -->
+      <div id="s09b-bcam" class="s9-cam">
+        <div id="s09b-ph11">
+          <div id="s09b-phone" class="k-phone">
+            <!-- footage: assets/footage/r11-grok-duolingo.mp4 -->
+            <div id="s09b-scr" class="k-screen"><div id="s09b-lab">R11 · Grok: am I about to lose my Duolingo streak?</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="s09b-chip" class="s9-f"><img src="assets/apps/duolingo.png" alt="" /><span class="s9-ca">Grok</span><span class="s9-cs">·</span><span class="s9-cb">Duolingo</span></div>
+
+      <!-- C: Link tab rows -->
+      <div id="s09b-cpos">
         <div id="s09b-col" class="s9-f">
           <div id="s09b-card" class="s9-card">
             <div id="s09b-r1" class="s9-row">
               <div class="s9-letter" style="background:#D97757;color:#fff;box-shadow:inset 0 0 0 1.5px #D97757">C</div>
-              <div class="s9-rtext"><div class="s9-name">Claude</div>
-                <div class="s9-cap"><span id="s09b-r1-hint">Settings, Connectors, Add</span><span id="s09b-r1-add">Added · used just now</span></div></div>
-              <div class="s9-right"><div id="s09b-r1-how" class="s9-how">How</div><div id="s09b-r1-ok" class="s9-check"><div id="s09b-r1-ic" class="k-icon"></div></div></div>
+              <div class="s9-rtext"><div class="s9-name">Claude</div><div class="s9-cap">Added · used just now</div></div>
+              <div id="s09b-r1-ok" class="s9-check"><div id="s09b-r1-ic" class="k-icon"></div></div>
             </div>
             <div id="s09b-r2" class="s9-row">
               <div class="s9-letter" style="background:#FFFFFF;color:#000;box-shadow:inset 0 0 0 1.5px #FFFFFF">G</div>
-              <div class="s9-rtext"><div class="s9-name">ChatGPT</div>
-                <div class="s9-cap"><span id="s09b-r2-hint">On the web, chatgpt.com/plugins</span><span id="s09b-r2-add">Added · used just now</span></div></div>
-              <div class="s9-right"><div id="s09b-r2-how" class="s9-how">How</div><div id="s09b-r2-ok" class="s9-check"><div id="s09b-r2-ic" class="k-icon"></div></div></div>
+              <div class="s9-rtext"><div class="s9-name">ChatGPT</div><div class="s9-cap">Added · used just now</div></div>
+              <div id="s09b-r2-ok" class="s9-check"><div id="s09b-r2-ic" class="k-icon"></div></div>
             </div>
             <div id="s09b-r3" class="s9-row">
               <div class="s9-letter" style="background:#141414;color:#fff;box-shadow:inset 0 0 0 1.5px #2A2A2A">X</div>
-              <div class="s9-rtext"><div class="s9-name">Grok</div>
-                <div class="s9-cap"><span id="s09b-r3-hint">Settings, Connectors, Add</span><span id="s09b-r3-add">Added · used just now</span></div></div>
-              <div class="s9-right"><div id="s09b-r3-how" class="s9-how">How</div><div id="s09b-r3-ok" class="s9-check"><div id="s09b-r3-ic" class="k-icon"></div></div></div>
+              <div class="s9-rtext"><div class="s9-name">Grok</div><div class="s9-cap">Added · used just now</div></div>
+              <div id="s09b-r3-ok" class="s9-check"><div id="s09b-r3-ic" class="k-icon"></div></div>
             </div>
             <div id="s09b-r4" class="s9-row">
               <div class="s9-letter" style="background:#1D4ED8;color:#fff;box-shadow:inset 0 0 0 1.5px #1D4ED8">M</div>
-              <div class="s9-rtext"><div class="s9-name">Muse</div>
-                <div class="s9-cap"><span id="s09b-r4-hint">Settings, Connectors, Add</span><span id="s09b-r4-add">Added · used just now</span></div></div>
-              <div class="s9-right"><div id="s09b-r4-how" class="s9-how">How</div><div id="s09b-r4-ok" class="s9-check"><div id="s09b-r4-ic" class="k-icon"></div></div></div>
+              <div class="s9-rtext"><div class="s9-name">Muse</div><div class="s9-cap">Added · used just now</div></div>
+              <div id="s09b-r4-ok" class="s9-check"><div id="s09b-r4-ic" class="k-icon"></div></div>
             </div>
           </div>
-
           <div id="s09b-dev" class="s9-card">
-            <div class="s9-devhead">
-              <div class="s9-devtitle">For developers</div>
-              <div class="s9-toggle"><span id="s09b-show">Show</span><span id="s09b-hide">Hide</span></div>
-            </div>
+            <div id="s09b-dh" class="s9-devhead"><div class="s9-devtitle">For developers</div><div class="s9-hide">Hide</div></div>
             <div class="s9-devbody">
-              <div id="s09b-d1" class="s9-dev"><div id="s09b-d1-l" class="s9-devlabel">Claude Code</div>
-                <div id="s09b-d1-b" class="s9-copy"><span id="s09b-d1-c">Copy</span><span id="s09b-d1-k">Copied</span></div></div>
-              <div id="s09b-d2" class="s9-dev"><div id="s09b-d2-l" class="s9-devlabel">Codex</div>
-                <div id="s09b-d2-b" class="s9-copy"><span id="s09b-d2-c">Copy</span><span id="s09b-d2-k">Copied</span></div></div>
-              <div id="s09b-d3" class="s9-dev"><div id="s09b-d3-l" class="s9-devlabel">Cursor</div>
-                <div id="s09b-d3-b" class="s9-copy"><span id="s09b-d3-c">Copy link</span><span id="s09b-d3-k">Copied</span></div></div>
-              <div id="s09b-d4" class="s9-dev"><div id="s09b-d4-l" class="s9-devlabel">iMessage</div>
-                <div id="s09b-d4-b" class="s9-copy"><span id="s09b-d4-c">Copy link</span><span id="s09b-d4-k">Copied</span></div></div>
+              <div id="s09b-d1" class="s9-dev"><div class="s9-devlabel">Claude Code</div><div id="s09b-d1-b" class="s9-copy"><span id="s09b-d1-c">Copy</span><span id="s09b-d1-k">Copied</span></div></div>
+              <div id="s09b-d2" class="s9-dev"><div class="s9-devlabel">Codex</div><div id="s09b-d2-b" class="s9-copy"><span id="s09b-d2-c">Copy</span><span id="s09b-d2-k">Copied</span></div></div>
+              <div id="s09b-d3" class="s9-dev"><div class="s9-devlabel">Cursor</div><div id="s09b-d3-b" class="s9-copy"><span id="s09b-d3-c">Copy link</span><span id="s09b-d3-k">Copied</span></div></div>
+              <div id="s09b-d4" class="s9-dev"><div class="s9-devlabel">iMessage</div><div id="s09b-d4-b" class="s9-copy"><span id="s09b-d4-c">Copy link</span><span id="s09b-d4-k">Copied</span></div></div>
             </div>
           </div>
         </div>
@@ -151,6 +196,7 @@
     (function () {
       const D = 8.168, S = KIT.springs, $ = (s) => document.querySelector(s);
       const tl = gsap.timeline({ paused: true });
+      const cam = (s, px, py, tx, ty) => ({ scale: s, x: (tx == null ? 960 : tx) - s * px, y: (ty == null ? 540 : ty) - s * py });
       const swap = (outEl, inEl, at) => {
         tl.fromTo(outEl, { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(6px)", duration: 0.1, ease: "power2.in", immediateRender: false }, at);
         tl.fromTo(inEl, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power2.out", immediateRender: false }, at + 0.06);
@@ -159,92 +205,148 @@
         tl.to(el, { scale: to, duration: 0.09, ease: S.press.ease }, at);
         tl.to(el, { scale: 1, duration: S.release.dur, ease: S.release.ease }, at + 0.1);
       };
+      const blurPulse = (el, at, dur, peak) => {
+        tl.fromTo(el, { filter: "blur(0px)" }, { filter: "blur(" + peak + "px)", duration: dur / 2, ease: "power2.in", immediateRender: false }, at);
+        tl.to(el, { filter: "blur(0px)", duration: dur / 2, ease: "power2.out" }, at + dur / 2);
+      };
 
       KIT.waves(tl, $("#s09b-waves"), { from: 0, to: D, offset: 57.284 });
 
-      // ---------- A: the ask bar (0.00 - 2.60) ----------
-      const AS = 1.27;
-      gsap.set("#s09b-acam", { scale: AS, transformOrigin: "50% 50%" });
-      tl.fromTo("#s09b-ask", { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, 0);
-      tl.fromTo("#s09b-ask", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 0);
-      tl.fromTo("#s09b-acam", { scale: AS }, { scale: AS * 1.04, duration: 2.3, ease: "sine.inOut", immediateRender: false }, 0);
+      // ---------------- A: Agent tab (0 - 2.62) ----------------
+      gsap.set("#s09b-acam", cam(1.1, 960, 540));
+      tl.fromTo("#s09b-acam", cam(1.1, 960, 540), { ...cam(1.14, 960, 540), duration: 2.3, ease: "sine.inOut", immediateRender: false }, 0);
+      // Enter: hero fades in, then suggestion and composer on the enter curve (55ms stagger).
+      const parts = ["#s09b-hero", "#s09b-sug", "#s09b-cwrap"];
+      gsap.set(parts, { opacity: 0 });
+      parts.forEach((p, i) => {
+        tl.fromTo(p, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, i * 0.055);
+        tl.fromTo(p, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, i * 0.055);
+      });
 
-      // The request types in (smear, 30 cps); placeholder clears, Ask appears with the first character.
-      gsap.set("#s09b-typed", { opacity: 0 });
-      gsap.set("#s09b-send", { opacity: 0, scale: 0.6 });
-      tl.fromTo("#s09b-ph", { opacity: 1 }, { opacity: 0, duration: 0.05, ease: "none", immediateRender: false }, 0.25);
-      tl.fromTo("#s09b-typed", { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none", immediateRender: false }, 0.25);
-      KIT.smear(tl, $("#s09b-typed"), 0.25);
-      tl.fromTo("#s09b-send", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 0.28);
+      // Send button: idle (surface2 + white arrow at 35%) until the composer has text. The app's arrow is the
+      // Lordicon trending-flat back arrow turned to point up (assets/icons/arrow-back-black.json, inlined here).
+      const S09B_ARROW = {"v":"5.12.1","fr":60,"ip":70,"op":140,"w":500,"h":500,"nm":"system-regular-161-trending-flat","ddd":0,"assets":[{"id":"comp_0","nm":"in-ternd-flat","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":60,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[17.713,250.003,0],"to":[70.833,0,0],"ti":[-70.833,0,0]},{"t":60,"s":[442.713,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[442.713,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[39.371,-1.003],[39.371,-1.003],[39.371,-1.003]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-236.136,0]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.332],"y":[0.693]},"o":{"x":[0.237],"y":[0.157]},"t":1,"s":[100]},{"i":{"x":[0.573],"y":[1]},"o":{"x":[0.25],"y":[0.401]},"t":31.975,"s":[20.604]},{"t":60,"s":[0]}],"ix":1},"e":{"a":0,"k":100,"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":60,"st":0,"ct":1,"bm":0}]},{"id":"comp_1","nm":"hover-ternd-flat-1","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":60,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":1,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[17.713,250.003,0],"to":[70.833,0,0],"ti":[-70.833,0,0]},{"t":60,"s":[442.713,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[442.713,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[39.371,-1.003],[39.371,-1.003],[39.371,-1.003]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":20,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-236.136,0]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.332],"y":[0.693]},"o":{"x":[0.237],"y":[0.157]},"t":20,"s":[100]},{"i":{"x":[0.573],"y":[1]},"o":{"x":[0.25],"y":[0.401]},"t":41,"s":[20.604]},{"t":60,"s":[0]}],"ix":1},"e":{"a":0,"k":100,"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":20,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.8,"y":0},"t":0,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]},{"t":20,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[232.577,-0.99],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.8],"y":[0]},"t":0,"s":[0]},{"t":20,"s":[0]}],"ix":1},"e":{"a":1,"k":[{"i":{"x":[0.833],"y":[0.833]},"o":{"x":[0.8],"y":[0]},"t":0,"s":[100]},{"t":20,"s":[0]}],"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.8,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]},{"t":20,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[79.371,-2.026],[80.392,-0.99],[79.371,0.045]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":20,"st":0,"ct":1,"bm":0}]},{"id":"comp_2","nm":"hover-ternd-flat-2","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0,"y":1},"o":{"x":0.167,"y":0.167},"t":10,"s":[-257.997,250.003,0],"to":[84.667,0,0],"ti":[-84.667,0,0]},{"t":60,"s":[250.003,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.6,"y":0},"t":0,"s":[250.003,250.003,0],"to":[80.167,0,0],"ti":[-80.167,0,0]},{"t":16,"s":[731.003,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0}]},{"id":"comp_3","nm":"hover-ternd-flat-3","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.193,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true}]},{"i":{"x":0.322,"y":1},"o":{"x":0.333,"y":0},"t":18,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[53.853,-10.988],[-28.314,-94.322],[-50.446,-94.478],[-50.601,-72.346],[5.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[5.301,15.649],[-50.601,72.346],[-50.446,94.478],[-39.458,98.983],[-28.314,94.321],[53.853,10.987]],"c":true}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[244.853,-10.988],[162.686,-94.322],[140.554,-94.478],[140.399,-72.346],[196.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[196.301,15.649],[140.399,72.346],[140.554,94.478],[151.542,98.983],[162.686,94.321],[244.853,10.987]],"c":true}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[183.853,-10.988],[101.686,-94.322],[79.554,-94.478],[79.399,-72.346],[135.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[135.301,15.649],[79.399,72.346],[79.554,94.478],[90.542,98.983],[101.686,94.321],[183.853,10.987]],"c":true}]},{"t":60,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":3,"nm":"control","sr":1,"ks":{"o":{"a":0,"k":0,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[0,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"ef":[{"ty":5,"nm":"primary","np":3,"mn":"ADBE Color Control","ix":1,"en":1,"ef":[{"ty":2,"nm":"Color","mn":"ADBE Color Control-0001","ix":1,"v":{"a":0,"k":[1,1,1,1],"ix":1}}]}],"ip":0,"op":271,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":0,"nm":"in-ternd-flat","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":0,"op":70,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":0,"nm":"hover-ternd-flat-1","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":70,"op":140,"st":70,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"hover-ternd-flat-2","refId":"comp_2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":140,"op":210,"st":140,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"hover-ternd-flat-3","refId":"comp_3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":210,"op":280,"st":210,"bm":0}],"markers":[],"props":{}};
+      window.YC_ICONS["s09b-arrow-back"] = { data: S09B_ARROW, seg: [70, 140], fr: 60 };
+      KIT.icon(tl, $("#s09b-aw-ic"), "s09b-arrow-back", { tint: "#fff" });
+      KIT.icon(tl, $("#s09b-ab-ic"), "s09b-arrow-back", { at: 2.24, tint: "#000" });
+      gsap.set("#s09b-fill", { opacity: 0 });
+      gsap.set("#s09b-aw", { opacity: 0.35 });
+      gsap.set("#s09b-ab", { opacity: 0 });
+      gsap.set("#s09b-q", { opacity: 0 });
 
-      // Target: Claude (0.54), ChatGPT (1.22), Grok (1.90). Active = white fill, black text (the app's chipActive).
-      const ON = { backgroundColor: "rgba(255,255,255,1)", color: "#000000", boxShadow: "inset 0 0 0 1.5px #ffffff" };
-      const OFF = { backgroundColor: "rgba(255,255,255,0)", color: "#a1a1a1", boxShadow: "inset 0 0 0 1.5px #2a2a2a" };
-      gsap.set(["#s09b-t1", "#s09b-t2", "#s09b-t3"], { ...OFF, scale: 1 });
-      gsap.set(["#s09b-h1", "#s09b-h2", "#s09b-h3"], { opacity: 0 });
-      const picks = [["#s09b-t1", "#s09b-h1", 0.54], ["#s09b-t2", "#s09b-h2", 1.22], ["#s09b-t3", "#s09b-h3", 1.9]];
-      picks.forEach(([chip, help, at], i) => {
-        tl.fromTo(chip, OFF, { ...ON, duration: 0.12, ease: "power2.out", immediateRender: false }, at);
-        pressTo($(chip), at, 0.95);
+      // 0.54: tap the suggestion (press 0.98), it fills the composer; send turns ready (160ms crossfade).
+      gsap.set("#s09b-sug", { scale: 1 });
+      pressTo($("#s09b-sug"), 0.46, 0.98);
+      swap($("#s09b-ph"), $("#s09b-q"), 0.54);
+      tl.fromTo("#s09b-fill", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
+      tl.fromTo("#s09b-ab", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
+      tl.fromTo("#s09b-aw", { opacity: 0.35 }, { opacity: 0, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
+
+      // Assistant pill + menu. Claude is current; ChatGPT picked on 1.22, Grok on 1.90 (each pick closes the menu).
+      const pills = ["#s09b-p1", "#s09b-p2", "#s09b-p3"], foots = ["#s09b-f1", "#s09b-f2", "#s09b-f3"];
+      gsap.set([pills[1], pills[2], foots[1], foots[2]], { opacity: 0 });
+      gsap.set("#s09b-menu", { opacity: 0, scale: 0, transformOrigin: "0% 100%" });
+      ["#s09b-m1-ok", "#s09b-m2-ok", "#s09b-m3-ok"].forEach((id) => KIT.icon(tl, $(id), "check", { at: 0 })); // drawn by the time the menu opens
+      gsap.set(["#s09b-m2-ok", "#s09b-m3-ok"], { opacity: 0 });
+      const openMenu = (pill, at) => {
+        pressTo($(pill), at, 0.95);
+        tl.fromTo(pill, { boxShadow: "inset 0 0 0 1.5px #1f1f1f" }, { boxShadow: "inset 0 0 0 1.5px #2a2a2a", duration: 0.1, immediateRender: false }, at);
+        tl.fromTo("#s09b-menu", { scale: 0.2 }, { scale: 1, duration: 0.4, ease: S.pop.ease, immediateRender: false }, at + 0.04);
+        tl.fromTo("#s09b-menu", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, at + 0.04);
+      };
+      const pick = (row, fromOk, toOk, fromPill, toPill, fromFoot, toFoot, at) => {
+        pressTo($(row), at - 0.06, 0.98);
+        tl.fromTo(fromOk, { opacity: 1 }, { opacity: 0, duration: 0.08, immediateRender: false }, at);
+        tl.fromTo(toOk, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: S.pop.ease, immediateRender: false }, at);
+        swap($(fromPill), $(toPill), at);
+        swap($(fromFoot), $(toFoot), at);
+        tl.fromTo("#s09b-menu", { opacity: 1 }, { opacity: 0, duration: 0.14, ease: "power2.in", immediateRender: false }, at + 0.2);
+        tl.fromTo("#s09b-menu", { scale: 1 }, { scale: 0.96, duration: 0.14, ease: "power2.in", immediateRender: false }, at + 0.2);
+      };
+      openMenu(pills[0], 0.86);
+      pick("#s09b-m2", "#s09b-m1-ok", "#s09b-m2-ok", pills[0], pills[1], foots[0], foots[1], 1.22);
+      openMenu(pills[1], 1.6);
+      pick("#s09b-m3", "#s09b-m2-ok", "#s09b-m3-ok", pills[1], pills[2], foots[1], foots[2], 1.9);
+
+      // 2.24: send (press 0.9, the arrow plays once), then zoom through the composer into B.
+      gsap.set("#s09b-send", { scale: 1 });
+      pressTo($("#s09b-send"), 2.24, 0.9);
+      // Composer centre in stage px (measured once; fallbacks are the 3x layout values).
+      const cwrap = $("#s09b-cwrap"), box = $("#s09b-box");
+      const compY = 130 + (cwrap.offsetTop || 411) + (box.offsetTop || 72) + (box.offsetHeight || 264) / 2;
+      tl.fromTo("#s09b-acam", cam(1.14, 960, 540), { ...cam(2.6, 960, compY), duration: 0.34, ease: "power3.in", immediateRender: false }, 2.3);
+      tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.3);
+      tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.48);
+
+      // ---------------- B: the handoff in Grok (2.42 - 5.36) ----------------
+      const PX = 700, ANS = 648;
+      gsap.set("#s09b-ph11", { scale: 0.966, x: PX - 960 });
+      gsap.set("#s09b-bcam", { ...cam(1.45, PX, 600), opacity: 0 });
+      tl.fromTo("#s09b-bcam", cam(1.45, PX, 600), { ...cam(1, 960, 540), duration: 0.5, ease: "expo.out", immediateRender: false }, 2.42);
+      tl.fromTo("#s09b-bcam", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.42);
+      // Chip lands on 3.26.
+      gsap.set("#s09b-chip", { opacity: 0, transformOrigin: "0% 50%" });
+      tl.fromTo("#s09b-chip", { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 3.26);
+      tl.fromTo("#s09b-chip", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 3.26);
+      // Push in on the answer (3.94), the phone shifting left of the chip; hold with a drift.
+      const P1 = cam(1.55, PX, ANS, 720), P2 = cam(1.6, PX, ANS, 720);
+      tl.fromTo("#s09b-bcam", cam(1, 960, 540), { ...P1, duration: 0.42, ease: "power2.inOut", immediateRender: false }, 3.94);
+      blurPulse("#s09b-ph11", 3.94, 0.42, 6);
+      tl.fromTo("#s09b-bcam", P1, { ...P2, duration: 0.64, ease: "sine.inOut", immediateRender: false }, 4.36);
+      // Whip up into C.
+      // One page push up into C: B and the chip leave the top as the Link rows arrive from below (same distance and ease).
+      tl.fromTo("#s09b-bcam", { y: P2.y }, { y: P2.y - 1080, duration: 0.34, ease: "power3.inOut", immediateRender: false }, 5.0);
+      tl.to("#s09b-ph11", { filter: "blur(6px)", duration: 0.34, ease: "power2.in" }, 5.0);
+      tl.to("#s09b-chip", { y: -1080, filter: "blur(6px)", duration: 0.34, ease: "power3.inOut" }, 5.0);
+
+      // ---------------- C: Link tab rows at speed (5.14 - 8.10) ----------------
+      // Bottoms (3x px, column space) after each step; the column shows at 0.8 and keeps the newest row in frame.
+      const CS = 0.8, beats = [5.3, 5.64, 5.98, 6.32, 6.66, 7.0, 7.35, 7.69];
+      const bottoms = [210, 420, 630, 840, 1185, 1341, 1497, 1653];
+      const topFor = (b) => { const h = CS * b; return h < 840 ? 540 - h / 2 : 960 - h; };
+      gsap.set("#s09b-col", { scale: CS });
+      gsap.set("#s09b-cpos", { y: topFor(210) + 1080 });
+      tl.fromTo("#s09b-cpos", { y: topFor(210) + 1080 }, { y: topFor(210), duration: 0.34, ease: "power3.inOut", immediateRender: false }, 5.0);
+      tl.fromTo("#s09b-cpos", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.24, ease: "power2.out", immediateRender: false }, 5.12);
+      // Cards grow by clipping to the newest row (round 54 keeps the corners).
+      const clip = (b) => "inset(0px 0px " + b + "px 0px round 54px)";
+      gsap.set("#s09b-card", { clipPath: clip(840 - 210) });
+      gsap.set("#s09b-dev", { clipPath: clip(783), opacity: 0 });
+      const rows = ["#s09b-r1", "#s09b-r2", "#s09b-r3", "#s09b-r4", "#s09b-d1", "#s09b-d2", "#s09b-d3", "#s09b-d4"];
+      gsap.set(rows.slice(1), { opacity: 0 });
+      gsap.set("#s09b-dh", { opacity: 0 });
+      beats.forEach((at, i) => {
         if (i > 0) {
-          tl.fromTo(picks[i - 1][0], ON, { ...OFF, duration: 0.12, ease: "power2.out", immediateRender: false }, at);
-          swap($(picks[i - 1][1]), $(help), at);
+          const land = at - 0.12;
+          tl.fromTo("#s09b-cpos", { y: topFor(bottoms[i - 1]) }, { y: topFor(bottoms[i]), duration: 0.4, ease: S.layout.ease, immediateRender: false }, land);
+          tl.fromTo(rows[i], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: KIT.ease.enter, immediateRender: false }, land);
+          if (i < 4) tl.fromTo("#s09b-card", { clipPath: clip(840 - bottoms[i - 1]) }, { clipPath: clip(840 - bottoms[i]), duration: 0.32, ease: S.layout.ease, immediateRender: false }, land);
+          else {
+            const devTop = 918, prev = i === 4 ? 0 : bottoms[i - 1] - devTop, next = bottoms[i] - devTop;
+            if (i === 4) {
+              tl.fromTo("#s09b-dev", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, land);
+              tl.fromTo("#s09b-dh", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: KIT.ease.enter, immediateRender: false }, land);
+            }
+            tl.fromTo("#s09b-dev", { clipPath: clip(783 - prev) }, { clipPath: clip(783 - next), duration: 0.32, ease: S.layout.ease, immediateRender: false }, land);
+          }
+        }
+        if (i < 4) {
+          const ok = $(rows[i] + "-ok");
+          gsap.set(ok, { opacity: 0, scale: 0.4 });
+          tl.fromTo(ok, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.4, ease: S.pop.ease, immediateRender: false }, at);
+          KIT.icon(tl, $(rows[i] + "-ic"), "check-black", { at: at, speed: 1.5 });
         } else {
-          tl.fromTo(help, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power2.out", immediateRender: false }, at + 0.06);
+          const n = i - 3;
+          gsap.set("#s09b-d" + n + "-k", { opacity: 0 });
+          gsap.set("#s09b-d" + n + "-b", { scale: 1 });
+          KIT.press(tl, $("#s09b-d" + n + "-b"), at - 0.04);
+          swap($("#s09b-d" + n + "-c"), $("#s09b-d" + n + "-k"), at);
         }
       });
 
-      // Ask (2.24, the app's 0.92 press), then one push up: the bar leaves the top as the Link tab arrives from below
-      // (same distance, same ease, so they travel as one page).
-      pressTo($("#s09b-send"), 2.24, 0.92);
-      tl.to("#s09b-ask", { y: -1080 / AS, duration: 0.36, ease: "power3.inOut" }, 2.28);
-      tl.to("#s09b-ask", { filter: "blur(6px)", duration: 0.36, ease: "power2.in" }, 2.28);
-
-      // ---------- B: assistants card (2.36 - 5.13) ----------
-      gsap.set("#s09b-col", { y: 1080 });
-      gsap.set("#s09b-dev", { opacity: 0 });
-      tl.fromTo("#s09b-col", { y: 1080 }, { y: 0, duration: 0.36, ease: "power3.inOut", immediateRender: false }, 2.28);
-      tl.fromTo("#s09b-col", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.4);
-      tl.fromTo("#s09b-bcam", { scale: 1 }, { scale: 1.05, duration: 5.34, ease: "sine.inOut", immediateRender: false, transformOrigin: "50% 50%" }, 2.36);
-
-      // One assistant added a beat: How clears, the check pops (checkBlack), the caption becomes "Added".
-      [2.58, 3.26, 3.94, 4.62].forEach((at, i) => {
-        const n = i + 1, how = $("#s09b-r" + n + "-how"), ok = $("#s09b-r" + n + "-ok");
-        gsap.set(ok, { opacity: 0, scale: 0.4 });
-        gsap.set("#s09b-r" + n + "-add", { opacity: 0 });
-        tl.fromTo(how, { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.9, duration: 0.12, ease: "power2.in", immediateRender: false }, at);
-        tl.fromTo(ok, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, at + 0.04);
-        KIT.icon(tl, $("#s09b-r" + n + "-ic"), "check-black", { at: at + 0.04 });
-        swap($("#s09b-r" + n + "-hint"), $("#s09b-r" + n + "-add"), at);
-      });
-
-      // ---------- C: scroll to "For developers", open it (card-morph), Copy -> Copied a beat ----------
-      const dev = $("#s09b-dev"), head = dev.querySelector(".s9-devhead");
-      const bodyH = Math.max(400, dev.offsetHeight - head.offsetHeight) || 624;
-      tl.fromTo(dev, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, 4.74);
-      tl.fromTo("#s09b-col", { y: 0 }, { y: -945, duration: 0.36, ease: "power2.inOut", immediateRender: false }, 4.78);
-      tl.fromTo("#s09b-card", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 4.8);
-      tl.fromTo("#s09b-col", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.18, ease: "power2.in", immediateRender: false }, 4.78);
-      tl.to("#s09b-col", { filter: "blur(0px)", duration: 0.18, ease: "power2.out" }, 4.96);
-      gsap.set(dev, { clipPath: "inset(0px 0px " + bodyH + "px 0px round 54px)" });
-      gsap.set("#s09b-hide", { opacity: 0 });
-      swap($("#s09b-show"), $("#s09b-hide"), 4.98);
-      tl.fromTo(dev, { clipPath: "inset(0px 0px " + bodyH + "px 0px round 54px)" }, { clipPath: "inset(0px 0px 0px 0px round 54px)", duration: 0.42, ease: S.layout.ease, immediateRender: false }, 4.98);
-      const rows = ["#s09b-d1", "#s09b-d2", "#s09b-d3", "#s09b-d4"];
-      gsap.set(rows, { opacity: 0 });
-      tl.fromTo(rows, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: KIT.ease.enter, stagger: 0.055, immediateRender: false }, 5.02);
-
-      [5.3, 5.98, 6.66, 7.35].forEach((at, i) => {
-        const n = i + 1;
-        gsap.set("#s09b-d" + n + "-k", { opacity: 0 });
-        gsap.set("#s09b-d" + n + "-b", { scale: 1 });
-        KIT.press(tl, $("#s09b-d" + n + "-b"), at - 0.06);
-        swap($("#s09b-d" + n + "-c"), $("#s09b-d" + n + "-k"), at);
-        tl.fromTo("#s09b-d" + n + "-l", { color: "#a1a1a1" }, { color: "#ffffff", duration: 0.2, ease: "power2.out", immediateRender: false }, at);
-      });
-
-      // Exit: 12 frames, blur, power2.in, gone by 8.10 so s10 opens on the clean dim wave.
-      tl.to("#s09b-bcam", { opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power2.in" }, 7.7);
+      // Exit: blur + fade, power2.in, gone by 8.10 so s10 opens on the clean dim wave.
+      tl.fromTo("#s09b-cpos", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 7.8);
+      tl.to("#s09b-col", { filter: "blur(8px)", duration: 0.3, ease: "power2.in" }, 7.8);
 
       window.__timelines["s09b-any"] = tl;
     })();
