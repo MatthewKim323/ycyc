@@ -1,0 +1,284 @@
+{
+  "appSlug": "duolingo",
+  "version": 1,
+  "status": "verified",
+  "executor": "cloud",
+  "baseUrl": "https://www.duolingo.com",
+  "auth": {
+    "type": "bearer",
+    "sessionKeys": [
+      "headers.authorization",
+      "storage.userId"
+    ],
+    "check": {
+      "method": "GET",
+      "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=id",
+      "headers": {
+        "authorization": "{{session.headers.authorization}}",
+        "accept": "application/json"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_streak",
+      "title": "Streak",
+      "description": "Current Duolingo streak. streak is the day count; streakData.currentStreak has startDate, endDate and lastExtendedDate (YYYY-MM-DD in the user's timezone). Today's lesson is done when xpGoalMetToday is true or currentStreak.lastExtendedDate is today. Streak freezes left: trackingProperties.num_item_streak_freeze (also shopItems[] where id is \"streak_freeze\", quantity). streakData.longestStreak and previousStreak give history.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=streak,streakData%7BcurrentStreak,longestStreak,previousStreak%7D,xpGoal,xpGoalMetToday,timezone,trackingProperties%7Bnum_item_streak_freeze%7D,shopItems%7Bid,quantity%7D",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_profile_summary",
+      "title": "Profile summary",
+      "description": "Duolingo profile at a glance: username, totalXp, xpGoal (daily XP goal), xpGoalMetToday, weeklyXp, monthlyXp, streak, gems, hasPlus (Super), currentCourseId, learningLanguage, courses[] ({id, title, learningLanguage, fromLanguage, xp}) and trackingProperties with leaderboard_tier_name (league, e.g. Bronze), leaderboard_league (tier index 0-9) and num_sessions_completed. For XP earned today or this week use get_xp_history.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=username,name,totalXp,xpGoal,xpGoalMetToday,weeklyXp,monthlyXp,streak,gems,hasPlus,currentCourseId,learningLanguage,fromLanguage,timezone,courses%7Bid,title,learningLanguage,fromLanguage,xp%7D,trackingProperties%7Bleaderboard_tier_name,leaderboard_league,num_sessions_completed%7D",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_xp_history",
+      "title": "XP by day",
+      "description": "XP earned per day across all courses. Each summary has date (unix seconds at UTC midnight of that calendar day), gainedXp, dailyGoalXp, numSessions, totalSessionTime (seconds), streakExtended and frozen (a streak freeze covered the day). Defaults to today only; pass start_date 6 days ago for this week. Compare gainedXp with xpGoal from get_profile_summary.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "default": "{{today}}"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "default": "{{today}}"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA zone used to bucket days",
+            "default": "America/Los_Angeles"
+          }
+        }
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}/xp_summaries?startDate={{start_date}}&endDate={{end_date}}&timezone={{timezone}}",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "summaries",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_courses",
+      "title": "Courses and progress",
+      "description": "All courses the user is taking (courses[]: id like DUOLINGO_KO_EN, title, learningLanguage, fromLanguage, xp) plus progress in the active course: currentCourse.wordsLearned, numberOfWords, activePathSectionId and pathSectionsSummary[] (one per section: index, type, completedUnits, totalUnits, cefr.level such as INTRO, A1, A2, B1). The current section is the first learning section with completedUnits < totalUnits.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=currentCourseId,courses%7Bid,title,learningLanguage,fromLanguage,xp%7D,currentCourse%7Bid,learningLanguage,fromLanguage,xp,wordsLearned,numberOfWords,numberOfSentences,activePathSectionId,pathSectionsSummary%7Bid,index,type,completedUnits,totalUnits,cefr%7D%7D",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_weak_words",
+      "title": "Recent mistakes",
+      "description": "Words and sentences the user recently got wrong in a course (the mistakes inbox the app uses for review). Each item has prompt (the word or sentence missed), challengeIdentifier.specificType (exercise type), skillId and timestamp (ms). Pass course_id from get_courses (courses[].id or currentCourseId, e.g. DUOLINGO_KO_EN).",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "course_id": {
+            "type": "string",
+            "description": "Course id, e.g. DUOLINGO_KO_EN"
+          }
+        },
+        "required": [
+          "course_id"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/v2/mistakes/users/{{session.storage.userId}}/courses/{{course_id}}?includeListening=false&includeSpeaking=false&requestType=INBOX",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "mistakes",
+      "sample": {
+        "args": {
+          "course_id": "DUOLINGO_KO_EN"
+        },
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_league",
+      "title": "League standing",
+      "description": "Weekly leaderboard state. tier is the league index (0 Bronze, 1 Silver, 2 Gold, 3 Sapphire, 4 Ruby, 5 Emerald, 6 Amethyst, 7 Pearl, 8 Obsidian, 9 Diamond). active is null until the user joins this week's cohort; when present, active.cohort.rankings[] lists each competitor's display_name, score (weekly XP) and user_id. leaderboard.active_contest.contest_end is when the week ends; stats has highest_league, num_wins and top_three_finishes.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://duolingo-leaderboards-prod.duolingo.com/leaderboards/7d9f5dd1-8423-491a-91f2-2532052038ce/users/{{session.storage.userId}}?get_reactions=true",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_recent_lessons",
+      "title": "Recent lessons",
+      "description": "Recent XP events, newest last: xp, skillId (the lesson topic), eventType (LESSON, PRACTICE, TEST, ...) and time (unix seconds). Pass a skillId to get_skill_words to see the vocabulary from that lesson.",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "request": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=xpGains",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      },
+      "extract": "xpGains",
+      "sample": {
+        "args": {},
+        "ok": true,
+        "at": 1794783422266
+      }
+    },
+    {
+      "name": "get_skill_words",
+      "title": "Words in a lesson topic",
+      "description": "Vocabulary taught in one skill (lesson topic): learnedLexemes[] with text, translations[], audioURL and isNew; pagination.totalLexemes is the count. Get skill_id from get_recent_lessons (xpGains[].skillId) or get_weak_words (mistakes[].skillId), and learning_language / from_language from get_courses (e.g. ko and en).",
+      "kind": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "skill_id": {
+            "type": "string",
+            "description": "32-char hex skill id"
+          },
+          "learning_language": {
+            "type": "string",
+            "description": "courses[].learningLanguage, e.g. ko"
+          },
+          "from_language": {
+            "type": "string",
+            "description": "courses[].fromLanguage, e.g. en",
+            "default": "en"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          }
+        },
+        "required": [
+          "skill_id",
+          "learning_language"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "urlTemplate": "https://www.duolingo.com/2017-06-30/users/{{session.storage.userId}}/courses/{{learning_language}}/{{from_language}}/learned-lexemes?limit={{limit}}&sortBy=LEARNED_DATE&startIndex=0",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json",
+          "content-type": "application/json"
+        },
+        "bodyTemplate": "{\"lastTotalLexemeCount\":0,\"progressedSkills\":[{\"finishedLevels\":99,\"finishedSessions\":99,\"skillId\":{\"id\":\"{{skill_id}}\"}}]}"
+      },
+      "extract": "",
+      "sample": {
+        "args": {
+          "skill_id": "4f2884e0b049495c83ea7e7bf323e956",
+          "learning_language": "ko",
+          "from_language": "en"
+        },
+        "ok": true,
+        "at": 1794783422266
+      }
+    }
+  ],
+  "playbook": [
+    "Open https://www.duolingo.com/log-in in the in-app browser and sign in with email or username and password (Google and Facebook sign-in are blocked inside embedded browsers)",
+    "Wait for the jwt_token cookie (JS-readable) and for /learn to stay put",
+    "Session: headers.authorization = \"Bearer \" + jwt_token cookie; storage.userId = the JWT sub claim (the web app derives the user id the same way)",
+    "Visit /learn, then /leaderboard and /quests through the sidebar links"
+  ],
+  "provenance": {
+    "compiler": "hand",
+    "compiledAt": 1794783422266,
+    "captureCount": 9,
+    "notes": "Verified live 2026-11-15 on a real account with scripts/re/duolingo/client.ts: auth.check and all 8 read tools pass on the cloud path (plain Node fetch, residential IP, bearer only, no cookies, default user agent); the 6 no-arg reads also pass on the device path (in-page fetch from www.duolingo.com, credentials omitted). Confirmed live: the jwt_token cookie is JS-readable, its sub claim is the numeric user id (the web app derives it the same way, bundle module 16086), exp is in 2169 so there is no refresh; the site sends Authorization: Bearer <jwt> on its own leaderboard calls and the recorder captures it; logged_out_uuid cookie equals the user id once signed in. Endpoints seen in real traffic on /learn and /leaderboard: /2023-05-23/users/{id}?fields=..., /2023-05-23/users/{id}/xp_summaries, /v2/mistakes/users/{id}/courses/{courseId}?requestType=INBOX, duolingo-leaderboards-prod /leaderboards/7d9f5dd1-.../users/{id}, /2017-06-30/users/{id}/courses/{l}/{f}/learned-lexemes (POST, body from the app bundle). Sources: csutaria/duolingo-dash docs/api-map.md (xp_summaries, mistakes count, JWT sub, captcha-style 403 rate limits), jlopez/owlcatraz (learned-lexemes body, progressedSkills numbers ignored). No write tool: the web app has no daily goal setting and PATCH /users/{id} {xpGoal} returns 200 without changing it (checked on 2017-06-30 and 2023-05-23, goal stayed 10). Assumed, not tested: www.duolingo.com and the leaderboards host accept calls from Convex datacenter IPs; if they answer 403 blockScript, flip executor to device."
+  }
+}
