@@ -100,6 +100,7 @@ async function loadContext(ctx: Ctx, token: string) {
   return {
     ...raw,
     live: raw.live.map((l) => ({ conn: l.conn, recipe: JSON.parse(l.recipeJson) as Recipe })),
+    publicRecipes: raw.publicRecipes.map((p) => ({ appSlug: p.appSlug, recipe: JSON.parse(p.recipeJson) as Recipe })),
   };
 }
 
@@ -128,6 +129,19 @@ function listTools(mc: McpContext) {
       annotations: { title: "Connect an app", readOnlyHint: true, openWorldHint: false },
     },
   ];
+  // Sessionless tools work before the app is connected.
+  for (const { appSlug, recipe } of mc.publicRecipes) {
+    const app = catalogApp(appSlug);
+    for (const t of recipe.tools) {
+      tools.push({
+        name: `${appSlug}${SEP}${t.name}`,
+        title: `${app?.name ?? appSlug}: ${t.title}`,
+        description: t.description,
+        inputSchema: toolSchema(t),
+        annotations: { title: `${app?.name ?? appSlug}: ${t.title}`, readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+      });
+    }
+  }
   for (const { conn, recipe } of mc.live) {
     const app = catalogApp(conn.appSlug);
     for (const t of recipe.tools) {
@@ -205,6 +219,25 @@ async function callAppTool(
   const app = catalogApp(slug);
   const entry = mc.live.find((l) => l.conn.appSlug === slug);
   if (!app) throw new RpcError(-32602, `Unknown tool: ${name}`);
+  const pub = entry ? undefined : mc.publicRecipes.find((p) => p.appSlug === slug);
+  const pubTool = pub?.recipe.tools.find((t) => t.name === toolName);
+  if (pub && pubTool) {
+    // No connection needed: run from the cloud without a session.
+    const pseudo = { userId: mc.user._id, appSlug: slug, status: "live", createdAt: 0, updatedAt: 0 } as unknown as Doc<"connections">;
+    const res = await executeTool(ctx, { conn: pseudo, recipe: pub.recipe, tool: pubTool, args });
+    const summary = argSummary(args) ? `${pubTool.title}: ${argSummary(args)}` : pubTool.title;
+    await ctx.runMutation(internal.activity.log, {
+      userId: mc.user._id,
+      appSlug: slug,
+      assistant,
+      tool: pubTool.name,
+      kind: "read",
+      summary,
+      status: res.ok ? "ok" : "error",
+      detail: res.ok ? undefined : res.text.slice(0, 300),
+    });
+    return textResult(res.text || (res.ok ? "No data." : "Failed."), !res.ok);
+  }
   if (!entry) {
     return textResult(
       `${app.name} is not connected. Ask the user to open ${connectUrl(slug, token)} on their phone.`,

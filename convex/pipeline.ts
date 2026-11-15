@@ -8,6 +8,7 @@ import { executeRequest, executeTool, isAuthFailure } from "./executor";
 import { compileCapture, HAS_COMPILER } from "./lib/compilerShim";
 import { fallbackCompile } from "./lib/fallbackCompiler";
 import { handRecipeFor, normalizeRecipe } from "./lib/recipeStore";
+import { deriveSession } from "./lib/sessionDerive";
 
 // Short pauses so each step is visible on the phone. Real work happens between them.
 const BEAT_MS = 700;
@@ -175,7 +176,11 @@ export const run = internalAction({
         if (app.route === "cloudPhone" && !authRecipe) {
           throw new BuildError(`${app.name} isn't mapped yet. Its recipe is still being built.`);
         }
-        await sessionSignin(b, session);
+        const derived = deriveSession(app.slug, session);
+        if (derived) {
+          await ctx.runMutation(internal.connections.updateSession, { connectionId: conn._id, json: JSON.stringify(derived) });
+        }
+        await sessionSignin(b, derived ?? session);
       }
       await afterSignin(b, build.connectionId, app);
     } catch (e) {

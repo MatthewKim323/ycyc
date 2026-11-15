@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { assistantValidator } from "./schema";
-import { recipeAt, stripSource } from "./lib/recipeStore";
+import { CATALOG } from "./catalog";
+import { bestRecipe, recipeAt, stripSource } from "./lib/recipeStore";
+import { isPublicTool } from "./lib/recipeOverrides";
 
 // Everything tools/list and tools/call need for one MCP token, in one round trip.
 export const context = internalQuery({
@@ -24,10 +26,20 @@ export const context = internalQuery({
       const recipe = stripSource(await recipeAt(ctx, conn.appSlug, conn.recipeVersion));
       if (recipe) live.push({ conn, recipeJson: JSON.stringify(recipe) });
     }
+    // Apps not connected yet whose recipe has sessionless (public) tools, e.g. ParkMobile zone lookup.
+    const publicRecipes: { appSlug: string; recipeJson: string }[] = [];
+    for (const app of CATALOG) {
+      if (live.some((l) => l.conn.appSlug === app.slug)) continue;
+      const r = stripSource(await bestRecipe(ctx, app.slug));
+      if (r && r.tools.some(isPublicTool)) {
+        publicRecipes.push({ appSlug: app.slug, recipeJson: JSON.stringify({ ...r, tools: r.tools.filter(isPublicTool) }) });
+      }
+    }
     return {
       user,
       connections: conns.map((c) => ({ appSlug: c.appSlug, status: c.status, error: c.error })),
       live,
+      publicRecipes,
     };
   },
 });

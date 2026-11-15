@@ -50,6 +50,14 @@ export interface AppCaptureConfig {
   relayPath: string;
   // Request paths whose bodies must never be recorded (credentials, captcha tokens).
   sensitivePaths: string[];
+  // Apps whose sign-in can't run inside the WebView (Google/Apple block embedded browsers, or the
+  // site emails a magic link): the connect screen offers "Paste your sign-in link", checks the paste
+  // with magicLinkFor(), and loads that URL in the capture WebView instead of loginUrl.
+  magicLink?: {
+    label: string; // button text
+    hint: string; // one line under the paste field
+    pattern: string; // RegExp source the pasted URL must match
+  };
 }
 
 // Shared noise list: analytics, ads, consent, monitoring, static assets.
@@ -163,9 +171,137 @@ const MFP: AppCaptureConfig = {
   sensitivePaths: ["/api/auth/callback", "/api/auth/signin", "/account/login", "/password", "/api/idm/"],
 };
 
+// ParkMobile: from scripts/re/parkmobile/capture.ts (PARKMOBILE_CAPTURE), verified 2026-11-15.
+// Sign-in is Google, Apple or an emailed/texted magic link, so it also takes a pasted link.
+const PM_HEADERS = { SourceAppKey: "ParkmobileWeb" };
+
+const PARKMOBILE: AppCaptureConfig = {
+  slug: "parkmobile",
+  loginUrl: "https://app.parkmobile.io/login",
+  webOrigin: "https://app.parkmobile.io",
+  loggedIn: {
+    // Next.js BFF: 200 { userProfile, userId, ... } when signed in, 401 {"message":"Unauthorized"} when not.
+    probe: { path: "/api/user", truthyPath: "userProfile" },
+    loggedOutPaths: ["/login", "/register", "/magic-link-sent", "/global/login"],
+  },
+  playbook: [
+    { kind: "visit", path: "/account/zones/active", label: "Active parking", dwellMs: 4000 },
+    { kind: "visit", path: "/account/zones/history", label: "Parking history", dwellMs: 4000 },
+    { kind: "visit", path: "/account/settings", label: "Vehicles and payment", dwellMs: 4000 },
+    { kind: "probe", path: "/api/proxy/parkmobileapi/account/vehicles", label: "Vehicles", headers: PM_HEADERS },
+    { kind: "probe", path: "/api/payment-methods", label: "Payment methods", headers: PM_HEADERS },
+    { kind: "probe", path: "/api/proxy/parkmobileapi/v2/parking/active", label: "Active sessions", headers: PM_HEADERS },
+    { kind: "probe", path: "/api/proxy/parkmobileapi/v2/parking/history?parkingActionType=OnDemand", label: "History", headers: PM_HEADERS },
+    { kind: "probe", path: "/api/proxy/parkmobileapi/zones/51103", label: "Zone lookup", headers: PM_HEADERS },
+    { kind: "probe", path: "/api/zones/71451103", label: "Zone rules", headers: PM_HEADERS },
+  ],
+  // The session JWT is an HttpOnly cookie; there is no JS-readable bearer to mint.
+  sessionProbes: [],
+  sessionHeaders: ["x-xsrf-token", "authorization", "cookie"],
+  storageKeys: [],
+  // XSRF-TOKEN: double-submit CSRF header for non-GET calls. IS_LOGGED_IN: JS-visible signed-in flag.
+  cookieNames: ["XSRF-TOKEN", "IS_LOGGED_IN"],
+  apiHosts: ["app.parkmobile.io"],
+  apiPathHints: ["/api/"],
+  denylist: [
+    ...COMMON_DENYLIST,
+    "launchdarkly",
+    "maps.googleapis.com",
+    "maps.gstatic.com",
+    "res.cloudinary.com",
+    "typekit",
+    "fonts.googleapis.com",
+    "/api/web-auth/",
+    "/api/user/flags",
+    "/api/refresh",
+    "/api/logout",
+  ],
+  relayPath: "/account/zones/active",
+  sensitivePaths: [
+    "/api/login",
+    "/api/register",
+    "/api/refresh",
+    "/api/global/login",
+    "/api/global/user",
+    "/api/cybersource",
+    "/api/payment-methods/card",
+    "/api/payment-methods/digital",
+    "/api/proxy/parkmobileapi/account/paymentmethod",
+    "/api/orders/payment",
+    "login_token",
+  ],
+  magicLink: {
+    label: "Paste your sign-in link",
+    hint: "Copy the link from ParkMobile's sign-in email or text.",
+    pattern: "^https://app\\.parkmobile\\.io/\\S*[?&]login_token=[^&\\s]+",
+  },
+};
+
+// Duolingo: from scripts/re/duolingo/capture.ts (DUOLINGO_CAPTURE), verified 2026-11-15.
+// The API bearer is the JS-readable jwt_token cookie; the backend derives headers.authorization and
+// storage.userId from it when the session arrives.
+const DUOLINGO: AppCaptureConfig = {
+  slug: "duolingo",
+  loginUrl: "https://www.duolingo.com/log-in",
+  webOrigin: "https://www.duolingo.com",
+  loggedIn: {
+    // Signed out, /learn redirects client-side to "/" and there is no jwt_token cookie. The sidebar
+    // links below render only for a signed-in user.
+    loggedOutPaths: ["/log-in", "/login", "/register", "/sign-up", "/signup", "/forgot_password", "/reset_password", "/logout"],
+    domSelectors: ['a[href="/leaderboard"]', 'a[href="/quests"]'],
+  },
+  playbook: [
+    { kind: "visit", path: "/learn", label: "Learn", dwellMs: 4500 },
+    { kind: "visit", path: "/leaderboard", label: "Leaderboard", dwellMs: 3500 },
+    { kind: "visit", path: "/quests", label: "Quests", dwellMs: 3000 },
+  ],
+  sessionProbes: [],
+  sessionHeaders: ["authorization"],
+  storageKeys: [],
+  // jwt_token: the bearer. logged_out_uuid: equals the numeric user id once signed in.
+  cookieNames: ["jwt_token", "logged_out_uuid", "logged_in"],
+  apiHosts: ["duolingo.com"],
+  apiPathHints: ["/2017-06-30/", "/2023-05-23/", "/v2/mistakes/", "/leaderboards/", "/users/"],
+  denylist: [
+    ...COMMON_DENYLIST,
+    "/api/1/sync/batch",
+    "zombie.duolingo.com",
+    "excess.duolingo.com",
+    "/2023-05-23/config",
+    "/subscription-catalog",
+    "/shop-items",
+    "/family-plan",
+    "/avatar-builder-config",
+    "/built-avatar-states",
+    "/messaging/",
+    "/rocks/",
+    "/friends/",
+    "/kudos",
+    "/reactions/",
+    "/lottie/",
+  ],
+  relayPath: "/learn",
+  sensitivePaths: ["/login", "/log-in", "/register", "/password", "/users/reset"],
+};
+
 export const CAPTURE_APPS: Record<string, AppCaptureConfig> = {
   myfitnesspal: MFP,
+  parkmobile: PARKMOBILE,
+  duolingo: DUOLINGO,
 };
+
+// The URL to load for a pasted sign-in link, or null if it isn't this app's link.
+// Takes the first matching URL out of pasted text (people paste whole messages).
+export function magicLinkFor(slug: AppSlug, pasted: string): string | null {
+  const cfg = CAPTURE_APPS[slug]?.magicLink;
+  if (!cfg) return null;
+  const re = new RegExp(cfg.pattern);
+  for (const candidate of pasted.match(/https?:\/\/[^\s<>"']+/g) ?? []) {
+    const url = candidate.replace(/[).,;]+$/, "");
+    if (re.test(url)) return url;
+  }
+  return null;
+}
 
 // Fallback for any web app without a hand config: record everything JSON on its origin.
 export function captureConfigFor(slug: AppSlug, loginUrl?: string, webOrigin?: string): AppCaptureConfig {

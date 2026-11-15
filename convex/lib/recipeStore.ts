@@ -2,6 +2,7 @@ import type { Recipe } from "../../src/lib/contract";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { HAND_RECIPES } from "./handRecipes";
+import { applyOverrides } from "./recipeOverrides";
 
 export type StoredRecipe = Recipe & { _source: "db" | "bundle" };
 
@@ -15,6 +16,10 @@ export function handRecipeFor(slug: string): Recipe | undefined {
 
 // Fill defaults so hand-written JSON with a few missing fields still runs.
 export function normalizeRecipe(input: Recipe, compiler?: Recipe["provenance"]["compiler"]): Recipe {
+  return applyOverrides(normalizeBase(input, compiler));
+}
+
+function normalizeBase(input: Recipe, compiler?: Recipe["provenance"]["compiler"]): Recipe {
   const r = input as Partial<Recipe> & {
     appSlug: string;
     auth?: Partial<Recipe["auth"]>;
@@ -46,7 +51,7 @@ export function normalizeRecipe(input: Recipe, compiler?: Recipe["provenance"]["
 export function parseRecipeDoc(doc: Doc<"recipes">): Recipe {
   const r = JSON.parse(doc.json) as Recipe;
   // Table columns are the source of truth for status/version.
-  return { ...r, status: doc.status, version: doc.version };
+  return applyOverrides({ ...r, status: doc.status, version: doc.version });
 }
 
 function score(r: Recipe): number {

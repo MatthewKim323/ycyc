@@ -3,6 +3,566 @@ import type { Recipe } from "../../src/lib/contract";
 
 export const HAND_RECIPES: Recipe[] = [
   {
+    "appSlug": "cronometer",
+    "version": 1,
+    "status": "draft",
+    "executor": "device",
+    "baseUrl": "https://cronometer.com",
+    "auth": {
+      "type": "cookie",
+      "sessionKeys": [
+        "storage.nonce",
+        "storage.user_id",
+        "storage.gwt_policy",
+        "headers.x-gwt-permutation"
+      ],
+      "refresh": {
+        "method": "POST",
+        "urlTemplate": "https://cronometer.com/cronometer/app",
+        "headers": {
+          "content-type": "text/x-gwt-rpc; charset=utf-8",
+          "x-gwt-module-base": "https://cronometer.com/cronometer/",
+          "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
+        },
+        "bodyTemplate": "7|0|5|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|authenticate|java.lang.Integer/3438268394|1|2|3|4|1|5|5|{{session.storage.tz_offset_min}}|"
+      },
+      "check": {
+        "method": "GET",
+        "urlTemplate": "https://cronometer.com/api/v3/user/{{session.storage.user_id}}/targets",
+        "headers": {
+          "accept": "application/json"
+        }
+      }
+    },
+    "tools": [
+      {
+        "name": "search_food",
+        "title": "Search foods",
+        "description": "Search Cronometer's food database. Returns an array of foods: name, id (pass as food_id to log_food), measureId and measureDisplayName (the default serving, e.g. \"1 medium - 118g\"; pass measureId as measure_id with amount 1 for one of that serving), source (NCCDB, USDA, CRDB, brand databases) and type (FOOD, RECIPE).",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Food name, e.g. \"banana\" or \"greek yogurt\""
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 8
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://cronometer.com/api/v3/user/{{session.storage.user_id}}/food-search/string?query={{query}}&maxResults={{limit}}&sources=All&categoryId=0&selectedTab=ALL&type=All",
+          "headers": {
+            "accept": "application/json"
+          }
+        },
+        "extract": ""
+      },
+      {
+        "name": "get_diary",
+        "title": "Read food diary",
+        "description": "Everything logged on one day (GWT-RPC text, read it as data). Each food serving carries its serving id (a short quoted string like \"FAoVo9\"; pass it to delete_diary_entry), the food id, the measure id, the amount and the day. Biometrics and notes for the day appear too. Food names are not included: match food ids against search_food results.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "day": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31,
+              "description": "Day of month, e.g. 15"
+            },
+            "month": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "description": "Month 1-12"
+            },
+            "year": {
+              "type": "integer",
+              "description": "Four-digit year, e.g. 2026"
+            }
+          },
+          "required": [
+            "day",
+            "month",
+            "year"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://cronometer.com/cronometer/app",
+          "headers": {
+            "content-type": "text/x-gwt-rpc; charset=utf-8",
+            "x-gwt-module-base": "https://cronometer.com/cronometer/",
+            "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
+          },
+          "bodyTemplate": "7|0|8|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|getDayInfo|java.lang.String/2004016611|com.cronometer.shared.entries.models.Day/782579793|I|{{session.storage.nonce}}|1|2|3|4|3|5|6|7|8|6|{{day}}|{{month}}|{{year}}|{{session.storage.user_id}}|"
+        },
+        "extract": ""
+      },
+      {
+        "name": "get_daily_nutrition",
+        "title": "Daily nutrition totals",
+        "description": "Total nutrients consumed on one day (GWT-RPC text). Values are keyed by Cronometer nutrient id: 208 energy kcal, 203 protein g, 205 carbs g, 204 fat g, 291 fiber g, 304 magnesium mg, 303 iron mg, 324 vitamin D IU, 307 sodium mg, 301 calcium mg, 401 vitamin C mg. Compare with get_targets for the same ids.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "day": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31,
+              "description": "Day of month, e.g. 15"
+            },
+            "month": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "description": "Month 1-12"
+            },
+            "year": {
+              "type": "integer",
+              "description": "Four-digit year, e.g. 2026"
+            }
+          },
+          "required": [
+            "day",
+            "month",
+            "year"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://cronometer.com/cronometer/app",
+          "headers": {
+            "content-type": "text/x-gwt-rpc; charset=utf-8",
+            "x-gwt-module-base": "https://cronometer.com/cronometer/",
+            "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
+          },
+          "bodyTemplate": "7|0|10|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|getTotalNutrients|java.lang.String/2004016611|I|com.cronometer.shared.entries.models.Day/782579793|com.cronometer.shared.entries.DayQueryType/1802942352|Z|{{session.storage.nonce}}|1|2|3|4|7|5|6|7|7|8|9|9|10|{{session.storage.user_id}}|7|{{day}}|{{month}}|{{year}}|7|{{day}}|{{month}}|{{year}}|8|0|0|0|"
+        },
+        "extract": ""
+      },
+      {
+        "name": "get_targets",
+        "title": "Nutrient targets",
+        "description": "The user's daily nutrient targets: an array of {id, min, max, vis}. id is the Cronometer nutrient id: 208 energy kcal, 203 protein g, 205 carbs g, 204 fat g, 291 fiber g, 304 magnesium mg, 303 iron mg, 324 vitamin D IU, 307 sodium mg (max is the upper limit), 301 calcium mg, 401 vitamin C mg, 255 water g.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://cronometer.com/api/v3/user/{{session.storage.user_id}}/targets",
+          "headers": {
+            "accept": "application/json"
+          }
+        },
+        "extract": ""
+      },
+      {
+        "name": "log_food",
+        "title": "Log food",
+        "description": "Add one serving to the diary. Get food_id (id) and measure_id (measureId) from search_food. amount counts the chosen measure: 1 with the default measure is one serving (1 medium banana); with a gram measure it is grams. Returns GWT-RPC text whose first quoted string is the new serving id (pass it to delete_diary_entry).",
+        "kind": "write",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "food_id": {
+              "type": "integer",
+              "description": "id from search_food"
+            },
+            "measure_id": {
+              "type": "integer",
+              "description": "measureId from search_food (its default serving)"
+            },
+            "amount": {
+              "type": "number",
+              "default": 1,
+              "description": "How many of the measure"
+            },
+            "meal": {
+              "type": "integer",
+              "enum": [
+                1,
+                65537,
+                131073,
+                196609,
+                262145
+              ],
+              "default": 262145,
+              "description": "Diary group code: 65537 Breakfast, 131073 Lunch, 196609 Dinner, 262145 Snacks, 1 Uncategorized"
+            },
+            "day": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31,
+              "description": "Day of month, e.g. 15"
+            },
+            "month": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "description": "Month 1-12"
+            },
+            "year": {
+              "type": "integer",
+              "description": "Four-digit year, e.g. 2026"
+            }
+          },
+          "required": [
+            "food_id",
+            "measure_id",
+            "day",
+            "month",
+            "year"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://cronometer.com/cronometer/app",
+          "headers": {
+            "content-type": "text/x-gwt-rpc; charset=utf-8",
+            "x-gwt-module-base": "https://cronometer.com/cronometer/",
+            "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
+          },
+          "bodyTemplate": "7|0|12|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|updateDiary|java.lang.String/2004016611|I|java.util.List|{{session.storage.nonce}}|java.util.Collections$SingletonList/1586180994|com.cronometer.shared.entries.changes.AddEntryChange/3949104564|com.cronometer.shared.entries.models.Serving/2895043750|com.cronometer.shared.entries.models.Day/782579793|1|2|3|4|3|5|6|7|8|{{session.storage.user_id}}|9|10|1|1|11|12|{{day}}|{{month}}|{{year}}|1|1|0|{{meal}}|0|0|{{amount}}|{{food_id}}|A|{{measure_id}}|0|"
+        },
+        "extract": ""
+      },
+      {
+        "name": "delete_diary_entry",
+        "title": "Remove diary entry",
+        "description": "Delete one food serving from the diary by its serving id (the short quoted string from log_food or get_diary, e.g. \"FAoVo9\", without the quotes). Returns //OK on success.",
+        "kind": "write",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "serving_id": {
+              "type": "string",
+              "description": "Serving id, e.g. FAoVo9"
+            }
+          },
+          "required": [
+            "serving_id"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://cronometer.com/cronometer/app",
+          "headers": {
+            "content-type": "text/x-gwt-rpc; charset=utf-8",
+            "x-gwt-module-base": "https://cronometer.com/cronometer/",
+            "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
+          },
+          "bodyTemplate": "7|0|8|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|removeServing|java.lang.String/2004016611|J|I|{{session.storage.nonce}}|1|2|3|4|3|5|6|7|8|{{serving_id}}|{{session.storage.user_id}}|"
+        },
+        "extract": ""
+      }
+    ],
+    "playbook": [],
+    "provenance": {
+      "compiler": "hand",
+      "compiledAt": 0,
+      "captureCount": 0
+    }
+  },
+  {
+    "appSlug": "duolingo",
+    "version": 1,
+    "status": "verified",
+    "executor": "cloud",
+    "baseUrl": "https://www.duolingo.com",
+    "auth": {
+      "type": "bearer",
+      "sessionKeys": [
+        "headers.authorization",
+        "storage.userId"
+      ],
+      "check": {
+        "method": "GET",
+        "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=id",
+        "headers": {
+          "authorization": "{{session.headers.authorization}}",
+          "accept": "application/json"
+        }
+      }
+    },
+    "tools": [
+      {
+        "name": "get_streak",
+        "title": "Streak",
+        "description": "Current Duolingo streak. streak is the day count; streakData.currentStreak has startDate, endDate and lastExtendedDate (YYYY-MM-DD in the user's timezone). Today's lesson is done when xpGoalMetToday is true or currentStreak.lastExtendedDate is today. Streak freezes left: trackingProperties.num_item_streak_freeze (also shopItems[] where id is \"streak_freeze\", quantity). streakData.longestStreak and previousStreak give history.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=streak,streakData%7BcurrentStreak,longestStreak,previousStreak%7D,xpGoal,xpGoalMetToday,timezone,trackingProperties%7Bnum_item_streak_freeze%7D,shopItems%7Bid,quantity%7D",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_profile_summary",
+        "title": "Profile summary",
+        "description": "Duolingo profile at a glance: username, totalXp, xpGoal (daily XP goal), xpGoalMetToday, weeklyXp, monthlyXp, streak, gems, hasPlus (Super), currentCourseId, learningLanguage, courses[] ({id, title, learningLanguage, fromLanguage, xp}) and trackingProperties with leaderboard_tier_name (league, e.g. Bronze), leaderboard_league (tier index 0-9) and num_sessions_completed. For XP earned today or this week use get_xp_history.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=username,name,totalXp,xpGoal,xpGoalMetToday,weeklyXp,monthlyXp,streak,gems,hasPlus,currentCourseId,learningLanguage,fromLanguage,timezone,courses%7Bid,title,learningLanguage,fromLanguage,xp%7D,trackingProperties%7Bleaderboard_tier_name,leaderboard_league,num_sessions_completed%7D",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_xp_history",
+        "title": "XP by day",
+        "description": "XP earned per day across all courses. Each summary has date (unix seconds at UTC midnight of that calendar day), gainedXp, dailyGoalXp, numSessions, totalSessionTime (seconds), streakExtended and frozen (a streak freeze covered the day). Defaults to today only; pass start_date 6 days ago for this week. Compare gainedXp with xpGoal from get_profile_summary.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "YYYY-MM-DD",
+              "default": "{{today}}"
+            },
+            "end_date": {
+              "type": "string",
+              "description": "YYYY-MM-DD",
+              "default": "{{today}}"
+            },
+            "timezone": {
+              "type": "string",
+              "description": "IANA zone used to bucket days",
+              "default": "America/Los_Angeles"
+            }
+          }
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}/xp_summaries?startDate={{start_date}}&endDate={{end_date}}&timezone={{timezone}}",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "summaries",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_courses",
+        "title": "Courses and progress",
+        "description": "All courses the user is taking (courses[]: id like DUOLINGO_KO_EN, title, learningLanguage, fromLanguage, xp) plus progress in the active course: currentCourse.wordsLearned, numberOfWords, activePathSectionId and pathSectionsSummary[] (one per section: index, type, completedUnits, totalUnits, cefr.level such as INTRO, A1, A2, B1). The current section is the first learning section with completedUnits < totalUnits.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=currentCourseId,courses%7Bid,title,learningLanguage,fromLanguage,xp%7D,currentCourse%7Bid,learningLanguage,fromLanguage,xp,wordsLearned,numberOfWords,numberOfSentences,activePathSectionId,pathSectionsSummary%7Bid,index,type,completedUnits,totalUnits,cefr%7D%7D",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_weak_words",
+        "title": "Recent mistakes",
+        "description": "Words and sentences the user recently got wrong in a course (the mistakes inbox the app uses for review). Each item has prompt (the word or sentence missed), challengeIdentifier.specificType (exercise type), skillId and timestamp (ms). Pass course_id from get_courses (courses[].id or currentCourseId, e.g. DUOLINGO_KO_EN).",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "course_id": {
+              "type": "string",
+              "description": "Course id, e.g. DUOLINGO_KO_EN"
+            }
+          },
+          "required": [
+            "course_id"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/v2/mistakes/users/{{session.storage.userId}}/courses/{{course_id}}?includeListening=false&includeSpeaking=false&requestType=INBOX",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "mistakes",
+        "sample": {
+          "args": {
+            "course_id": "DUOLINGO_KO_EN"
+          },
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_league",
+        "title": "League standing",
+        "description": "Weekly leaderboard state. tier is the league index (0 Bronze, 1 Silver, 2 Gold, 3 Sapphire, 4 Ruby, 5 Emerald, 6 Amethyst, 7 Pearl, 8 Obsidian, 9 Diamond). active is null until the user joins this week's cohort; when present, active.cohort.rankings[] lists each competitor's display_name, score (weekly XP) and user_id. leaderboard.active_contest.contest_end is when the week ends; stats has highest_league, num_wins and top_three_finishes.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://duolingo-leaderboards-prod.duolingo.com/leaderboards/7d9f5dd1-8423-491a-91f2-2532052038ce/users/{{session.storage.userId}}?get_reactions=true",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_recent_lessons",
+        "title": "Recent lessons",
+        "description": "Recent XP events, newest last: xp, skillId (the lesson topic), eventType (LESSON, PRACTICE, TEST, ...) and time (unix seconds). Pass a skillId to get_skill_words to see the vocabulary from that lesson.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://www.duolingo.com/2023-05-23/users/{{session.storage.userId}}?fields=xpGains",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json"
+          }
+        },
+        "extract": "xpGains",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783422266
+        }
+      },
+      {
+        "name": "get_skill_words",
+        "title": "Words in a lesson topic",
+        "description": "Vocabulary taught in one skill (lesson topic): learnedLexemes[] with text, translations[], audioURL and isNew; pagination.totalLexemes is the count. Get skill_id from get_recent_lessons (xpGains[].skillId) or get_weak_words (mistakes[].skillId), and learning_language / from_language from get_courses (e.g. ko and en).",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "skill_id": {
+              "type": "string",
+              "description": "32-char hex skill id"
+            },
+            "learning_language": {
+              "type": "string",
+              "description": "courses[].learningLanguage, e.g. ko"
+            },
+            "from_language": {
+              "type": "string",
+              "description": "courses[].fromLanguage, e.g. en",
+              "default": "en"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          "required": [
+            "skill_id",
+            "learning_language"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://www.duolingo.com/2017-06-30/users/{{session.storage.userId}}/courses/{{learning_language}}/{{from_language}}/learned-lexemes?limit={{limit}}&sortBy=LEARNED_DATE&startIndex=0",
+          "headers": {
+            "authorization": "{{session.headers.authorization}}",
+            "accept": "application/json",
+            "content-type": "application/json"
+          },
+          "bodyTemplate": "{\"lastTotalLexemeCount\":0,\"progressedSkills\":[{\"finishedLevels\":99,\"finishedSessions\":99,\"skillId\":{\"id\":\"{{skill_id}}\"}}]}"
+        },
+        "extract": "",
+        "sample": {
+          "args": {
+            "skill_id": "4f2884e0b049495c83ea7e7bf323e956",
+            "learning_language": "ko",
+            "from_language": "en"
+          },
+          "ok": true,
+          "at": 1794783422266
+        }
+      }
+    ],
+    "playbook": [
+      "Open https://www.duolingo.com/log-in in the in-app browser and sign in with email or username and password (Google and Facebook sign-in are blocked inside embedded browsers)",
+      "Wait for the jwt_token cookie (JS-readable) and for /learn to stay put",
+      "Session: headers.authorization = \"Bearer \" + jwt_token cookie; storage.userId = the JWT sub claim (the web app derives the user id the same way)",
+      "Visit /learn, then /leaderboard and /quests through the sidebar links"
+    ],
+    "provenance": {
+      "compiler": "hand",
+      "compiledAt": 1794783422266,
+      "captureCount": 9,
+      "notes": "Verified live 2026-11-15 on a real account with scripts/re/duolingo/client.ts: auth.check and all 8 read tools pass on the cloud path (plain Node fetch, residential IP, bearer only, no cookies, default user agent); the 6 no-arg reads also pass on the device path (in-page fetch from www.duolingo.com, credentials omitted). Confirmed live: the jwt_token cookie is JS-readable, its sub claim is the numeric user id (the web app derives it the same way, bundle module 16086), exp is in 2169 so there is no refresh; the site sends Authorization: Bearer <jwt> on its own leaderboard calls and the recorder captures it; logged_out_uuid cookie equals the user id once signed in. Endpoints seen in real traffic on /learn and /leaderboard: /2023-05-23/users/{id}?fields=..., /2023-05-23/users/{id}/xp_summaries, /v2/mistakes/users/{id}/courses/{courseId}?requestType=INBOX, duolingo-leaderboards-prod /leaderboards/7d9f5dd1-.../users/{id}, /2017-06-30/users/{id}/courses/{l}/{f}/learned-lexemes (POST, body from the app bundle). Sources: csutaria/duolingo-dash docs/api-map.md (xp_summaries, mistakes count, JWT sub, captcha-style 403 rate limits), jlopez/owlcatraz (learned-lexemes body, progressedSkills numbers ignored). No write tool: the web app has no daily goal setting and PATCH /users/{id} {xpGoal} returns 200 without changing it (checked on 2017-06-30 and 2023-05-23, goal stayed 10). Assumed, not tested: www.duolingo.com and the leaderboards host accept calls from Convex datacenter IPs; if they answer 403 blockScript, flip executor to device."
+    }
+  },
+  {
     "appSlug": "flo",
     "version": 1,
     "status": "draft",
@@ -360,6 +920,430 @@ export const HAND_RECIPES: Recipe[] = [
       "compiledAt": 1794779051918,
       "captureCount": 9,
       "notes": "Verified live 2026-11-15 on a real account with scripts/re/mfp/client.ts: auth.check, get_goals, search_food, get_diary pass on the cloud path (plain fetch, residential IP) and on the device path (in-page fetch from www.myfitnesspal.com, cookies omitted for the API host, CORS allows it); log_food (201) then get_diary showed the entry, delete_food_entry (204) then get_diary showed it gone. Confirmed live: /user/auth_token?refresh=true returns {token_type, access_token, expires_in: 864000, refresh_token, user_id} from the cookie session (HttpOnly NextAuth cookie, so it must run on the device); /api/auth/session returns {} when signed out. Confirmed in source: same token exchange and headers (Authorization Bearer, mfp-client-id mfp-main-js, mfp-user-id) in coddingtonbear/python-myfitnesspal client.py; POST /v2/diary body and DELETE /v2/diary/{id} in AdamWalt/myfitnesspal-mcp-python and zN3utr4l/MFP-Auto. The website itself never calls api.myfitnesspal.com from the browser: it proxies through www.myfitnesspal.com/api/services/* (cookie only), which the device path can also use. Assumed, not tested: api.myfitnesspal.com accepts calls from Convex datacenter IPs (www is Cloudflare-fronted and blocks datacenter traffic more often); each auth_token call rotates tokens."
+    }
+  },
+  {
+    "appSlug": "parkmobile",
+    "version": 1,
+    "status": "verified",
+    "executor": "device",
+    "baseUrl": "https://app.parkmobile.io/api",
+    "auth": {
+      "type": "cookie",
+      "sessionKeys": [
+        "cookies.XSRF-TOKEN"
+      ],
+      "check": {
+        "method": "GET",
+        "urlTemplate": "https://app.parkmobile.io/api/user",
+        "headers": {
+          "SourceAppKey": "ParkmobileWeb",
+          "accept": "application/json"
+        }
+      }
+    },
+    "tools": [
+      {
+        "name": "get_active_sessions",
+        "title": "Active parking",
+        "description": "Parking sessions running right now. Each sessionInfo[] item has zone {signageCode, internalZoneCode, locationName, zoneInfo}, startLocal, stopLocal (when it expires, in timeZoneStandardName), priceDetail {parkingPrice, billingType}, vehicleLpnState and creditCardType/creditCardLastFourDigits. An empty list means nothing is running. parking_action_type narrows to street/lot sessions (OnDemand) or prepaid reservations (Reservation); omit it for both.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "parking_action_type": {
+              "type": "string",
+              "enum": [
+                "OnDemand",
+                "Reservation"
+              ]
+            }
+          }
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/v2/parking/active?parkingActionType={{parking_action_type}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "sessionInfo",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "get_parking_history",
+        "title": "Parking history",
+        "description": "Past parking sessions, newest first. Each sessionInfo[] item has zone {signageCode, locationName}, startLocal, stopLocal, priceDetail {parkingPrice, billingType} and the card used (creditCardType, creditCardLastFourDigits). parking_action_type: OnDemand (street and lot sessions, the default) or Reservation.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "parking_action_type": {
+              "type": "string",
+              "enum": [
+                "OnDemand",
+                "Reservation"
+              ],
+              "default": "OnDemand"
+            }
+          }
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/v2/parking/history?parkingActionType={{parking_action_type}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "sessionInfo",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "get_vehicles",
+        "title": "Vehicles",
+        "description": "Vehicles on the account: vehicles[] with vehicleId (pass it to start_parking), the plate and its state, and which one is the default. HTTP 404 \"Vehicle not found\" means the account has no vehicles yet.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/account/vehicles",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "vehicles",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "get_payment_methods",
+        "title": "Payment methods",
+        "description": "Saved payment methods in the user's preferred order: billingMethodId (pass it to start_parking) plus card type and masked number only. An empty list means no card is on file.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/payment-methods",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "orderedBillingMethods",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "find_zone",
+        "title": "Look up zone",
+        "description": "Look up a ParkMobile zone by the number posted on the street sign or meter. The same number can exist in several cities, so check locationName/supplierName. Returns zones[] with internalZoneCode (use it for get_zone_rates and quote_parking), signageCode, locationName, type (OnStreet, Garage...), gpsPoints, parkingActionType and timeZoneStandardName.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "zone_number": {
+              "type": "string",
+              "description": "Zone number from the sign, e.g. \"51103\""
+            }
+          },
+          "required": [
+            "zone_number"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/zones/{{zone_number}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "zones",
+        "sample": {
+          "args": {
+            "zone_number": "51103"
+          },
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "find_zones_nearby",
+        "title": "Zones nearby",
+        "description": "ParkMobile zones inside a map box, nearest first: zones[] with signageCode, internalZoneCode, locationName, type, distanceMiles and zoneInfo {latitude, longitude}. Geocode an address yourself, then pass a box around it: north = lat + 0.004, south = lat - 0.004, east = lng + 0.005, west = lng - 0.005 (about 500 m). parking_type 1 = pay-by-zone street and lots (default), 2 = reservable garages.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "north": {
+              "type": "number",
+              "description": "Top latitude of the box"
+            },
+            "south": {
+              "type": "number",
+              "description": "Bottom latitude of the box"
+            },
+            "east": {
+              "type": "number",
+              "description": "Right longitude of the box"
+            },
+            "west": {
+              "type": "number",
+              "description": "Left longitude of the box"
+            },
+            "parking_type": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ],
+              "default": 1
+            }
+          },
+          "required": [
+            "north",
+            "south",
+            "east",
+            "west"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/zones/search?parkingType={{parking_type}}&upper={{north}},{{east}}&lower={{south}},{{west}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "zones",
+        "sample": {
+          "args": {
+            "north": 33.785733,
+            "south": 33.777733,
+            "east": -84.375253,
+            "west": -84.385253
+          },
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "get_zone_rates",
+        "title": "Zone rules",
+        "description": "Rules for one zone right now: parkInfo.isParkingAllowed and parkingNotAllowedReason, maxParkingTime (longest allowed stay), maxStopTimeLocal (latest end time today), timeBlocks[] (timeblockId, minimumValue/maximumValue/incrementValue in minutes; quote_parking and start_parking need the timeblockId), durationSelections, paymentOptions and isPayBySpace. Use quote_parking for the dollar price.",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "internal_zone_code": {
+              "type": "string",
+              "description": "internalZoneCode from find_zone or find_zones_nearby, e.g. \"71451103\""
+            }
+          },
+          "required": [
+            "internal_zone_code"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/zones/{{internal_zone_code}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "zones.0",
+        "sample": {
+          "args": {
+            "internal_zone_code": "71451103"
+          },
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "quote_parking",
+        "title": "Price check",
+        "description": "Price for parking in a zone for a number of minutes, without buying anything. Returns price[0] {parkingPrice, serviceFee, totalPrice}, currency, parkingStartTimeLocal, parkingStopTimeLocal, isParkingAllowed and parkingNotAllowedReason. Get time_block_id from get_zone_rates (parkInfo.timeBlocks[].timeblockId); minutes must sit between that block's minimumValue and maximumValue (parkInfo.durationSelections lists the steps the app offers, usually 15 minutes).",
+        "kind": "read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "internal_zone_code": {
+              "type": "string",
+              "description": "internalZoneCode from find_zone"
+            },
+            "time_block_id": {
+              "type": "integer",
+              "description": "parkInfo.timeBlocks[].timeblockId from get_zone_rates"
+            },
+            "minutes": {
+              "type": "integer",
+              "description": "How long to park, in minutes",
+              "default": 60
+            },
+            "space_number": {
+              "type": "string",
+              "description": "Only for pay-by-space zones"
+            }
+          },
+          "required": [
+            "internal_zone_code",
+            "time_block_id"
+          ]
+        },
+        "request": {
+          "method": "GET",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/price/{{internal_zone_code}}?timeBlockId={{time_block_id}}&timeBlockQuantity={{minutes}}&spaceNumber={{space_number}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json"
+          }
+        },
+        "extract": "",
+        "sample": {
+          "args": {
+            "internal_zone_code": "71451103",
+            "time_block_id": 1069639,
+            "minutes": 60
+          },
+          "ok": true,
+          "at": 1794783337828
+        }
+      },
+      {
+        "name": "start_parking",
+        "title": "Start parking",
+        "description": "Start a paid parking session. This charges the user's card, so run quote_parking first and get explicit approval with the zone, plate, duration and total. Needs internalZoneCode (find_zone), time_block_id (get_zone_rates), vehicle_id (get_vehicles) and payment_method_id (get_payment_methods billingMethodId).",
+        "kind": "write",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "internal_zone_code": {
+              "type": "string"
+            },
+            "time_block_id": {
+              "type": "integer"
+            },
+            "minutes": {
+              "type": "integer"
+            },
+            "vehicle_id": {
+              "type": "integer",
+              "description": "vehicles[].vehicleId from get_vehicles"
+            },
+            "payment_method_id": {
+              "type": "integer",
+              "description": "billingMethodId from get_payment_methods"
+            },
+            "space_number": {
+              "type": "string",
+              "description": "Only for pay-by-space zones"
+            }
+          },
+          "required": [
+            "internal_zone_code",
+            "time_block_id",
+            "minutes",
+            "vehicle_id",
+            "payment_method_id"
+          ]
+        },
+        "request": {
+          "method": "POST",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/parking/active",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json",
+            "content-type": "application/json",
+            "X-XSRF-TOKEN": "{{session.cookies.XSRF-TOKEN}}"
+          },
+          "bodyTemplate": "{\"internalZoneCode\":\"{{internal_zone_code}}\",\"durationInMinutes\":{{minutes}},\"timeBlockId\":{{time_block_id}},\"vehicleId\":{{vehicle_id}},\"selectedBillingMethodId\":{{payment_method_id}},\"spaceNumber\":\"{{space_number}}\"}"
+        },
+        "extract": ""
+      },
+      {
+        "name": "extend_parking",
+        "title": "Extend parking",
+        "description": "Add time to a running session. This charges the user's card, so confirm the added minutes and price first. parking_action_id comes from get_active_sessions; time_block_id from get_zone_rates.",
+        "kind": "write",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "parking_action_id": {
+              "type": "string",
+              "description": "Id of the running session from get_active_sessions"
+            },
+            "time_block_id": {
+              "type": "integer"
+            },
+            "minutes": {
+              "type": "integer",
+              "description": "Minutes to add"
+            },
+            "payment_method_id": {
+              "type": "integer",
+              "description": "billingMethodId from get_payment_methods"
+            }
+          },
+          "required": [
+            "parking_action_id",
+            "time_block_id",
+            "minutes",
+            "payment_method_id"
+          ]
+        },
+        "request": {
+          "method": "PUT",
+          "urlTemplate": "https://app.parkmobile.io/api/proxy/parkmobileapi/parking/active/{{parking_action_id}}",
+          "headers": {
+            "SourceAppKey": "ParkmobileWeb",
+            "accept": "application/json",
+            "content-type": "application/json",
+            "X-XSRF-TOKEN": "{{session.cookies.XSRF-TOKEN}}"
+          },
+          "bodyTemplate": "{\"durationInMinutes\":{{minutes}},\"timeBlockId\":{{time_block_id}},\"selectedBillingMethodId\":{{payment_method_id}}}"
+        },
+        "extract": ""
+      }
+    ],
+    "playbook": [
+      "Open https://app.parkmobile.io/login in the in-app browser. Sign in with email or phone: ParkMobile sends a magic link (any app.parkmobile.io URL with ?login_token=); open that link inside the same in-app browser. Google sign-in is blocked in embedded browsers",
+      "Wait for GET /api/user to return userProfile (401 while signed out)",
+      "Visit /account/zones/active",
+      "Visit /account/zones/history",
+      "Visit /account/settings",
+      "Probe /api/proxy/parkmobileapi/account/vehicles, /api/payment-methods, /api/proxy/parkmobileapi/v2/parking/active and /api/proxy/parkmobileapi/v2/parking/history",
+      "Probe a zone lookup: /api/proxy/parkmobileapi/zones/51103 and /api/zones/71451103"
+    ],
+    "provenance": {
+      "compiler": "hand",
+      "compiledAt": 1794783337828,
+      "captureCount": 45,
+      "notes": "Verified live 2026-11-15 on matt's own account with scripts/re/parkmobile/client.ts (device path, signed-in page): auth.check, get_active_sessions, get_parking_history, get_vehicles (404 Vehicle not found = no vehicles), get_payment_methods, find_zone, find_zones_nearby, get_zone_rates, quote_parking all pass. find_zone, find_zones_nearby, get_zone_rates and quote_parking also pass from plain Node with no session (--cloud). Account had no vehicles, cards or sessions, so list item fields come from the web bundle selectors. start_parking and extend_parking: not executed: charges money (templates lifted from the web bundle startParking/extendParking; X-XSRF-TOKEN acceptance checked on POST /api/refresh only). Session JWT is an HttpOnly cookie, so executor is device."
     }
   },
   {

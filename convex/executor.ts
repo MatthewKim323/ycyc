@@ -16,6 +16,7 @@ import {
   type RenderScope,
 } from "./lib/render";
 import * as tmpl from "./lib/templateShim";
+import type { FlaggedTool, ToolFlags } from "./lib/recipeOverrides";
 
 type Ctx = GenericActionCtx<DataModel>;
 
@@ -389,6 +390,7 @@ export async function executeRequest(
     toolName: string;
     executor?: Executor;
     extract?: string;
+    emptyOn?: ToolFlags["emptyOn"];
   },
 ): Promise<ExecResult> {
   const { conn, recipe, template } = opts;
@@ -432,8 +434,27 @@ export async function executeRequest(
     const msg = e instanceof Error ? (e.name === "AbortError" ? "Request timed out" : e.message) : String(e);
     return { ok: false, text: msg };
   }
+  // Bot wall on Convex's IPs (Duolingo answers 403 with a blockScript page): retry from the phone,
+  // which has the user's own IP and cookies. Needs a real connection (not a public, sessionless call).
+  if (res && executor === "cloud" && res.status === 403 && /blockScript/i.test(res.body) && conn.sessionJson) {
+    const dev = await deviceFetch(ctx, {
+      userId: conn.userId,
+      connectionId: conn._id,
+      appSlug: conn.appSlug,
+      tool: opts.toolName,
+      req: buildRequest(recipe, template, scope, true),
+    });
+    if (dev) res = dev;
+  }
   if (!res) {
     return { ok: false, text: "Phone did not answer. Open ycyc on your phone and try again." };
+  }
+  const empty = (opts.emptyOn ?? []).find(
+    (e) => e.status === res!.status && (!e.bodyContains || res!.body.includes(e.bodyContains)),
+  );
+  if (empty) {
+    const value = empty.value === undefined ? [] : empty.value;
+    return { ok: true, status: res.status, text: JSON.stringify(value), data: value };
   }
   const parsed = parseBody(res.body);
   const extracted = parsed !== undefined ? extractPath(parsed, opts.extract) : undefined;
@@ -504,6 +525,7 @@ export async function executeTool(
     toolName: opts.tool.name,
     executor,
     extract: opts.tool.extract,
+    emptyOn: (opts.tool as FlaggedTool).emptyOn,
   });
 }
 

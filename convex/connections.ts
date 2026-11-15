@@ -42,9 +42,17 @@ export function withoutCredentials(sessionJson: string | undefined): string | un
   }
 }
 
+// Magic-link and one-time tokens in URLs (ParkMobile ?login_token=) never reach the database.
+const URL_SECRET = /([?&#](?:login_token|magic_token|magic_link_token|otp|one_time_token)=)[^&#\s]+/gi;
+function redactUrl(u: string | undefined): string | undefined {
+  return u ? u.replace(URL_SECRET, "$1<redacted>") : u;
+}
+
 function trimEntry(e: CaptureEntry): CaptureEntry {
   return {
     ...e,
+    url: redactUrl(e.url) ?? e.url,
+    pageUrl: redactUrl(e.pageUrl),
     reqBody: e.reqBody && e.reqBody.length > MAX_REQ_BODY ? e.reqBody.slice(0, MAX_REQ_BODY) : e.reqBody,
     resBody: e.resBody && e.resBody.length > MAX_RES_BODY ? e.resBody.slice(0, MAX_RES_BODY) : e.resBody,
   };

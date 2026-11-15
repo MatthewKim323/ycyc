@@ -19,6 +19,24 @@ export const CATALOG: CatalogApp[] = [
     revylAppId: "2bab1be3-763b-4a29-8580-83b56aa475f4",
     blurb: "Log workouts and read your training history.",
   },
+  {
+    slug: "parkmobile",
+    name: "ParkMobile",
+    category: "other",
+    route: "web",
+    loginUrl: "https://app.parkmobile.io/login",
+    webOrigin: "https://app.parkmobile.io",
+    blurb: "Find zones and prices near you, see active sessions.",
+  },
+  {
+    slug: "duolingo",
+    name: "Duolingo",
+    category: "other",
+    route: "web",
+    loginUrl: "https://www.duolingo.com/log-in",
+    webOrigin: "https://www.duolingo.com",
+    blurb: "Streak, XP, weak words and your league.",
+  },
 ];
 
 // Paused: not listed, not connectable. Move back into CATALOG when its recipe is ready.
