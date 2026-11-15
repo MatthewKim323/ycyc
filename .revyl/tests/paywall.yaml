@@ -1,0 +1,47 @@
+# Revyl Test Definition
+
+_meta:
+    remote_id: eafa380f-1da1-4aaa-a7b0-29833e36f7df
+    remote_version: 1
+    local_version: 1
+    last_synced_at: "2026-11-15T15:29:38-08:00"
+    checksum: 188507c4a5444d9a6739aba3eabe931ac8a4685b8ff42ec36b6e4f396707ca8a
+test:
+    metadata:
+        name: paywall
+        platform: ios
+        tags:
+            - paywall
+    build:
+        name: ycyc
+    blocks:
+        - type: if
+          condition: Is an iOS system alert (notifications or tracking permission) visible?
+          then:
+            - type: instructions
+              step_description: Dismiss the system alert.
+        - type: manual
+          step_type: navigate
+          step_description: ycyc://paywall
+        - type: if
+          condition: Is a dialog asking to open the link in an app visible?
+          then:
+            - type: instructions
+              step_description: Tap "Open".
+        - type: if
+          condition: Is the paywall missing (no "Go Pro" button and no Pro plan offer on screen)?
+          then:
+            - type: manual
+              step_type: navigate
+              step_description: yuzu://paywall
+            - type: if
+              condition: Is a dialog asking to open the link in an app visible?
+              then:
+                - type: instructions
+                  step_description: Tap "Open".
+        - type: validation
+          step_description: A paywall is visible that offers a Pro plan, with a "Go Pro" button and a benefit such as "Unlimited apps".
+        - type: instructions
+          step_description: Close the paywall without buying anything.
+        - type: validation
+          step_description: The paywall is closed.

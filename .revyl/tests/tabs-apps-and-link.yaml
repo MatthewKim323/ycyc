@@ -1,0 +1,47 @@
+# Revyl Test Definition
+
+_meta:
+    remote_id: d76ad761-7424-4ca5-8788-68308d550b82
+    remote_version: 2
+    local_version: 2
+    last_synced_at: "2026-11-15T15:41:23-08:00"
+    checksum: ba955d9854318329c75b2aec0725c1a660c553fd8f83dd12832b659dcb2ccb53
+test:
+    metadata:
+        name: tabs-apps-and-link
+        platform: ios
+        tags:
+            - smoke
+            - tabs
+    build:
+        name: ycyc
+    blocks:
+        - type: if
+          condition: Is an iOS system alert (notifications or tracking permission) visible?
+          then:
+            - type: instructions
+              step_description: Dismiss the system alert.
+        - type: instructions
+          step_description: Tap "Get started".
+        - type: instructions
+          step_description: Tap the button at the bottom of the screen to pick your first app.
+        - type: instructions
+          step_description: Tap "Skip for now" at the top of the screen.
+        - type: validation
+          step_description: A tab bar is visible at the bottom of the screen.
+        - type: instructions
+          step_description: Tap the "Apps" tab in the tab bar.
+        - type: validation
+          step_description: A screen titled "Your apps" is visible. With nothing connected yet it may only show an "Add" tile.
+        - type: instructions
+          step_description: Tap the "Add" tile.
+        - type: validation
+          step_description: A list or grid of apps to connect is visible, including MyFitnessPal.
+        - type: instructions
+          step_description: Go back to the "Your apps" screen.
+        - type: instructions
+          step_description: Tap the "Link" tab in the tab bar.
+        - type: validation
+          step_description: The Link screen is visible and lists AI assistants such as Claude and ChatGPT.
+        - type: validation
+          step_description: There is a way to copy the personal link on the Link screen (for example a "Copy link" button or a "Set up in" button).

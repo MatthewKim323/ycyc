@@ -1,0 +1,35 @@
+# Revyl Test Definition
+
+_meta:
+    remote_id: 853a0486-2d84-47af-b127-6801b675044f
+    remote_version: 1
+    local_version: 1
+    last_synced_at: "2026-11-15T15:29:32-08:00"
+    checksum: 896c9486c8cde69ccdec7228c5cf5257f5ff5628ac230cc376f4983687b36307
+test:
+    metadata:
+        name: onboarding-pick-an-app
+        platform: ios
+        tags:
+            - smoke
+            - onboarding
+    build:
+        name: ycyc
+    blocks:
+        - type: if
+          condition: Is an iOS system alert (notifications or tracking permission) visible?
+          then:
+            - type: instructions
+              step_description: Dismiss the system alert.
+        - type: validation
+          step_description: The welcome screen is visible with a "Get started" button.
+        - type: instructions
+          step_description: Tap "Get started".
+        - type: validation
+          step_description: A screen titled "Set it up once." is visible with numbered setup steps.
+        - type: instructions
+          step_description: Tap the button at the bottom of the screen to pick your first app.
+        - type: validation
+          step_description: A screen titled "Pick an app" is visible with a grid of app tiles.
+        - type: validation
+          step_description: The app tiles include MyFitnessPal and at least one other app such as Strong, Duolingo, Cronometer or ParkMobile.

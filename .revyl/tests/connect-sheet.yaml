@@ -1,0 +1,37 @@
+# Revyl Test Definition
+
+_meta:
+    remote_id: c2d246b4-d98f-4bb7-847c-439c8e1496e4
+    remote_version: 1
+    local_version: 1
+    last_synced_at: "2026-11-15T15:29:34-08:00"
+    checksum: 852c4de746cf63b88bd872a769b1bc359cc3396dff36d89bd92228bca1ce3d31
+test:
+    metadata:
+        name: connect-sheet
+        platform: ios
+        tags:
+            - smoke
+            - connect
+    build:
+        name: ycyc
+    blocks:
+        - type: if
+          condition: Is an iOS system alert (notifications or tracking permission) visible?
+          then:
+            - type: instructions
+              step_description: Dismiss the system alert.
+        - type: instructions
+          step_description: Tap "Get started".
+        - type: instructions
+          step_description: Tap the button at the bottom of the screen to pick your first app.
+        - type: validation
+          step_description: A screen titled "Pick an app" is visible with app tiles.
+        - type: instructions
+          step_description: Tap the MyFitnessPal tile.
+        - type: validation
+          step_description: A sheet about connecting MyFitnessPal is visible with a "Continue" button.
+        - type: instructions
+          step_description: Tap "Continue".
+        - type: validation
+          step_description: The connect sheet is gone and a MyFitnessPal sign-in or setup screen is showing (a web login page, a sign-in form, or setup progress steps).
