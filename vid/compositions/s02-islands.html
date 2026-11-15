@@ -1,7 +1,126 @@
 <template>
-  <style>#root { position: absolute; inset: 0; } #s02-islands-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <!-- s02-islands: the answer sits in three apps, hard cuts on the music's beats (music from film 3.90, 87.6 BPM, 0.685 s a beat).
+       0 to 0.54: s01's dimmed Claude phone keeps sinking; cuts 0.54 Flo, 2.59 Cronometer, 4.65 Strong.
+       VO v02 (measured): "Your cycle in Flo" 1.58 to 2.61, "Your nutrients in Cronometer" 2.95 to 4.32, "Your training in Strong" from 4.62. -->
+  <!-- sfx: t=0.54 name=flash-tick gain=0.45 -->
+  <!-- sfx: t=2.59 name=flash-tick gain=0.45 -->
+  <!-- sfx: t=4.65 name=flash-tick gain=0.45 -->
+  <style>
+    #root { position: absolute; inset: 0; }
+    .s02-shot { position: absolute; inset: 0; }
+    .s02-screen { background: #141414; display: flex; align-items: center; justify-content: center; padding: 0 44px; text-align: center;
+      font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+    /* Phones: 430x932 boxes, centre (640,540); Cronometer is the macro rung at (600,540). */
+    #s02-flo-phone, #s02-strong-phone { left: 425px; top: 74px; }
+    #s02-crono-phone { left: 385px; top: 74px; }
+    /* s01's last frame: its phone at 0.966 inside a 1.6 camera push (origin 960,600), dimmed. */
+    #s02-pre-cam { position: absolute; inset: 0; }
+    #s02-pre-phone { left: 745px; top: 74px; }
+    /* App chip at 3x: 120px tall, glyph tile concentric with the chip (36 outer, 16 pad, 20 inner). */
+    #root .s02-chip { left: 1020px; top: 480px; height: 120px; padding: 0 48px 0 16px; gap: 28px; border-radius: 36px;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; font: 600 52px "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; }
+    .s02-tile { width: 88px; height: 88px; border-radius: 20px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
+      display: flex; align-items: center; justify-content: center; flex: none; }
+    .s02-tile .k-icon { width: 56px; height: 56px; }
+    .s02-name { display: block; }
+  </style>
   <div id="root" data-composition-id="s02-islands" data-width="1920" data-height="1080">
-    <div id="s02-islands-wrap" class="clip k-canvas" data-start="0" data-duration="7.533" data-track-index="0"><p id="s02-islands-ph">s02-islands</p></div>
+    <div id="s02-islands-wrap" class="clip k-canvas" data-start="0" data-duration="7.533" data-track-index="0">
+
+      <div id="s02-pre" class="s02-shot">
+        <div id="s02-pre-cam">
+          <div id="s02-pre-phone" class="k-phone">
+            <!-- footage: assets/footage/r1-claude-guess.mp4 -->
+            <div id="s02-pre-screen" class="k-screen s02-screen">R1 · Claude: why am I so tired this week? (generic answer)</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="s02-flo" class="s02-shot">
+        <div id="s02-flo-phone" class="k-phone">
+          <!-- footage: assets/footage/r2a-flo.mp4 -->
+          <div id="s02-flo-screen" class="k-screen s02-screen">R2a · Flo: today's cycle day and phase</div>
+        </div>
+        <div id="s02-flo-chip" class="k-chip s02-chip">
+          <div id="s02-flo-tile" class="s02-tile"><div id="s02-flo-icon" class="k-icon"></div></div>
+          <span id="s02-flo-name" class="s02-name">Flo</span>
+        </div>
+      </div>
+
+      <div id="s02-crono" class="s02-shot">
+        <div id="s02-crono-phone" class="k-phone">
+          <!-- footage: assets/footage/r2b-cronometer.mp4 -->
+          <div id="s02-crono-screen" class="k-screen s02-screen">R2b · Cronometer: nutrients vs targets</div>
+        </div>
+        <div id="s02-crono-chip" class="k-chip s02-chip">
+          <div id="s02-crono-tile" class="s02-tile"><div id="s02-crono-icon" class="k-icon"></div></div>
+          <span id="s02-crono-name" class="s02-name">Cronometer</span>
+        </div>
+      </div>
+
+      <div id="s02-strong" class="s02-shot">
+        <div id="s02-strong-phone" class="k-phone">
+          <!-- footage: assets/footage/r2c-strong.mp4 -->
+          <div id="s02-strong-screen" class="k-screen s02-screen">R2c · Strong: this week's workouts</div>
+        </div>
+        <div id="s02-strong-chip" class="k-chip s02-chip">
+          <div id="s02-strong-tile" class="s02-tile"><div id="s02-strong-icon" class="k-icon"></div></div>
+          <span id="s02-strong-name" class="s02-name">Strong</span>
+        </div>
+      </div>
+
+    </div>
   </div>
-  <script>window.__timelines["s02-islands"] = gsap.timeline({ paused: true });</script>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      const $ = (id) => document.getElementById(id);
+      const END = 7.533, LAST = END - 1 / 30; // last rendered frame
+      const C0 = 0.54, C1 = 2.59, C2 = 4.65; // beats
+      // Scale ladder: phone (0.966, 900px), macro (1.45), phone again a rung closer (1.06). Strong ends at 1.06 x 1.04 = 1.1024 (s03 starts there).
+      const shots = [
+        { k: "flo", at: C0, until: C1, scale: 0.966, icon: "lotus", speed: 1 },
+        { k: "crono", at: C1, until: C2, scale: 1.45, icon: "apple", speed: 1.25 },
+        { k: "strong", at: C2, until: LAST, scale: 1.06, icon: "person-pushups", speed: 1 },
+      ];
+
+      // 0 to C0: s01's exit continues (it left the phone at 0.3 and 8px blur) until the first beat.
+      const preCam = $("s02-pre-cam");
+      gsap.set($("s02-pre-phone"), { scale: 0.966, transformOrigin: "50% 50%" });
+      gsap.set(preCam, { scale: 1.6, opacity: 0.3, filter: "blur(8px)", transformOrigin: "960px 600px" });
+      tl.fromTo(preCam, { scale: 1.6, opacity: 0.3 }, { scale: 1.56, opacity: 0.16, duration: C0, ease: "sine.out", immediateRender: false }, 0);
+
+      // Hard cuts: only the current shot is on screen.
+      const groups = [{ k: "pre", at: 0 }].concat(shots);
+      groups.forEach((s, i) => {
+        gsap.set($("s02-" + s.k), { opacity: i === 0 ? 1 : 0 });
+        if (i > 0) tl.set($("s02-" + s.k), { opacity: 1 }, s.at);
+        if (i < groups.length - 1) tl.set($("s02-" + s.k), { opacity: 0 }, groups[i + 1].at);
+      });
+
+      shots.forEach((s, i) => {
+        const phone = $("s02-" + s.k + "-phone"), chip = $("s02-" + s.k + "-chip"), tile = $("s02-" + s.k + "-tile"), name = $("s02-" + s.k + "-name");
+        gsap.set(phone, { scale: s.scale, transformOrigin: "50% 50%" });
+        // Gentle push on every hold (4%), sine both ends.
+        tl.fromTo(phone, { scale: s.scale }, { scale: s.scale * 1.04, duration: s.until - s.at, ease: "sine.inOut", immediateRender: false }, s.at);
+
+        if (i === 0) {
+          // The chip arrives once, 3 frames after the cut, on the app's enter spring; opacity never bounces.
+          gsap.set(chip, { opacity: 0, x: 36 });
+          tl.fromTo(chip, { x: 36 }, { x: 0, duration: KIT.springs.enter.dur, ease: KIT.springs.enter.ease, immediateRender: false }, s.at + 0.1);
+          tl.fromTo(chip, { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power2.out", immediateRender: false }, s.at + 0.1);
+        }
+        // Then it is carried across the cuts: same box, the glyph pops and the name sharpens in.
+        const t0 = i === 0 ? s.at + 0.13 : s.at; // on the cut itself: the name is already there, blurred, never an empty chip
+        gsap.set(tile, { scale: 0.82 });
+        tl.fromTo(tile, { scale: 0.82 }, { scale: 1, duration: KIT.springs.pop.dur, ease: KIT.springs.pop.ease, immediateRender: false }, t0);
+        gsap.set(name, { opacity: 0 });
+        tl.fromTo(name, { opacity: 0.3, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power3.out", immediateRender: false }, i === 0 ? t0 + 0.03 : t0);
+        // Lotus holds its resting pose (its segment ends blank); the others play once on the cut.
+        KIT.icon(tl, $("s02-" + s.k + "-icon"), s.icon, { at: s.icon === "lotus" ? null : t0 + 0.06, speed: s.speed });
+      });
+
+      window.__timelines["s02-islands"] = tl;
+    })();
+  </script>
 </template>
