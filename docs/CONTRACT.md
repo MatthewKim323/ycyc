@@ -29,6 +29,9 @@ Install packages with `npx expo install <pkg>` and tell the lead which ones you 
 | `flo` | cloudPhone | Same pattern as Strong. Health data: write tools need approval, reads summarized |
 
 ## Convex API (names the UI calls)
+
+AI subscription login (Claude and Codex): see [AI_LOGIN_API.md](AI_LOGIN_API.md) for the backend-only mobile contract, status flow and deployment configuration. Matthew owns the mobile UI.
+
 Queries/mutations (`api.<file>.<fn>`):
 - `users.ensure({ deviceId }) -> { userId, mcpUrl }` (mutation; creates user + random mcp token on first launch)
 - `apps.list() -> (CatalogApp & { recipeStatus?: "draft"|"verified"|"broken", toolCount: number })[]`

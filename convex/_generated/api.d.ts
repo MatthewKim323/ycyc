@@ -9,6 +9,7 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as aiProviders from "../aiProviders.js";
 import type * as approvalRunner from "../approvalRunner.js";
 import type * as approvals from "../approvals.js";
 import type * as apps from "../apps.js";
@@ -26,6 +27,9 @@ import type * as lib_env from "../lib/env.js";
 import type * as lib_fallbackCompiler from "../lib/fallbackCompiler.js";
 import type * as lib_handRecipes from "../lib/handRecipes.js";
 import type * as lib_mcp from "../lib/mcp.js";
+import type * as lib_nativeProvider from "../lib/nativeProvider.js";
+import type * as lib_providerCli from "../lib/providerCli.js";
+import type * as lib_providerVault from "../lib/providerVault.js";
 import type * as lib_recipeOverrides from "../lib/recipeOverrides.js";
 import type * as lib_recipeStore from "../lib/recipeStore.js";
 import type * as lib_render from "../lib/render.js";
@@ -36,6 +40,8 @@ import type * as lib_templateShim from "../lib/templateShim.js";
 import type * as lib_webhook from "../lib/webhook.js";
 import type * as mcpData from "../mcpData.js";
 import type * as pipeline from "../pipeline.js";
+import type * as providerActions from "../providerActions.js";
+import type * as providerProbe from "../providerProbe.js";
 import type * as recipes from "../recipes.js";
 import type * as revyl from "../revyl.js";
 import type * as today from "../today.js";
@@ -50,6 +56,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  aiProviders: typeof aiProviders;
   approvalRunner: typeof approvalRunner;
   approvals: typeof approvals;
   apps: typeof apps;
@@ -67,6 +74,9 @@ declare const fullApi: ApiFromModules<{
   "lib/fallbackCompiler": typeof lib_fallbackCompiler;
   "lib/handRecipes": typeof lib_handRecipes;
   "lib/mcp": typeof lib_mcp;
+  "lib/nativeProvider": typeof lib_nativeProvider;
+  "lib/providerCli": typeof lib_providerCli;
+  "lib/providerVault": typeof lib_providerVault;
   "lib/recipeOverrides": typeof lib_recipeOverrides;
   "lib/recipeStore": typeof lib_recipeStore;
   "lib/render": typeof lib_render;
@@ -77,6 +87,8 @@ declare const fullApi: ApiFromModules<{
   "lib/webhook": typeof lib_webhook;
   mcpData: typeof mcpData;
   pipeline: typeof pipeline;
+  providerActions: typeof providerActions;
+  providerProbe: typeof providerProbe;
   recipes: typeof recipes;
   revyl: typeof revyl;
   today: typeof today;
