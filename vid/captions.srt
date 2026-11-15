@@ -15,8 +15,8 @@ Yuzu.
 It connects them. Even the ones with no API.
 
 5
-00:00:19,284 --> 00:00:24,884
-Sign in once. Yuzu reads your account, writes the tools, and tests a real request.
+00:00:20,384 --> 00:00:23,956
+Sign in once. Yuzu learns the app, and checks that it works.
 
 6
 00:00:27,184 --> 00:00:30,309

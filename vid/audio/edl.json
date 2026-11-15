@@ -64,9 +64,9 @@
     {
      "who": "narrator",
      "src": "audio/voice/chris/v04-t1.mp3",
-     "at": 0.5,
+     "at": 1.6,
      "text": [
-      "Sign in once. Yuzu reads your account, writes the tools, and tests a real request."
+      "Sign in once. Yuzu learns the app, and checks that it works."
      ]
     }
    ]

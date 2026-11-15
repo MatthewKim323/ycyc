@@ -5,33 +5,21 @@
   <!-- sfx: t=3.95 name=case-pop gain=0.7 -->
   <style>
     #root { position: absolute; inset: 0; }
-    #s10-waves { opacity: 1; }
     #s10-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
     #s10-cam { position: absolute; left: 960px; top: 540px; width: 0; height: 0; }
-    .s10-tile { position: absolute; width: 760px; height: 500px; left: -380px; top: -250px; perspective: 2400px; }
+    /* the app's AppTile at 4x: 88pt logo -> 352px (radius 0.27 x size), name underneath, a short note while it sets up */
+    .s10-tile { position: absolute; width: 760px; height: 520px; top: -260px; display: flex; flex-direction: column; align-items: center; }
+    .s10-logo { position: relative; width: 352px; height: 352px; margin-bottom: 16px; perspective: 2400px; flex: none; }
     .s10-flip { position: absolute; inset: 0; transform-style: preserve-3d; }
-    .s10-face { position: absolute; inset: 0; border-radius: 56px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      padding: 56px; display: flex; flex-direction: column; justify-content: space-between;
-      backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .s10-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .s10-face img { width: 352px; height: 352px; border-radius: 95px; display: block; background: #141414; }
+    .s10-dimlogo { width: 352px; height: 352px; border-radius: 95px; background-color: #141414; background-size: cover; opacity: 0.35; }
     .s10-back { transform: rotateY(180deg); }
-    .s10-top { display: flex; align-items: center; gap: 28px; height: 96px; }
-    .s10-glyph { width: 96px; height: 96px; border-radius: 26px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      display: flex; align-items: center; justify-content: center; flex: none; }
-    .s10-glyph .k-icon { width: 60px; height: 60px; }
-    .s10-name { font: 600 56px/1 "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; white-space: nowrap; }
-    .s10-cap { font: 500 40px/1.2 "Inter", sans-serif; color: #a1a1a1; margin-top: 18px; }
-    .s10-speed { margin-left: auto; height: 72px; padding: 0 28px; border-radius: 36px; background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a;
-      display: flex; align-items: center; font: 600 36px "Inter", sans-serif; color: #fff; font-variant-numeric: tabular-nums; }
-    .s10-steps { position: relative; height: 48px; }
-    .s10-step { position: absolute; left: 0; top: 0; font: 500 40px/1.2 "Inter", sans-serif; color: rgb(255 255 255 / 0.5); white-space: nowrap; opacity: 0; }
-    .s10-bar { height: 8px; border-radius: 4px; background: #1f1f1f; margin-top: 28px; overflow: hidden; }
-    .s10-fill { width: 100%; height: 100%; border-radius: 4px; background: rgb(255 255 255 / 0.5); transform-origin: 0 50%; }
-    .s10-live { margin-left: auto; height: 72px; padding: 0 30px 0 26px; border-radius: 36px; background: #fff; color: #000;
-      display: flex; align-items: center; gap: 14px; font: 600 36px "Inter", sans-serif; }
-    .s10-live i { width: 14px; height: 14px; border-radius: 50%; background: #000; display: block; }
-    .s10-count { font: 600 64px/1.04 "Inter", sans-serif; letter-spacing: -0.03em; color: #fff; }
-    .s10-tool { align-self: flex-start; height: 84px; padding: 0 32px; border-radius: 28px; background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a;
-      display: flex; align-items: center; font: 500 40px "Inter", sans-serif; color: #fff; white-space: nowrap; }
+    .s10-name { margin-top: 24px; font: 600 56px/1.1 "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; white-space: nowrap; }
+    .s10-note { position: relative; width: 760px; height: 56px; margin-top: 12px; }
+    .s10-step, .s10-verb { position: absolute; left: 0; right: 0; top: 0; text-align: center; font: 500 44px/1.2 "Inter", sans-serif; white-space: nowrap; }
+    .s10-step { color: #6b6b6b; opacity: 0; }
+    .s10-verb { color: #a1a1a1; opacity: 0; }
   </style>
   <div id="root" data-composition-id="s10-more" data-width="1920" data-height="1080">
     <div id="s10-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0">
@@ -39,65 +27,36 @@
       <canvas id="s10-waves" class="k-waves" width="1920" height="1080"></canvas>
       <div id="s10-dim"></div>
       <div id="s10-cam" data-layout-allow-overflow>
-        <!-- ParkMobile: 10 tools (recipes/parkmobile.json) -->
+        <!-- verbs from src/components/app-copy.ts (never tool names on screen) -->
         <div id="s10-t1" class="s10-tile" style="left:-380px">
-          <div id="s10-t1-flip" class="s10-flip">
-            <div id="s10-t1-front" class="s10-face">
-              <div>
-                <div class="s10-top"><div class="s10-name">ParkMobile</div><div class="s10-speed">2x</div></div>
-                <div class="s10-cap">Zones, prices, parking</div>
-              </div>
-              <div>
-                <div class="s10-steps"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span></div>
-                <div class="s10-bar"><div id="s10-t1-fill" class="s10-fill"></div></div>
-              </div>
-            </div>
-            <div id="s10-t1-back" class="s10-face s10-back">
-              <div class="s10-top"><div class="s10-name">ParkMobile</div><div class="s10-live"><i></i>Live</div></div>
-              <div class="s10-count">10 tools in<br />every assistant</div>
-              <div id="s10-t1-tool" class="s10-tool">extend_parking</div>
+          <div class="s10-logo">
+            <div id="s10-t1-flip" class="s10-flip">
+              <div id="s10-t1-front" class="s10-face s10-front"><div class="s10-dimlogo" style="background-image:url('assets/apps/parkmobile.png')"></div></div>
+              <div id="s10-t1-back" class="s10-face s10-back"><img src="assets/apps/parkmobile.png" alt="" /></div>
             </div>
           </div>
+          <div class="s10-name">ParkMobile</div>
+          <div class="s10-note"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span><span id="s10-t1-tool" class="s10-verb">Extend parking</span></div>
         </div>
-        <!-- Duolingo: 8 tools (recipes/duolingo.json) -->
         <div id="s10-t2" class="s10-tile" style="left:560px">
-          <div id="s10-t2-flip" class="s10-flip">
-            <div id="s10-t2-front" class="s10-face">
-              <div>
-                <div class="s10-top"><div class="s10-name">Duolingo</div><div class="s10-speed">4x</div></div>
-                <div class="s10-cap">Streak, XP, words</div>
-              </div>
-              <div>
-                <div class="s10-steps"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span></div>
-                <div class="s10-bar"><div id="s10-t2-fill" class="s10-fill"></div></div>
-              </div>
-            </div>
-            <div id="s10-t2-back" class="s10-face s10-back">
-              <div class="s10-top"><div class="s10-name">Duolingo</div><div class="s10-live"><i></i>Live</div></div>
-              <div class="s10-count">8 tools in<br />every assistant</div>
-              <div id="s10-t2-tool" class="s10-tool">get_weak_words</div>
+          <div class="s10-logo">
+            <div id="s10-t2-flip" class="s10-flip">
+              <div id="s10-t2-front" class="s10-face s10-front"><div class="s10-dimlogo" style="background-image:url('assets/apps/duolingo.png')"></div></div>
+              <div id="s10-t2-back" class="s10-face s10-back"><img src="assets/apps/duolingo.png" alt="" /></div>
             </div>
           </div>
+          <div class="s10-name">Duolingo</div>
+          <div class="s10-note"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span><span id="s10-t2-tool" class="s10-verb">Words you keep missing</span></div>
         </div>
-        <!-- Cronometer: 6 tools (recipes/cronometer.json), glyph = apple (app-glyph nutrition), tagline from app-copy -->
         <div id="s10-t3" class="s10-tile" style="left:1500px">
-          <div id="s10-t3-flip" class="s10-flip">
-            <div id="s10-t3-front" class="s10-face">
-              <div>
-                <div class="s10-top"><div class="s10-glyph"><div id="s10-t3-ic1" class="k-icon"></div></div><div class="s10-name">Cronometer</div><div class="s10-speed">8x</div></div>
-                <div class="s10-cap">Nutrients, food log</div>
-              </div>
-              <div>
-                <div class="s10-steps"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span></div>
-                <div class="s10-bar"><div id="s10-t3-fill" class="s10-fill"></div></div>
-              </div>
-            </div>
-            <div id="s10-t3-back" class="s10-face s10-back">
-              <div class="s10-top"><div class="s10-glyph"><div id="s10-t3-ic2" class="k-icon"></div></div><div class="s10-name">Cronometer</div><div class="s10-live"><i></i>Live</div></div>
-              <div class="s10-count">6 tools in<br />every assistant</div>
-              <div id="s10-t3-tool" class="s10-tool">get_daily_nutrition</div>
+          <div class="s10-logo">
+            <div id="s10-t3-flip" class="s10-flip">
+              <div id="s10-t3-front" class="s10-face s10-front"><div class="s10-dimlogo" style="background-image:url('assets/apps/cronometer.png')"></div></div>
+              <div id="s10-t3-back" class="s10-face s10-back"><img src="assets/apps/cronometer.png" alt="" /></div>
             </div>
           </div>
+          <div class="s10-name">Cronometer</div>
+          <div class="s10-note"><span class="s10-step">Signed in</span><span class="s10-step">Reading your account</span><span class="s10-step">Writing tools</span><span class="s10-step">Testing a real request</span><span id="s10-t3-tool" class="s10-verb">Check your nutrients</span></div>
         </div>
       </div>
     </div>
@@ -140,7 +99,7 @@
       dimT(tiles[0], 1.92); focusT(tiles[1], 1.92);
       dimT(tiles[1], 3.31); focusT(tiles[2], 3.31);
 
-      // a tile builds (4 steps flash at its speed), flips on the app's flip spring, then its real tool name smears in
+      // a tile builds (4 steps flash in its note at its speed), its logo flips from dimmed to full on the app's flip spring, then a plain verb smears in
       function build(n, stepAt, step, flipAt) {
         const steps = [...$("#s10-t" + n).querySelectorAll(".s10-step")];
         steps.forEach((s, i) => {
@@ -148,8 +107,6 @@
           tl.fromTo(s, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: Math.min(0.1, step * 0.6), ease: "power2.out", immediateRender: false }, t);
           if (i < steps.length - 1) tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: Math.min(0.06, step * 0.3), ease: "power1.in", immediateRender: false }, t + step - Math.min(0.06, step * 0.3));
         });
-        gsap.set("#s10-t" + n + "-fill", { scaleX: 0 });
-        tl.fromTo("#s10-t" + n + "-fill", { scaleX: 0 }, { scaleX: 1, duration: step * 4, ease: "power1.inOut", immediateRender: false }, stepAt);
         const fl = $("#s10-t" + n + "-flip");
         gsap.set(fl, { rotationY: 0 });
         tl.fromTo(fl, { rotationY: 0 }, { rotationY: 180, duration: flip.dur, ease: flip.ease, immediateRender: false }, flipAt);
@@ -159,15 +116,17 @@
         gsap.set("#s10-t" + n + "-back", { opacity: 0 });
         tl.fromTo("#s10-t" + n + "-front", { opacity: 1 }, { opacity: 0, duration: 0.01, immediateRender: false }, flipAt + flip.dur * half);
         tl.fromTo("#s10-t" + n + "-back", { opacity: 0 }, { opacity: 1, duration: 0.01, immediateRender: false }, flipAt + flip.dur * half);
-        KIT.smear(tl, $("#s10-t" + n + "-tool"), flipAt + 0.2);
+        // the last step clears as the logo turns; the plain verb smears into the note slot
+        tl.fromTo(steps[steps.length - 1], { opacity: 1 }, { opacity: 0, duration: 0.08, ease: "power1.in", immediateRender: false }, flipAt + flip.dur * half - 0.04);
+        const verb = $("#s10-t" + n + "-tool");
+        tl.fromTo(verb, { opacity: 0 }, { opacity: 1, duration: 0.01, immediateRender: false }, flipAt + 0.19);
+        KIT.smear(tl, verb, flipAt + 0.2, { cps: 40 });
       }
       // flips start on the music beats (scene-local 1.22 downbeat, 2.59, 3.95 downbeat)
       build(1, 0.40, 0.2, 1.22);
       build(2, 2.17, 0.1, 2.59);
       build(3, 3.73, 0.05, 3.95);
 
-      KIT.icon(tl, $("#s10-t3-ic1"), "apple", { at: 3.5 });
-      KIT.icon(tl, $("#s10-t3-ic2"), "apple");
 
       window.__timelines["s10-more"] = tl;
     })();

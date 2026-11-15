@@ -9,6 +9,8 @@ TIME:    ~80 s (2400 frames @30). Scene lengths come from the VO (`audio/edl.jso
 LOOK
   ground:  #000. Home stage = the app's own silk dot wave (`KIT.waves`, preset silk, white dots, fade edges), the brand's
            real material. Full strength only in s03 and s13; behind UI it sits under a black dim at 0.55 (as onboarding/how).
+  logos:   apps show their real App Store logo exactly as the app does (assets/apps/*.png, rounded like app-glyph.tsx);
+           those logos are the only colour in the film besides captures. No tool names on screen (app-copy.ts rule): plain verbs.
   ink:     #FFFFFF text and fills; #A1A1A1 secondary; #6B6B6B tertiary; surfaces #0B0B0B / #141414; hairlines #1F1F1F /
            #2A2A2A. No accent colour. State is white fill (live) vs 50% white (building). Red #FF453A only if a real
            capture shows an error.
@@ -54,7 +56,7 @@ BANNED   the spec.md defaults (dark void with small floating things, glow/bloom/
          labels, three cards in a row, title over a dimmed screenshot, docked logo), plus for this film:
          a small phone floating in the middle of black; any redrawn Claude / ChatGPT / iMessage UI (captures only);
          typing into a prompt box as the opener; chat text that types perfectly; invented numbers or counters (only the
-         real tool counts from recipes/*.json and numbers visible in the captures); other companies' logos redrawn;
+         real tool counts from recipes/*.json and numbers visible in the captures); other companies' logos redrawn (the real app logos from assets/apps are allowed, as the app shows them);
          emoji other than the real "done ✓" in the Keiki capture; em dashes in any copy.
 
 QA       0.0 s (the thumbnail: Claude with the question and the generic answer, legible); first and last frame of every

@@ -94,10 +94,10 @@
     {
       "scene": "s04-connect",
       "who": "narrator",
-      "start": 19.284,
-      "end": 24.884,
+      "start": 20.384,
+      "end": 23.956,
       "text": [
-        "Sign in once. Yuzu reads your account, writes the tools, and tests a real request."
+        "Sign in once. Yuzu learns the app, and checks that it works."
       ]
     },
     {
