@@ -24,9 +24,13 @@ for sid, s in t["scenes"].items():
 </template>
 ''')
     hosts.append(f'      <div style="z-index: {z}" id="{sid}" data-composition-id="{sid}" data-composition-src="compositions/{sid}.html" data-start="{s["start"]:.3f}" data-duration="{s["duration"]:.3f}" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>')
+import sys
 fx = (L / "assets" / "audio" / "fx.wav").exists()
+MIX = "--mix" in sys.argv and (L / "assets" / "audio" / "mix.wav").exists()  # render: the mastered mix only
 audio = [f'      <audio id="dialogue" src="assets/audio/dialogue.wav" data-start="0" data-duration="{total:.3f}" data-track-index="5" data-volume="1"></audio>']
-if fx:
+if MIX:
+    audio = [f'      <audio id="mix" src="assets/audio/mix.wav" data-start="0" data-duration="{total:.3f}" data-track-index="5" data-volume="1"></audio>']
+elif fx:
     audio.append(f'      <audio id="fx" src="assets/audio/fx.wav" data-start="0" data-duration="{total:.3f}" data-track-index="6" data-volume="1"></audio>')
 html = f'''<!doctype html>
 <html lang="en" data-resolution="landscape">
@@ -64,4 +68,5 @@ html = f'''<!doctype html>
 </html>
 '''
 (L / "index.html").write_text(html)
+print(f"mix only: {MIX}") if MIX else None
 print(f"mounted {len(hosts)} scenes, {total:.2f}s, fx={'yes' if fx else 'no'}")

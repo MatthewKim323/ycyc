@@ -29,7 +29,9 @@
     .s02-g { width: 264px; height: 264px; border-radius: 72px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
       display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
     .s02-g-logo { overflow: hidden; box-shadow: none; }
-    .s02-g img, .s02-cg img { width: 100%; height: 100%; display: block; }
+    .s02-g img { width: 100%; height: 100%; display: block; }
+    .s02-g-type { background: #0b0b0b; box-sizing: border-box; padding: 0 44px; text-align: center;
+      font: 600 44px/1.12 "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; }
     .s02-t b { font: 500 39px/54px "Inter", sans-serif; color: #fff; white-space: nowrap; }
     .s02-t span { font: 500 33px/44px "Inter", sans-serif; color: #6b6b6b; white-space: nowrap; }
 
@@ -40,7 +42,7 @@
     .s02-card { position: absolute; inset: 0; box-sizing: border-box; padding: 72px; border-radius: 48px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f;
       display: flex; flex-direction: column; gap: 48px; font-family: "Inter", sans-serif; }
     .s02-head { display: flex; align-items: center; gap: 44px; height: 168px; }
-    .s02-cg { width: 168px; height: 168px; flex: none; border-radius: 45px; background: #141414; overflow: hidden; }
+    .s02-cg { width: 168px; height: 168px; flex: none; border-radius: 45px; background-color: #141414; background-size: cover; background-position: center; }
     .s02-ht { display: flex; flex-direction: column; gap: 6px; }
     .s02-ht b { font: 600 84px/92px "Inter", sans-serif; letter-spacing: -0.03em; color: #fff; }
     .s02-ht span { font: 500 39px/48px "Inter", sans-serif; color: #a1a1a1; }
@@ -56,25 +58,25 @@
   <div id="root" data-composition-id="s02-islands" data-width="1920" data-height="1080">
     <div id="s02-islands-wrap" class="clip k-canvas" data-start="0" data-duration="7.533" data-track-index="0" data-layout-allow-overflow>
       <div id="s02-wcam">
-        <div id="s02-t-oura" class="s02-t" style="left:30px; top:160px;"><div id="s02-ti-oura" class="s02-g s02-g-empty"></div><b>Oura</b></div>
+        <div id="s02-t-oura" class="s02-t" style="left:30px; top:160px;"><div id="s02-ti-oura" class="s02-g s02-g-type"><div class="s02-nm">Oura</div></div></div>
         <div id="s02-t-strong" class="s02-t" style="left:340px; top:160px;"><div class="s02-g s02-g-logo"><img id="s02-ti-strong" src="assets/apps/strong.png" alt=""></div><b>Strong</b><span>Workouts, sets, PRs</span></div>
-        <div id="s02-t-spotify" class="s02-t" style="left:650px; top:160px;"><div id="s02-ti-spotify" class="s02-g s02-g-empty"></div><b>Spotify</b></div>
+        <div id="s02-t-spotify" class="s02-t" style="left:650px; top:160px;"><div id="s02-ti-spotify" class="s02-g s02-g-type"><div class="s02-nm">Spotify</div></div></div>
         <div id="s02-t-mfp" class="s02-t" style="left:960px; top:160px;"><div class="s02-g s02-g-logo"><img id="s02-ti-mfp" src="assets/apps/myfitnesspal.png" alt=""></div><b>MyFitnessPal</b><span>Food diary, macros</span></div>
-        <div id="s02-t-venmo" class="s02-t" style="left:1270px; top:160px;"><div id="s02-ti-venmo" class="s02-g s02-g-empty"></div><b>Venmo</b></div>
-        <div id="s02-t-flo" class="s02-t" style="left:1580px; top:160px;"><div id="s02-ti-flo" class="s02-g s02-g-empty"></div><b>Flo</b></div>
+        <div id="s02-t-venmo" class="s02-t" style="left:1270px; top:160px;"><div id="s02-ti-venmo" class="s02-g s02-g-type"><div class="s02-nm">Venmo</div></div></div>
+        <div id="s02-t-flo" class="s02-t" style="left:1580px; top:160px;"><div id="s02-ti-flo" class="s02-g s02-g-type"><div class="s02-nm">Flo</div></div></div>
         <div id="s02-t-cro" class="s02-t" style="left:30px; top:560px;"><div class="s02-g s02-g-logo"><img id="s02-ti-cro" src="assets/apps/cronometer.png" alt=""></div><b>Cronometer</b><span>Nutrients, food log</span></div>
-        <div id="s02-t-strava" class="s02-t" style="left:340px; top:560px;"><div id="s02-ti-strava" class="s02-g s02-g-empty"></div><b>Strava</b></div>
+        <div id="s02-t-strava" class="s02-t" style="left:340px; top:560px;"><div id="s02-ti-strava" class="s02-g s02-g-type"><div class="s02-nm">Strava</div></div></div>
         <div id="s02-t-duo" class="s02-t" style="left:650px; top:560px;"><div class="s02-g s02-g-logo"><img id="s02-ti-duo" src="assets/apps/duolingo.png" alt=""></div><b>Duolingo</b><span>Streak, XP, words</span></div>
-        <div id="s02-t-canvas" class="s02-t" style="left:960px; top:560px;"><div id="s02-ti-canvas" class="s02-g s02-g-empty"></div><b>Canvas</b></div>
+        <div id="s02-t-canvas" class="s02-t" style="left:960px; top:560px;"><div id="s02-ti-canvas" class="s02-g s02-g-type"><div class="s02-nm">Canvas</div></div></div>
         <div id="s02-t-park" class="s02-t" style="left:1270px; top:560px;"><div class="s02-g s02-g-logo"><img id="s02-ti-park" src="assets/apps/parkmobile.png" alt=""></div><b>ParkMobile</b><span>Zones, prices, parking</span></div>
-        <div id="s02-t-garmin" class="s02-t" style="left:1580px; top:560px;"><div id="s02-ti-garmin" class="s02-g s02-g-empty"></div><b>Garmin Connect</b></div>
+        <div id="s02-t-garmin" class="s02-t" style="left:1580px; top:560px;"><div id="s02-ti-garmin" class="s02-g s02-g-type"><div class="s02-nm">Garmin<br>Connect</div></div></div>
       </div>
 
       <div id="s02-collapse">
         <div id="s02-dcam">
           <div id="s02-cw-mfp" class="s02-cw" style="left:410px;">
             <div id="s02-card-mfp" class="s02-card">
-              <div class="s02-head"><div id="s02-cg-mfp" class="s02-cg"><img id="s02-ci-mfp" src="assets/apps/myfitnesspal.png" alt=""></div><div id="s02-ht-mfp" class="s02-ht"><b>MyFitnessPal</b><span>Food diary, macros</span></div></div>
+              <div class="s02-head"><div id="s02-cg-mfp" class="s02-cg" style="background-image: url(assets/apps/myfitnesspal.png);"></div><div id="s02-ht-mfp" class="s02-ht"><b>MyFitnessPal</b><span>Food diary, macros</span></div></div>
               <div class="s02-rows">
                 <div id="s02-r-mfp1" class="s02-row"><span class="s02-l">Calories</span><div class="s02-v"><div id="s02-k-mfp1" class="s02-k k-icon"></div><div id="s02-b-mfp1" class="s02-bar"></div></div></div>
                 <div id="s02-r-mfp2" class="s02-row"><span class="s02-l">Protein</span><div class="s02-v"><div id="s02-k-mfp2" class="s02-k k-icon"></div><div id="s02-b-mfp2" class="s02-bar"></div></div></div>
@@ -84,7 +86,7 @@
           </div>
           <div id="s02-cw-cro" class="s02-cw" style="left:2410px;">
             <div id="s02-card-cro" class="s02-card">
-              <div class="s02-head"><div id="s02-cg-cro" class="s02-cg"><img id="s02-ci-cro" src="assets/apps/cronometer.png" alt=""></div><div id="s02-ht-cro" class="s02-ht"><b>Cronometer</b><span>Nutrients, food log</span></div></div>
+              <div class="s02-head"><div id="s02-cg-cro" class="s02-cg" style="background-image: url(assets/apps/cronometer.png);"></div><div id="s02-ht-cro" class="s02-ht"><b>Cronometer</b><span>Nutrients, food log</span></div></div>
               <div class="s02-rows">
                 <div id="s02-r-cro1" class="s02-row"><span class="s02-l">Magnesium</span><div class="s02-v"><div id="s02-k-cro1" class="s02-k k-icon"></div><div id="s02-b-cro1" class="s02-bar"></div></div></div>
                 <div id="s02-r-cro2" class="s02-row"><span class="s02-l">Iron</span><div class="s02-v"><div id="s02-k-cro2" class="s02-k k-icon"></div><div id="s02-b-cro2" class="s02-bar"></div></div></div>
@@ -94,7 +96,7 @@
           </div>
           <div id="s02-cw-str" class="s02-cw" style="left:4410px;">
             <div id="s02-card-str" class="s02-card">
-              <div class="s02-head"><div id="s02-cg-str" class="s02-cg"><img id="s02-ci-str" src="assets/apps/strong.png" alt=""></div><div id="s02-ht-str" class="s02-ht"><b>Strong</b><span>Workouts, sets, PRs</span></div></div>
+              <div class="s02-head"><div id="s02-cg-str" class="s02-cg" style="background-image: url(assets/apps/strong.png);"></div><div id="s02-ht-str" class="s02-ht"><b>Strong</b><span>Workouts, sets, PRs</span></div></div>
               <div class="s02-rows">
                 <div id="s02-r-str1" class="s02-row"><span class="s02-l">Sets this week</span><div class="s02-v"><div id="s02-k-str1" class="s02-k k-icon"></div><div id="s02-b-str1" class="s02-bar"></div></div></div>
                 <div id="s02-r-str2" class="s02-row"><span class="s02-l">Volume</span><div class="s02-v"><div id="s02-k-str2" class="s02-k k-icon"></div><div id="s02-b-str2" class="s02-bar"></div></div></div>
