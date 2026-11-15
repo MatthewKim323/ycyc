@@ -1,46 +1,149 @@
 <template>
-  <!-- s01-guess: Claude on a real phone guesses. VO v01 0.30 to 5.89, "guesses" onset 5.35 (measured on dialogue.wav). -->
-  <!-- sfx: t=0.55 name=text-tick gain=0.18 -->
-  <!-- sfx: t=1.05 name=text-tick gain=0.16 -->
-  <!-- sfx: t=1.55 name=text-tick gain=0.16 -->
-  <!-- sfx: t=2.05 name=text-tick gain=0.14 -->
-  <!-- sfx: t=2.55 name=text-tick gain=0.12 -->
+  <!-- s01-guess (6.211 s). A: slot roll of the assistants people pay for (0 to 1.90). B: the question in a prompt pill, typed, sent, thinking (1.90 to 4.30).
+       C: generic advice bursts in, and on "guesses" (5.35) it all goes soft (4.30 to 6.211). VO v01 0.25 to 5.91. Music from film 3.90 (beats 4.05 4.74 5.42 6.10). -->
+  <!-- sfx: t=0.55 name=ui-roll gain=0.45 -->
+  <!-- sfx: t=1.15 name=ui-roll gain=0.45 -->
+  <!-- sfx: t=1.90 name=flash-tick gain=0.3 -->
+  <!-- sfx: t=2.08 name=text-tick gain=0.16 -->
+  <!-- sfx: t=2.36 name=text-tick gain=0.15 -->
+  <!-- sfx: t=2.64 name=text-tick gain=0.14 -->
+  <!-- sfx: t=2.92 name=text-tick gain=0.13 -->
+  <!-- sfx: t=3.08 name=ui-confirm gain=0.5 -->
+  <!-- sfx: t=4.32 name=case-pop gain=0.35 -->
+  <!-- sfx: t=4.44 name=case-pop gain=0.32 -->
+  <!-- sfx: t=4.56 name=case-pop gain=0.32 -->
+  <!-- sfx: t=4.68 name=case-pop gain=0.3 -->
+  <!-- sfx: t=4.80 name=case-pop gain=0.3 -->
   <!-- sfx: t=5.35 name=low-hit gain=0.6 -->
   <style>
     #root { position: absolute; inset: 0; }
     #s01-cam { position: absolute; inset: 0; }
-    #s01-phone { left: 745px; top: 74px; }
-    #s01-screen { background: #141414; display: flex; align-items: center; justify-content: center; padding: 0 44px; text-align: center;
-      font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+
+    /* A: the slot roll. Names right-aligned to x 1250, price chip from x 1296. */
+    #s01-a { position: absolute; inset: 0; }
+    #s01-slot { position: absolute; left: 150px; top: 450px; width: 1100px; height: 180px; overflow: hidden; }
+    #s01-names { position: absolute; left: 0; top: 0; width: 100%; }
+    .s01-n { height: 180px; font: 600 150px/180px "Inter", sans-serif; letter-spacing: -0.03em; color: #fff; text-align: right; white-space: nowrap; }
+    #s01-chip { position: absolute; left: 1296px; top: 480px; width: 300px; height: 120px; border-radius: 999px; overflow: hidden;
+      background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a; }
+    #s01-prices { position: absolute; left: 0; top: 0; width: 100%; }
+    .s01-p { height: 120px; font: 600 60px/120px "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; text-align: center; font-variant-numeric: tabular-nums; }
+
+    /* B: the prompt pill (yuzu's own monochrome input). */
+    #s01-pill { position: absolute; left: 330px; top: 462px; width: 1260px; height: 156px; border-radius: 999px; box-sizing: border-box;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; padding: 0 30px 0 64px; gap: 24px; }
+    #s01-q { flex: 1; font: 500 56px/1 "Inter", sans-serif; color: #fff; white-space: nowrap; letter-spacing: -0.01em; }
+    #s01-send { width: 104px; height: 104px; border-radius: 50%; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; }
+    #s01-send .k-icon { width: 60px; height: 60px; }
+    #s01-dots { position: absolute; left: 870px; top: 560px; width: 180px; height: 28px; display: flex; justify-content: space-between; }
+    .s01-d { width: 28px; height: 28px; border-radius: 50%; background: #fff; }
+
+    /* C: the generic answers, yuzu cards at 3x. Each wrapper is a zero box at the card's centre. */
+    .s01-cw { position: absolute; width: 0; height: 0; display: flex; align-items: center; justify-content: center; }
+    .s01-card { flex: none; height: 132px; padding: 0 52px; border-radius: 48px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f;
+      display: flex; align-items: center; font: 500 44px/1 "Inter", sans-serif; color: #fff; white-space: nowrap; }
   </style>
   <div id="root" data-composition-id="s01-guess" data-width="1920" data-height="1080">
-    <div id="s01-guess-wrap" class="clip k-canvas" data-start="0" data-duration="6.211" data-track-index="0">
+    <div id="s01-guess-wrap" class="clip k-canvas" data-start="0" data-duration="6.211" data-track-index="0" data-layout-allow-overflow>
       <div id="s01-cam">
-        <div id="s01-phone" class="k-phone">
-          <!-- footage: assets/footage/r1-claude-guess.mp4 -->
-          <div id="s01-screen" class="k-screen">R1 · Claude: why am I so tired this week? (generic answer)</div>
+        <div id="s01-a">
+          <div id="s01-slot">
+            <div id="s01-names">
+              <div class="s01-n">Claude Pro</div>
+              <div class="s01-n">ChatGPT Plus</div>
+              <div class="s01-n">SuperGrok</div>
+            </div>
+          </div>
+          <div id="s01-chip">
+            <div id="s01-prices">
+              <div class="s01-p">$20/mo</div>
+              <div class="s01-p">$20/mo</div>
+              <div class="s01-p">$30/mo</div>
+            </div>
+          </div>
         </div>
+
+        <div id="s01-pill">
+          <div id="s01-q">why am I so tired this week?</div>
+          <div id="s01-send"><div id="s01-send-i" class="k-icon"></div></div>
+        </div>
+        <div id="s01-dots"><div id="s01-d1" class="s01-d"></div><div id="s01-d2" class="s01-d"></div><div id="s01-d3" class="s01-d"></div></div>
+
+        <div id="s01-c1" class="s01-cw" style="left:500px; top:500px;"><div class="s01-card">Get more sleep</div></div>
+        <div id="s01-c2" class="s01-cw" style="left:1420px; top:470px;"><div class="s01-card">Drink more water</div></div>
+        <div id="s01-c3" class="s01-cw" style="left:690px; top:706px;"><div class="s01-card">Cut back on caffeine</div></div>
+        <div id="s01-c4" class="s01-cw" style="left:1330px; top:690px;"><div class="s01-card">Try to reduce stress</div></div>
+        <div id="s01-c5" class="s01-cw" style="left:990px; top:908px;"><div class="s01-card">Consider seeing a doctor</div></div>
       </div>
     </div>
   </div>
   <script>
     (function () {
+      const ID = "s01-guess";
       const tl = gsap.timeline({ paused: true });
-      const cam = document.getElementById("s01-cam");
-      const phone = document.getElementById("s01-phone");
+      const $ = (s) => document.querySelector(s);
+      const SP = KIT.springs, E = KIT.ease.enter;
 
-      // Phone at 900px tall (0.966), framed at frame 0 so the thumbnail is the product.
-      gsap.set(phone, { scale: 0.966, transformOrigin: "50% 50%" });
-      gsap.set(cam, { scale: 1, opacity: 1, filter: "blur(0px)", transformOrigin: "960px 600px" });
+      // ---- A: slot roll (0 to 1.90). Frame 0 is already settled on "Claude Pro $20/mo".
+      gsap.set("#s01-a", { transformOrigin: "960px 540px", scale: 1, y: 0, opacity: 1, filter: "blur(0px)" });
+      tl.fromTo("#s01-a", { scale: 1 }, { scale: 1.045, duration: 1.9, ease: "sine.inOut", immediateRender: false }, 0);
+      gsap.set("#s01-names", { y: 0, filter: "blur(0px)" });
+      gsap.set("#s01-prices", { y: 0, filter: "blur(0px)" });
+      const roll = (el, step, at, from, to) => {
+        tl.fromTo(el, { y: -step * from }, { y: -step * to, duration: 0.34, ease: "back.out(1.5)", immediateRender: false }, at);
+        tl.fromTo(el, { filter: "blur(0px)" }, { filter: "blur(9px)", duration: 0.07, ease: "power2.in", immediateRender: false }, at);
+        tl.fromTo(el, { filter: "blur(9px)" }, { filter: "blur(0px)", duration: 0.16, ease: "power2.out", immediateRender: false }, at + 0.07);
+      };
+      roll("#s01-names", 180, 0.55, 0, 1);
+      roll("#s01-prices", 120, 0.62, 0, 1);
+      roll("#s01-names", 180, 1.15, 1, 2);
+      roll("#s01-prices", 120, 1.22, 1, 2);
+      // the name + chip group re-centres as each name lands (measured widths 745, 954, 762 px)
+      gsap.set("#s01-a", { x: -90 });
+      tl.fromTo("#s01-a", { x: -90 }, { x: 14, duration: 0.34, ease: "back.out(1.2)", immediateRender: false }, 0.55);
+      tl.fromTo("#s01-a", { x: 14 }, { x: -82, duration: 0.34, ease: "back.out(1.2)", immediateRender: false }, 1.15);
+      // slams away on "Ask"
+      tl.fromTo("#s01-a", { y: 0, opacity: 1, filter: "blur(0px)" }, { y: -150, opacity: 0, filter: "blur(12px)", duration: 0.18, ease: "power2.in", immediateRender: false }, 1.88);
 
-      // Hero move: macro push into the chat over the line, both ends eased.
-      tl.fromTo(cam, { scale: 1 }, { scale: 1.5, duration: 5.3, ease: "sine.inOut", immediateRender: false }, 0);
-      // "guesses": the push lands on the gap with the thud.
-      tl.fromTo(cam, { scale: 1.5 }, { scale: 1.6, duration: 0.42, ease: "power3.out", immediateRender: false }, 5.35);
-      // Exit: 12 frames, dim + 8px blur, power2.in, as s02 cuts in.
-      tl.fromTo(cam, { opacity: 1, filter: "blur(0px)" }, { opacity: 0.3, filter: "blur(8px)", duration: 0.39, ease: "power2.in", immediateRender: false }, 5.811);
+      // ---- B: the question (1.90 to 4.30). Camera pushes on the pill as it types.
+      gsap.set("#s01-cam", { transformOrigin: "960px 540px", scale: 1 });
+      gsap.set("#s01-pill", { opacity: 0, y: 110, scale: 0.92, transformOrigin: "50% 50%" });
+      tl.fromTo("#s01-pill", { y: 110, scale: 0.92 }, { y: 0, scale: 1, duration: SP.enter.dur, ease: SP.enter.ease, immediateRender: false }, 1.94);
+      tl.fromTo("#s01-pill", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, 1.94);
+      KIT.icon(tl, $("#s01-send-i"), "arrows-right", { tint: "#000" });
+      KIT.smear(tl, $("#s01-q"), 2.06);
+      tl.fromTo("#s01-cam", { scale: 1 }, { scale: 1.11, duration: 1.15, ease: "sine.inOut", immediateRender: false }, 2.0);
+      KIT.press(tl, $("#s01-send"), 3.08);
+      // the pill lifts, the camera eases back, the model "thinks"
+      tl.fromTo("#s01-pill", { y: 0, scale: 1 }, { y: -232, scale: 0.84, duration: SP.layout.dur * 1.3, ease: SP.layout.ease, immediateRender: false }, 3.3);
+      tl.fromTo("#s01-cam", { scale: 1.11 }, { scale: 1, duration: SP.layout.dur * 1.3, ease: SP.layout.ease, immediateRender: false }, 3.3);
+      gsap.set(["#s01-d1", "#s01-d2", "#s01-d3"], { opacity: 0, scale: 0.6 });
+      ["#s01-d1", "#s01-d2", "#s01-d3"].forEach((d, i) => {
+        const t0 = 3.44 + i * 0.09;
+        tl.fromTo(d, { opacity: 0, scale: 0.6 }, { opacity: 0.3, scale: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, t0 - 0.06);
+        tl.fromTo(d, { opacity: 0.3 }, { opacity: 1, duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, t0 + 0.14);
+      });
+      tl.fromTo("#s01-dots", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8, duration: 0.14, ease: "power2.in", immediateRender: false }, 4.24);
 
-      window.__timelines["s01-guess"] = tl;
+      // ---- C: the generic answers burst out of the pill (4.30), all go soft on "guesses" (5.35).
+      const cards = ["#s01-c1", "#s01-c2", "#s01-c3", "#s01-c4", "#s01-c5"];
+      const rot = [-3, 2.5, 1.5, -2, -1];
+      cards.forEach((c, i) => {
+        const el = $(c), cx = parseFloat(el.style.left), cy = parseFloat(el.style.top);
+        const fx = (960 - cx) * 0.55, fy = (310 - cy) * 0.55, t0 = 4.32 + i * 0.12;
+        gsap.set(el, { opacity: 0, x: fx, y: fy, scale: 0.45, rotation: 0 });
+        tl.fromTo(el, { x: fx, y: fy, scale: 0.45, rotation: 0 }, { x: 0, y: 0, scale: 1, rotation: rot[i], duration: SP.pop.dur, ease: SP.pop.ease, immediateRender: false }, t0);
+        tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, t0);
+        // slow drift until the hit, every card its own direction
+        tl.fromTo(el, { y: 0 }, { y: i % 2 ? -10 : 10, duration: 6.211 - t0 - SP.pop.dur * 0.6, ease: "sine.inOut", immediateRender: false }, t0 + SP.pop.dur * 0.6);
+      });
+      tl.fromTo("#s01-cam", { scale: 1 }, { scale: 1.025, duration: 1.0, ease: "sine.inOut", immediateRender: false }, 4.35);
+      // "guesses": punch 1.06 to 1.0 and everything goes generic
+      tl.fromTo("#s01-cam", { scale: 1.06 }, { scale: 1, duration: 0.36, ease: "expo.out", immediateRender: false }, 5.35);
+      tl.fromTo("#s01-cam", { scale: 1 }, { scale: 1.02, duration: 6.211 - 5.71, ease: "sine.inOut", immediateRender: false }, 5.71);
+      tl.fromTo(cards.concat("#s01-pill"), { opacity: 1, filter: "blur(0px)" }, { opacity: 0.25, filter: "blur(12px)", duration: 0.32, ease: "power2.out", immediateRender: false }, 5.37);
+
+      window.__timelines[ID] = tl;
     })();
   </script>
 </template>

@@ -1,6 +1,6 @@
 <template>
-  <!-- s03-reveal: the music drops at local 1.20 (film 14.94). The Strong phone holds, collapses into a white dot in the 0.4 s suck-out,
-       and on the drop the yuzu mark slams out of the dot with a camera punch over the blooming silk wave.
+  <!-- s03-reveal: the music drops at local 1.20 (film 14.94). Opens on s02's last frame, the 14 px white dot at (960, 445.6); it hangs and
+       tightens through the 0.4 s suck-out, and on the drop the yuzu mark slams out of the dot with a camera punch over the blooming silk wave.
        VO v03: "Yuzu." onset on the drop (1.20), "It connects them. Even the ones with no API." about 2.0 to 4.7. Title words from 1.885 (next beat). -->
   <!-- duck: t=0.80 len=0.40 -->
   <!-- sfx: t=1.20 name=slam-impact gain=0.9 -->
@@ -11,18 +11,6 @@
     #root { position: absolute; inset: 0; }
     #s03-cam { position: absolute; inset: 0; }
     #s03-wave-box { position: absolute; inset: 0; }
-    /* Same box as the s02 Strong phone: centre (640,540), so the seam carries the phone. */
-    #s03-mover { position: absolute; left: 425px; top: 74px; width: 430px; height: 932px; }
-    #s03-phone { left: 0; top: 0; }
-    #s03-screen { background: #141414; display: flex; align-items: center; justify-content: center; padding: 0 44px; text-align: center;
-      font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
-    #s03-white { position: absolute; inset: 0; border-radius: 68px; background: #fff; }
-    /* The s02 app chip, Strong state. */
-    #root #s03-chip { left: 1020px; top: 480px; height: 120px; padding: 0 48px 0 16px; gap: 28px; border-radius: 36px;
-      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; font: 600 52px "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; }
-    #s03-tile { width: 88px; height: 88px; border-radius: 20px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
-      display: flex; align-items: center; justify-content: center; flex: none; }
-    #s03-icon { width: 56px; height: 56px; }
     /* The dot sits where the mark's centre lands (960, 445.6). */
     #s03-dot { position: absolute; left: 953px; top: 438.6px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
     #s03-dim { position: absolute; left: 160px; top: 230px; width: 1600px; height: 620px;
@@ -36,19 +24,6 @@
     <div id="s03-reveal-wrap" class="clip k-canvas" data-start="0" data-duration="5.035" data-track-index="0">
       <div id="s03-cam">
         <div id="s03-wave-box"><canvas id="s03-waves" class="k-waves"></canvas></div>
-
-        <div id="s03-chip" class="k-chip">
-          <div id="s03-tile"><div id="s03-icon" class="k-icon"></div></div>
-          <span id="s03-name">Strong</span>
-        </div>
-
-        <div id="s03-mover">
-          <div id="s03-phone" class="k-phone">
-            <!-- footage: assets/footage/r2c-strong.mp4 -->
-            <div id="s03-screen" class="k-screen">R2c · Strong: this week's workouts</div>
-            <div id="s03-white"></div>
-          </div>
-        </div>
 
         <div id="s03-dim"></div>
         <div id="s03-dot"></div>
@@ -66,47 +41,25 @@
       const tl = gsap.timeline({ paused: true });
       const $ = (id) => document.getElementById(id);
       const END = 5.035, FILM_START = 13.744;
-      const DUCK = 0.8, DOT = 1.02, DROP = 1.2, PUNCH = 10 / 30;
-      const S0 = 1.1024; // s02 leaves Strong at 1.06 x 1.04
-      const cam = $("s03-cam"), mover = $("s03-mover"), phone = $("s03-phone"), white = $("s03-white");
+      const DUCK = 0.8, DROP = 1.2, PUNCH = 10 / 30;
+      const cam = $("s03-cam");
       const dot = $("s03-dot"), flash = $("s03-flash"), mark = $("s03-mark"), title = $("s03-title"), waveBox = $("s03-wave-box"), dim = $("s03-dim");
       const expoOut = gsap.parseEase("expo.out");
       const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
-      // Strong glyph at rest (its loop ends on the resting pose, as s02 leaves it).
-      KIT.icon(tl, $("s03-icon"), "person-pushups");
-
-      // The phone, the dot and the camera punch are one pure function of scene time (seek-safe in any order).
+      // The dot and the camera punch are one pure function of scene time (seek-safe in any order).
       function render(t) {
-        // 0 to 0.8: the held phone leans in 2%, accelerating into the suck-out.
-        const pre = clamp01(t / DUCK);
-        const sPre = S0 * (1 + 0.02 * pre * pre);
-        // 0.8 to 1.02: collapse to a white sliver on the mark's centre; size falls evenly in log space, accelerating.
-        const p = Math.pow(clamp01((t - DUCK) / (DOT - DUCK)), 2);
-        const scale = t < DUCK ? sPre : sPre * Math.pow(0.02 / sPre, p);
-        gsap.set(phone, { scale });
-        gsap.set(mover, {
-          x: 320 * p, y: -94.4 * p,
-          filter: "blur(" + (4 * clamp01((t - 0.86) / 0.14)).toFixed(2) + "px)", // motion blur only while it travels fast
-          opacity: t < DOT ? 1 : 0,
-        });
-        gsap.set(white, { opacity: clamp01((t - 0.86) / 0.12) });
-        // 1.02 to 1.2: the dot hangs, tightening (1.0 to 0.85) until the drop.
-        const hang = clamp01((t - DOT) / (DROP - DOT));
-        gsap.set(dot, { opacity: t >= DOT && t < DROP ? 1 : 0, scale: 1 - 0.15 * hang * hang });
+        // 0 to 1.2: s02's dot hangs, tightening (1.0 to 0.85) until the drop.
+        const hang = clamp01(t / DROP);
+        gsap.set(dot, { opacity: t < DROP ? 1 : 0, scale: 1 - 0.15 * hang * hang });
         // 1.2: full-frame punch, 1.06 to 1.0 over 10 frames, expo.out.
         const k = t < DROP ? 0 : 1 - expoOut(clamp01((t - DROP) / PUNCH));
         gsap.set(cam, { scale: 1 + 0.06 * k });
       }
       gsap.set(cam, { transformOrigin: "960px 445.6px" });
-      gsap.set(phone, { transformOrigin: "50% 50%" });
       const clk = { t: 0 };
       tl.fromTo(clk, { t: 0 }, { t: END, duration: END, ease: "none", immediateRender: false, onUpdate: () => render(clk.t) }, 0);
       render(0);
-
-      // The chip leaves before the suck-out (secondary move).
-      gsap.set($("s03-chip"), { opacity: 1, x: 0, filter: "blur(0px)" });
-      tl.fromTo($("s03-chip"), { opacity: 1, x: 0, filter: "blur(0px)" }, { opacity: 0, x: 24, filter: "blur(8px)", duration: 0.22, ease: "power2.in", immediateRender: false }, 0.56);
 
       // Silk wave on film time (continuous with the other scenes), blooming in from the duck: about half strength on the drop.
       KIT.waves(tl, $("s03-waves"), { from: DUCK, to: END, offset: FILM_START + DUCK, intro: false, preset: "silk", width: 1920, height: 1080 });
