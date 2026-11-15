@@ -1,87 +1,69 @@
 {
   "appSlug": "flo",
-  "version": 1,
+  "version": 2,
   "status": "draft",
-  "executor": "phone",
+  "executor": "cloud",
+  "baseUrl": "https://api.owhealth.com/call/v1/web_app",
   "auth": {
     "type": "login_api",
     "sessionKeys": [
       "credentials.username",
-      "credentials.password"
-    ]
+      "credentials.password",
+      "storage.visitorId"
+    ],
+    "loginRequest": {
+      "method": "POST",
+      "urlTemplate": "/sessions",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Visitor-Id": "{{session.storage.visitorId|$uuid}}"
+      },
+      "bodyTemplate": "{\"username\":\"{{session.credentials.username}}\",\"password\":\"{{session.credentials.password}}\"}"
+    },
+    "check": {
+      "method": "GET",
+      "urlTemplate": "/users?ensure_pii=true",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer {{login.session.token}}"
+      }
+    }
   },
   "tools": [
     {
-      "name": "get_cycle_status",
-      "title": "Cycle status",
+      "name": "get_last_period_start_date",
+      "title": "Stored last period date",
+      "description": "Read the last period start date stored in the Flo web account profile. This is not a current cycle prediction or diary history. Draft: authenticated response shape still needs verification.",
       "kind": "read",
-      "description": "Today's cycle day, current phase, days until the next predicted period and the fertile window, read from the Flo home screen.",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "additionalProperties": false
       },
-      "phoneInstruction": "Open the Today tab of Flo ||| Read the cycle day, the current phase, the days until the next period and the fertile window dates shown on screen"
-    },
-    {
-      "name": "get_recent_logs",
-      "title": "Recent logs",
-      "kind": "read",
-      "description": "Symptoms, moods, flow and notes logged in Flo for the last few days.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "days": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 14,
-            "default": 7
-          }
+      "request": {
+        "method": "GET",
+        "urlTemplate": "/users?ensure_pii=true",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer {{login.session.token}}"
         }
       },
-      "phoneInstruction": "Open the Flo calendar and tap each of the last {{days}} days in turn ||| List the logged period flow, symptoms, moods and notes for each day you saw"
-    },
-    {
-      "name": "log_symptoms",
-      "title": "Log symptoms",
-      "kind": "write",
-      "description": "Log symptoms (and optionally period flow) for today in Flo. Health data: needs the user's approval.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "symptoms": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Flo symptom names, e.g. Cramps, Headache, Bloating"
-          },
-          "flow": {
-            "type": "string",
-            "enum": [
-              "none",
-              "light",
-              "medium",
-              "heavy"
-            ]
-          }
-        },
-        "required": [
-          "symptoms"
-        ]
-      },
-      "phoneInstruction": "On the Flo Today tab tap 'Log your symptoms', select {{symptoms}} and period flow {{flow}} if given, then tap Apply ||| Confirm which symptoms now show as logged for today"
+      "extract": "user.profile.last_period_start_date"
     }
   ],
   "playbook": [
-    "Upload a plain Flo APK to Revyl (APKMirror removed Flo after a DMCA; Uptodown/APKPure have none; APKCube only has a 160 MB .apks split bundle)",
-    "Sign in on the cloud phone with the user's Flo email + password once (Auth0 at auth.flo.health)",
-    "Run tools as Revyl instruction/extract steps",
-    "Map the direct API later: Auth0 password grant at auth.flo.health/oauth/token needs the Android client_id from the APK; data API host is api.owhealth.com"
+    "Source: official app.flo.health public web bundle and runtime configuration; no APK decompilation.",
+    "Web login: POST /call/v1/web_app/sessions with username/password and X-Visitor-Id; frontend reads session.token and uses Authorization: Bearer.",
+    "Web account read: GET /call/v1/web_app/users?ensure_pii=true. Response user envelope and last_period_start_date projection are provisional until a successful user-owned capture.",
+    "Use scripts/re/flo/web.ts for explicit login and privacy-filtered profile checks; scripts/re/flo/capture.ts inventories a user-owned HAR without printing values.",
+    "Cycle predictions, symptom history and symptom writes remain unavailable: the web /calendar route redirects to the app download page. Capture actual mobile traffic before adding those tools.",
+    "Keep draft; do not publish or advertise this connector as verified until authenticated read and response projection are confirmed."
   ],
   "provenance": {
     "compiler": "hand",
-    "compiledAt": 1794779026728,
+    "compiledAt": 1794787200000,
     "captureCount": 0,
-    "notes": "Draft, unverified. No community reverse engineering of Flo exists (Flo files DMCA takedowns: github/dmca 2022-09, 2023-11). Found from Flo's public web app bundle (app.flo.health): Auth0 tenant on custom domain auth.flo.health (OIDC discovery lists /oauth/token, /mfa/challenge), backend API https://api.owhealth.com (web paths /v1/web_app/sessions, /v1/web_app/users), web Auth0 client ids present. Mobile cycle/symptom endpoints unknown without the APK or traffic: Revyl network capture is iOS-only and Android logcat shows no URLs. Phone executor blocked until a Flo build is on Revyl (set REVYL_FLO_BUILD_ID). phoneInstruction format: '<instruction> ||| <extract>' (convex/revyl.ts runTool splits on |||)."
+    "notes": "Unverified authenticated flow. On 2026-11-15 a public unauthenticated GET /users?ensure_pii=true returned HTTP 401 with Authentication Required. Official public frontend _app-bb691ff7ac2c37fe.js exposes /sessions and /users; runtimeConfig.apiUrl=https://api.owhealth.com. Authenticated JSON response shape is inferred, not captured; extract must be checked before promotion. Removed unsupported phone UI tools and health writes. See research/notes/re-flo.md."
   }
 }
