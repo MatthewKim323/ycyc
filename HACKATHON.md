@@ -31,6 +31,19 @@
 | Candle | YC consumer app, 1M+ users, on the floor | Ask about retention |
 | Whop | Business API | n/a |
 
+## Free credits and setup (from consumermobilehackathon.com, no money spent)
+| Sponsor | Perk | How to claim |
+|---|---|---|
+| Capy | 1 free month of Capy Max ($200), sent to your **registration email** | Sign in with that email. Connect GitHub ("Only select repositories", this repo). Project env var `CONVEX_DEPLOY_KEY`. Questions: #capy |
+| Revyl | Free via Capy (Capy links Revyl on first use). CLI free plan: 1,200 device min/mo, 2 devices | Existing Revyl account: approve in Capy, Settings → Integrations → Revyl. CLI: `curl -fsSL https://revyl.com/install.sh \| sh`, `revyl auth login` |
+| Convex | Free plan (1M calls/mo). Nothing to claim | Project → Development deployment → Settings → Generate deploy key (Select all) → into Capy |
+| Keiki | Build credits + shared iMessage line, no card | https://onkeiki.com/signup?code=KEIKI-CAPY-YC (needs phone). Setup prompt: https://onkeiki.com/setup.md. Dedicated line and API gateway cost money: skip |
+| Whop | Sandbox, free | https://sandbox.whop.com, Admin API key, webhook `<convex .site URL>/whop` on payment_succeeded. Capy env: `WHOP_API_KEY`, `WHOP_WEBHOOK_SECRET`, `WHOP_ENVIRONMENT=sandbox` |
+| OpenAI | $100 API credits | Personal one-time link handed out at kickoff (platform.openai.com/p/...) |
+| Supermemory | 1 month Pro with code `CAPYSM` | Pro checkout + code drops to $0. Skipped unless it works with no card |
+
+Discord: https://discord.gg/RfTHVTVFX (sponsor channels: #capy #revyl #convex #keiki #whop #supermemory, else #general). Submit: https://vibeapps.dev/judging/consumer-mobile-hackathon/submit
+
 Revyl MCP tools worth knowing: `start_device_session`, `install_app` (URL artifact), `launch_app`, `device_instruction` (one plain-English step), `device_extract` (pull data off the screen), `device_tap/type/swipe`, `screenshot`, `get_session_info` (viewer URL). Embed sessions end after 3 min idle or 10 min active. Network capture shows method, status, URL.
 
 ## Judging lens and our answer
