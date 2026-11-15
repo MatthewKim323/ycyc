@@ -1,12 +1,11 @@
 <template>
-  <!-- s04-connect (8.0 s). Pick Flo, the connect sheet, the build stage. Cronometer builds behind at 3x. -->
+  <!-- s04-connect (8.0 s). Pick MyFitnessPal, the connect sheet, the build stage. Cronometer builds behind at 3x. -->
   <!-- sfx: t=0.93 name=ui-confirm gain=0.5 -->
   <!-- sfx: t=1.15 name=ui-open gain=0.3 -->
   <!-- sfx: t=2.00 name=ui-confirm gain=0.45 -->
   <!-- sfx: t=2.15 name=card-morph gain=0.3 -->
   <!-- sfx: t=2.97 name=row-tick gain=0.5 -->
   <!-- sfx: t=3.65 name=row-tick gain=0.5 -->
-  <!-- sfx: t=3.75 name=counter-grain gain=0.4 -->
   <!-- sfx: t=4.33 name=row-tick gain=0.5 -->
   <!-- sfx: t=6.37 name=row-tick gain=0.5 -->
   <style>
@@ -22,29 +21,32 @@
     #s04-tap { position: absolute; left: 60px; top: 280px; width: 100px; height: 100px; border-radius: 50%; box-shadow: inset 0 0 0 3px #fff; opacity: 0; }
 
     /* camera: sheet + build share one space */
-    #s04-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1400px; }
-    #s04-rise { position: absolute; left: 0; top: 0; width: 1920px; height: 1400px; }
-    #s04-shell-b, #s04-shell { position: absolute; left: 0; top: 0; width: 1920px; height: 1400px; }
-    #s04-shell-b { background: #1f1f1f; clip-path: inset(89.5px 467px 218.5px 467px round 61.5px); }
-    #s04-shell { background: #0b0b0b; clip-path: inset(91px 468.5px 220px 468.5px round 60px); }
+    #s04-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 2000px; }
+    #s04-rise { position: absolute; left: 0; top: 0; width: 1920px; height: 2000px; }
+    #s04-shell-b, #s04-shell { position: absolute; left: 0; top: 0; width: 1920px; height: 2000px; }
+    #s04-shell-b { background: #1f1f1f; clip-path: inset(89.5px 467px 498.5px 467px round 61.5px); }
+    #s04-shell { background: #0b0b0b; clip-path: inset(91px 468.5px 500px 468.5px round 60px); }
 
     /* connect sheet at 2.5x */
     #s04-sheet { position: absolute; left: 468.5px; top: 91px; width: 983px; padding: 80px 60px 0; box-sizing: border-box;
       display: flex; flex-direction: column; gap: 60px; font-family: "Inter", sans-serif; }
-    .s04-lock { display: flex; align-items: center; justify-content: center; gap: 30px; height: 120px; }
-    #s04-mark { width: 120px; height: 120px; border-radius: 35px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
-      font: 500 32.5px "Inter", sans-serif; letter-spacing: -0.3px; }
+    .s04-lock { display: flex; align-items: center; justify-content: center; gap: 30px; height: 140px; }
+    #s04-mark { width: 140px; height: 140px; border-radius: 37.5px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+      font: 600 32.5px "Inter", sans-serif; letter-spacing: -0.5px; }
     #s04-lk { width: 50px; height: 50px; opacity: 0; }
-    .s04-glyph { width: 120px; height: 120px; border-radius: 32px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; justify-content: center; }
-    .s04-glyph .k-icon { width: 72px; height: 72px; }
+    .s04-glyph { width: 140px; height: 140px; border-radius: 37.5px; background: #141414; overflow: hidden; }
+    .s04-logo { width: 100%; height: 100%; background-size: cover; background-position: center; }
+    .s04-mfp { background-image: url("assets/apps/myfitnesspal.png"); }
+    .s04-cro { background-image: url("assets/apps/cronometer.png"); }
     #s04-title { font: 600 70px/85px "Inter", sans-serif; letter-spacing: -1.25px; color: #fff; text-align: center; margin: 0; }
-    .s04-rows { display: flex; flex-direction: column; gap: 40px; }
-    .s04-row { display: flex; gap: 30px; align-items: flex-start; }
-    .s04-vi { width: 90px; height: 90px; flex: none; border-radius: 30px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; justify-content: center; }
-    .s04-vi .k-icon { width: 55px; height: 55px; }
-    .s04-vt { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-    .s04-vt b { font: 500 37.5px/52px "Inter", sans-serif; color: #fff; }
-    .s04-vt span { font: 400 32.5px/45px "Inter", sans-serif; color: #a1a1a1; }
+    #s04-sec { display: flex; flex-direction: column; gap: 20px; }
+    .s04-sl { font: 500 32.5px/45px "Inter", sans-serif; color: #6b6b6b; padding: 0 10px; }
+    .s04-card { border-radius: 40px; background: #000; box-shadow: inset 0 0 0 1.5px #1f1f1f; overflow: hidden; }
+    .s04-cap { min-height: 125px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 30px 40px; }
+    .s04-cap + .s04-cap { box-shadow: inset 0 1.5px 0 #1f1f1f; }
+    .s04-cap b { flex: 1; font: 400 40px/55px "Inter", sans-serif; color: #fff; }
+    .s04-cap span { font: 400 32.5px/45px "Inter", sans-serif; color: #a1a1a1; }
+    #s04-foot { font: 400 32.5px/45px "Inter", sans-serif; color: #a1a1a1; text-align: center; margin: 0; }
     #s04-cont { height: 130px; border-radius: 999px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
       font: 600 37.5px "Inter", sans-serif; }
 
@@ -54,8 +56,7 @@
     .bp-hero { display: flex; flex-direction: column; align-items: center; gap: 38px; margin-bottom: 19px; }
     .bp-gw { position: relative; width: 154px; height: 154px; }
     .bp-breath { position: absolute; inset: 0; border-radius: 43px; box-shadow: inset 0 0 0 3.6px #fff; opacity: 0; }
-    .bp-glyph { position: absolute; inset: 0; border-radius: 42px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; justify-content: center; }
-    .bp-glyph .k-icon { width: 92px; height: 92px; }
+    .bp-glyph { position: absolute; inset: 0; border-radius: 41px; background: #141414; overflow: hidden; }
     .bp-h { font: 600 48px/62px "Inter", sans-serif; letter-spacing: -0.72px; color: #fff; text-align: center; margin: 0; }
     .bp-steps { display: flex; flex-direction: column; gap: 38px; }
     .bp-st { display: flex; align-items: flex-start; gap: 29px; }
@@ -67,14 +68,14 @@
     .bp-dot .k-icon { width: 34px; height: 34px; }
     .bp-lbl { font: 500 36px/53px "Inter", sans-serif; color: #6b6b6b; }
     .bp-tools { background: #0b0b0b; border-radius: 38px; box-shadow: inset 0 0 0 1.5px #1f1f1f; padding: 38px; display: flex; flex-direction: column; gap: 29px; opacity: 0; }
-    .bp-th { display: flex; justify-content: space-between; align-items: center; font: 500 34px/43px "Inter", sans-serif; color: #a1a1a1; font-variant-numeric: tabular-nums; }
+    .bp-th { font: 500 36px/43px "Inter", sans-serif; color: #a1a1a1; }
     .bp-tr { display: flex; align-items: center; gap: 29px; font: 500 36px/50px "Inter", sans-serif; color: #fff; }
     .bp-tr .t { flex: 1; }
-    .bp-tag { border-radius: 999px; box-shadow: inset 0 0 0 1.5px #2a2a2a; padding: 3px 19px; font: 500 34px/40px "Inter", sans-serif; color: #fff; }
+    .bp-ask { font: 400 34px/43px "Inter", sans-serif; color: #a1a1a1; }
 
     /* Cronometer, dimmed behind */
-    #s04-cw { position: absolute; left: 1180px; top: 121px; width: 519px; height: 838px; opacity: 0; }
-    #s04-ci { position: absolute; left: 0; top: 0; width: 943px; height: 1524px; transform: scale(0.55); transform-origin: 0 0;
+    #s04-cw { position: absolute; left: 1180px; top: 181px; width: 519px; height: 717px; opacity: 0; }
+    #s04-ci { position: absolute; left: 0; top: 0; width: 943px; height: 1304px; transform: scale(0.55); transform-origin: 0 0;
       border-radius: 60px; background: #000; box-shadow: inset 0 0 0 1.5px #1f1f1f; }
     #s04-c { left: 0; top: 0; }
   </style>
@@ -87,7 +88,7 @@
         <div id="s04-phone-w">
           <div id="s04-phone" class="k-phone">
             <!-- footage: assets/footage/r3-ycyc-connect.mp4 -->
-            <div id="s04-r3" class="k-screen s04-ph" data-layout-allow-overlap>R3 · yuzu: Apps → Flo → sign in</div>
+            <div id="s04-r3" class="k-screen s04-ph" data-layout-allow-overlap>R3 · yuzu: Apps → MyFitnessPal → sign in</div>
           </div>
           <div id="s04-tap"></div>
         </div>
@@ -96,23 +97,21 @@
           <div id="s04-ci" class="p-dim">
             <div id="s04-c" class="bp">
               <div class="bp-hero">
-                <div class="bp-gw"><div id="s04-c-breath" class="bp-breath"></div><div class="bp-glyph"><div id="s04-c-gi" class="k-icon"></div></div></div>
-                <p class="bp-h">Building your Cronometer connector</p>
+                <div class="bp-gw"><div id="s04-c-breath" class="bp-breath"></div><div class="bp-glyph"><div id="s04-c-gi" class="s04-logo s04-cro"></div></div></div>
+                <p class="bp-h">Setting up Cronometer</p>
               </div>
               <div class="bp-steps">
-                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r1" class="bp-ring"></div><div id="s04-c-a1" class="bp-arc"></div><div id="s04-c-d1" class="bp-dot"><div id="s04-c-k1" class="k-icon"></div></div></div><div id="s04-c-l1" class="bp-lbl">Signed in</div></div>
-                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r2" class="bp-ring"></div><div id="s04-c-a2" class="bp-arc"></div><div id="s04-c-d2" class="bp-dot"><div id="s04-c-k2" class="k-icon"></div></div></div><div id="s04-c-l2" class="bp-lbl">Reading your account</div></div>
-                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r3" class="bp-ring"></div><div id="s04-c-a3" class="bp-arc"></div><div id="s04-c-d3" class="bp-dot"><div id="s04-c-k3" class="k-icon"></div></div></div><div id="s04-c-l3" class="bp-lbl">Writing tools</div></div>
-                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r4" class="bp-ring"></div><div id="s04-c-a4" class="bp-arc"></div><div id="s04-c-d4" class="bp-dot"><div id="s04-c-k4" class="k-icon"></div></div></div><div id="s04-c-l4" class="bp-lbl">Testing a real request</div></div>
+                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r1" class="bp-ring"></div><div id="s04-c-a1" class="bp-arc"></div><div id="s04-c-d1" class="bp-dot"><div id="s04-c-k1" class="k-icon"></div></div></div><div id="s04-c-l1" class="bp-lbl">Signing in</div></div>
+                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r2" class="bp-ring"></div><div id="s04-c-a2" class="bp-arc"></div><div id="s04-c-d2" class="bp-dot"><div id="s04-c-k2" class="k-icon"></div></div></div><div id="s04-c-l2" class="bp-lbl">Learning the app</div></div>
+                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r3" class="bp-ring"></div><div id="s04-c-a3" class="bp-arc"></div><div id="s04-c-d3" class="bp-dot"><div id="s04-c-k3" class="k-icon"></div></div></div><div id="s04-c-l3" class="bp-lbl">Checking it works</div></div>
+                <div class="bp-st"><div class="bp-ind"><div id="s04-c-r4" class="bp-ring"></div><div id="s04-c-a4" class="bp-arc"></div><div id="s04-c-d4" class="bp-dot"><div id="s04-c-k4" class="k-icon"></div></div></div><div id="s04-c-l4" class="bp-lbl">Ready</div></div>
               </div>
               <div id="s04-c-tools" class="bp-tools">
-                <div class="bp-th"><span>Tools</span><span id="s04-c-n">0</span></div>
-                <div class="bp-tr"><span class="t">Search foods</span></div>
-                <div class="bp-tr"><span class="t">Read food diary</span></div>
-                <div class="bp-tr"><span class="t">Daily nutrition totals</span></div>
-                <div class="bp-tr"><span class="t">Nutrient targets</span></div>
-                <div class="bp-tr"><span class="t">Log food</span><span class="bp-tag">Needs OK</span></div>
-                <div class="bp-tr"><span class="t">Remove diary entry</span><span class="bp-tag">Needs OK</span></div>
+                <div class="bp-th">Your assistant can</div>
+                <div class="bp-tr"><span class="t">Check your nutrients</span></div>
+                <div class="bp-tr"><span class="t">Read your diary</span></div>
+                <div class="bp-tr"><span class="t">Log a meal</span><span class="bp-ask">Asks you first</span></div>
+                <div class="bp-tr"><span class="t">Remove an entry</span><span class="bp-ask">Asks you first</span></div>
               </div>
             </div>
           </div>
@@ -126,13 +125,18 @@
               <div class="s04-lock">
                 <div id="s04-mark">yuzu</div>
                 <div id="s04-lk" class="k-icon"></div>
-                <div id="s04-gl" class="s04-glyph"><div id="s04-gli" class="k-icon"></div></div>
+                <div id="s04-gl" class="s04-glyph"><div id="s04-gli" class="s04-logo s04-mfp"></div></div>
               </div>
-              <p id="s04-title">Connect Flo</p>
-              <div class="s04-rows">
-                <div id="s04-row1" class="s04-row"><div class="s04-vi"><div id="s04-vi1" class="k-icon"></div></div><div class="s04-vt"><b>Sign in with your Flo account</b><span>yuzu never stores your password.</span></div></div>
-                <div id="s04-row2" class="s04-row"><div class="s04-vi"><div id="s04-vi2" class="k-icon"></div></div><div class="s04-vt"><b>You approve every change</b><span>Assistants read freely. Logging or editing waits for your OK.</span></div></div>
+              <p id="s04-title">Connect MyFitnessPal</p>
+              <div id="s04-sec">
+                <div class="s04-sl">Your assistants can</div>
+                <div class="s04-card">
+                  <div class="s04-cap"><b>Find foods</b></div>
+                  <div class="s04-cap"><b>Read your diary</b></div>
+                  <div class="s04-cap"><b>Log a meal</b><span>Asks you first</span></div>
+                </div>
               </div>
+              <p id="s04-foot">yuzu never stores your password.</p>
               <div id="s04-cont">Continue</div>
             </div>
           </div>
@@ -140,20 +144,22 @@
           <div id="s04-fx" class="bp" style="left:348.5px; top:110px; padding:0; gap:0;">
             <div id="s04-f" class="bp" style="left:0; top:0;">
               <div id="s04-f-hero" class="bp-hero">
-                <div class="bp-gw"><div id="s04-f-breath" class="bp-breath"></div><div class="bp-glyph"><div id="s04-f-gi" class="k-icon"></div></div></div>
-                <p id="s04-f-h" class="bp-h">Building your Flo connector</p>
+                <div class="bp-gw"><div id="s04-f-breath" class="bp-breath"></div><div class="bp-glyph"><div id="s04-f-gi" class="s04-logo s04-mfp"></div></div></div>
+                <p id="s04-f-h" class="bp-h">Setting up MyFitnessPal</p>
               </div>
               <div class="bp-steps">
-                <div id="s04-f-s1" class="bp-st"><div class="bp-ind"><div id="s04-f-r1" class="bp-ring"></div><div id="s04-f-a1" class="bp-arc"></div><div id="s04-f-d1" class="bp-dot"><div id="s04-f-k1" class="k-icon"></div></div></div><div id="s04-f-l1" class="bp-lbl">Signed in</div></div>
-                <div id="s04-f-s2" class="bp-st"><div class="bp-ind"><div id="s04-f-r2" class="bp-ring"></div><div id="s04-f-a2" class="bp-arc"></div><div id="s04-f-d2" class="bp-dot"><div id="s04-f-k2" class="k-icon"></div></div></div><div id="s04-f-l2" class="bp-lbl">Reading your account</div></div>
-                <div id="s04-f-s3" class="bp-st"><div class="bp-ind"><div id="s04-f-r3" class="bp-ring"></div><div id="s04-f-a3" class="bp-arc"></div><div id="s04-f-d3" class="bp-dot"><div id="s04-f-k3" class="k-icon"></div></div></div><div id="s04-f-l3" class="bp-lbl">Writing tools</div></div>
-                <div id="s04-f-s4" class="bp-st"><div class="bp-ind"><div id="s04-f-r4" class="bp-ring"></div><div id="s04-f-a4" class="bp-arc"></div><div id="s04-f-d4" class="bp-dot"><div id="s04-f-k4" class="k-icon"></div></div></div><div id="s04-f-l4" class="bp-lbl">Testing a real request</div></div>
+                <div id="s04-f-s1" class="bp-st"><div class="bp-ind"><div id="s04-f-r1" class="bp-ring"></div><div id="s04-f-a1" class="bp-arc"></div><div id="s04-f-d1" class="bp-dot"><div id="s04-f-k1" class="k-icon"></div></div></div><div id="s04-f-l1" class="bp-lbl">Signing in</div></div>
+                <div id="s04-f-s2" class="bp-st"><div class="bp-ind"><div id="s04-f-r2" class="bp-ring"></div><div id="s04-f-a2" class="bp-arc"></div><div id="s04-f-d2" class="bp-dot"><div id="s04-f-k2" class="k-icon"></div></div></div><div id="s04-f-l2" class="bp-lbl">Learning the app</div></div>
+                <div id="s04-f-s3" class="bp-st"><div class="bp-ind"><div id="s04-f-r3" class="bp-ring"></div><div id="s04-f-a3" class="bp-arc"></div><div id="s04-f-d3" class="bp-dot"><div id="s04-f-k3" class="k-icon"></div></div></div><div id="s04-f-l3" class="bp-lbl">Checking it works</div></div>
+                <div id="s04-f-s4" class="bp-st"><div class="bp-ind"><div id="s04-f-r4" class="bp-ring"></div><div id="s04-f-a4" class="bp-arc"></div><div id="s04-f-d4" class="bp-dot"><div id="s04-f-k4" class="k-icon"></div></div></div><div id="s04-f-l4" class="bp-lbl">Ready</div></div>
               </div>
               <div id="s04-f-tools" class="bp-tools">
-                <div class="bp-th"><span>Tools</span><span id="s04-f-n">0</span></div>
-                <div id="s04-f-t1" class="bp-tr"><span class="t">Cycle status</span></div>
-                <div id="s04-f-t2" class="bp-tr"><span class="t">Recent logs</span></div>
-                <div id="s04-f-t3" class="bp-tr"><span class="t">Log symptoms</span><span class="bp-tag">Needs OK</span></div>
+                <div class="bp-th">Your assistant can</div>
+                <div id="s04-f-t1" class="bp-tr"><span class="t">Find foods</span></div>
+                <div id="s04-f-t2" class="bp-tr"><span class="t">Read your diary</span></div>
+                <div id="s04-f-t3" class="bp-tr"><span class="t">Check your goals</span></div>
+                <div id="s04-f-t4" class="bp-tr"><span class="t">Log a meal</span><span class="bp-ask">Asks you first</span></div>
+                <div id="s04-f-t5" class="bp-tr"><span class="t">Remove an entry</span><span class="bp-ask">Asks you first</span></div>
               </div>
             </div>
           </div>
@@ -173,13 +179,13 @@
       KIT.waves(tl, $("#s04-waves"), { from: 0, to: D, offset: 18.779 });
       tl.fromTo("#s04-dim", { opacity: 0 }, { opacity: 0.55, duration: 0.7, ease: "power2.inOut", immediateRender: false }, 0);
 
-      // phone rises (origin on the Flo tile so the push lands there)
+      // phone rises (origin on the MyFitnessPal tile so the push lands there)
       const PO = "110px 330px";
       gsap.set("#s04-phone-w", { transformOrigin: PO, scale: 0.966, y: 1100, filter: "blur(0px)", opacity: 1 });
       tl.fromTo("#s04-phone-w", { y: 1100 }, { y: 0, duration: 0.6, ease: E, immediateRender: false }, 0.05);
       tl.fromTo("#s04-phone-w", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 0.05);
       tl.fromTo("#s04-phone-w", { scale: 0.966 }, { scale: 0.985, duration: 0.3, ease: "sine.inOut", immediateRender: false }, 0.65);
-      // tap on the Flo tile, push follows
+      // tap on the MyFitnessPal tile, push follows
       tl.fromTo("#s04-tap", { scale: 0.5, opacity: 0.85 }, { scale: 1.3, opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.93);
       tl.fromTo("#s04-phone-w", { scale: 0.985 }, { scale: 1.8, duration: 0.45, ease: "power2.inOut", immediateRender: false }, 0.95);
       tl.fromTo("#s04-phone-w", { filter: "blur(0px)" }, { filter: "blur(5px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 0.95);
@@ -189,8 +195,8 @@
       // camera keyframes (origin 0 0)
       gsap.set("#s04-cam", { transformOrigin: "0px 0px", x: 0, y: 0, scale: 1 });
       const cam = (a, b, at, dur, ease) => tl.fromTo("#s04-cam", a, { ...b, duration: dur, ease, immediateRender: false }, at);
-      const K1 = { x: -24, y: -15, scale: 1.025 }, K0 = { x: 0, y: 0, scale: 1 };
-      const K3 = { x: -16.4, y: -10, scale: 1.02 }, K4 = { x: 131.2, y: -66.5, scale: 0.84 }, K5 = { x: 106.6, y: -88.1, scale: 0.87 };
+      const K1 = { x: -24, y: -235, scale: 1.025 }, K0 = { x: 0, y: 0, scale: 1 };
+      const K3 = { x: -16.4, y: -10, scale: 1.02 }, K4 = { x: 164, y: -101.2, scale: 0.8 }, K5 = { x: 139.4, y: -125.2, scale: 0.83 };
       cam(K0, K1, 1.35, 0.8, "sine.inOut");
       cam(K1, K0, 2.15, 0.5, SP.layout.ease);
       cam(K0, K3, 2.65, 1.0, "sine.inOut");
@@ -201,31 +207,27 @@
       gsap.set("#s04-rise", { y: 1000 });
       tl.fromTo("#s04-rise", { y: 1000 }, { y: 0, duration: 0.5, ease: SP.sheet.ease, immediateRender: false }, 1.15);
       tl.fromTo("#s04-rise", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.25, ease: "power2.out", immediateRender: false }, 1.15);
-      // lockup slides together (yuzu square into the Flo glyph), link joins
+      // lockup slides together (yuzu square into the MyFitnessPal glyph), link joins
       gsap.set("#s04-mark", { x: -60 }); gsap.set("#s04-gl", { x: 60 });
       tl.fromTo("#s04-mark", { x: -60 }, { x: 0, duration: 0.6, ease: SP.enter.ease, immediateRender: false }, 1.3);
       tl.fromTo("#s04-gl", { x: 60 }, { x: 0, duration: 0.6, ease: SP.enter.ease, immediateRender: false }, 1.3);
-      tl.fromTo("#s04-lk", { opacity: 0 }, { opacity: 0.7, duration: 0.28, ease: "power2.out", immediateRender: false }, 1.4);
-      KIT.icon(tl, $("#s04-lk"), "link", { at: 1.4 });
-      KIT.icon(tl, $("#s04-gli"), "lotus", { at: 1.3, speed: 1.5 });
-      KIT.icon(tl, $("#s04-vi1"), "fingerprint-circle");
-      KIT.icon(tl, $("#s04-vi2"), "check", { at: 1.5 });
+      tl.fromTo("#s04-lk", { opacity: 0 }, { opacity: 0.6, duration: 0.24, ease: "power2.out", immediateRender: false }, 1.4);
+      KIT.icon(tl, $("#s04-lk"), "link", { at: 1.63 });
       KIT.words(tl, $("#s04-title"), 1.28, { gap: 4 * KIT.F });
-      KIT.reveal(tl, ["#s04-row1", "#s04-row2", "#s04-cont"], 1.4, { y: 30 });
+      KIT.reveal(tl, ["#s04-sec", "#s04-foot", "#s04-cont"], 1.4, { y: 30 });
       // Continue
       KIT.press(tl, $("#s04-cont"), 2.0);
       tl.fromTo("#s04-sheet", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 2.13);
 
       // sheet morphs into the build stage
       const sb = (t, r, b, l, rad) => "inset(" + t + "px " + r + "px " + b + "px " + l + "px round " + rad + "px)";
-      tl.fromTo("#s04-shell", { clipPath: sb(91, 468.5, 220, 468.5, 60), backgroundColor: "#0b0b0b" },
-        { clipPath: sb(110, 628.5, 65, 348.5, 60), backgroundColor: "#000000", duration: 0.5, ease: SP.layout.ease, immediateRender: false }, 2.15);
-      tl.fromTo("#s04-shell-b", { clipPath: sb(89.5, 467, 218.5, 467, 61.5) },
-        { clipPath: sb(108.5, 627, 63.5, 347, 61.5), duration: 0.5, ease: SP.layout.ease, immediateRender: false }, 2.15);
+      tl.fromTo("#s04-shell", { clipPath: sb(91, 468.5, 500, 468.5, 60), backgroundColor: "#0b0b0b" },
+        { clipPath: sb(110, 628.5, 272, 348.5, 60), backgroundColor: "#000000", duration: 0.5, ease: SP.layout.ease, immediateRender: false }, 2.15);
+      tl.fromTo("#s04-shell-b", { clipPath: sb(89.5, 467, 498.5, 467, 61.5) },
+        { clipPath: sb(108.5, 627, 270.5, 347, 61.5), duration: 0.5, ease: SP.layout.ease, immediateRender: false }, 2.15);
 
-      // build stage (Flo)
+      // build stage (MyFitnessPal)
       KIT.reveal(tl, ["#s04-f-hero"], 2.3, { y: 36 });
-      KIT.icon(tl, $("#s04-f-gi"), "lotus", { at: 2.3, speed: 1.2 });
       tl.fromTo("#s04-f-breath", { opacity: 0.35, scale: 1 }, { opacity: 0, scale: 1.35, duration: 1.8, ease: "power2.out", repeat: 2, immediateRender: false }, 2.4);
       KIT.reveal(tl, ["#s04-f-s1", "#s04-f-s2", "#s04-f-s3", "#s04-f-s4"], 2.35, { y: 29 });
 
@@ -241,19 +243,16 @@
           KIT.icon(tl, g("k"), "check-black", { at: r1 + 0.04, speed: opts.anim ? 1 : 3 });
         });
       }
-      // ticks land on the VO phrases: "once" / "reads your account" / "writes the tools" / "tests a real request"
+      // ticks land on the VO phrases: "Sign in once" / "learns the app" / "checks that it works"
       steps("s04-f", [[2.35, 2.97], [2.97, 3.65], [3.65, 4.33], [4.33, 6.37]], { anim: true });
       tl.fromTo("#s04-f-tools", { opacity: 0, y: 29 }, { opacity: 1, y: 0, duration: 0.6, ease: E, immediateRender: false }, 3.7);
-      KIT.reveal(tl, ["#s04-f-t1", "#s04-f-t2", "#s04-f-t3"], 3.75, { y: 20 });
-      KIT.count(tl, $("#s04-f-n"), 3.75, 3);
+      KIT.reveal(tl, ["#s04-f-t1", "#s04-f-t2", "#s04-f-t3", "#s04-f-t4", "#s04-f-t5"], 3.75, { y: 20 });
 
-      // Cronometer behind, the same flow at 3x, counts to 6
+      // Cronometer behind, the same flow at 3x
       tl.fromTo("#s04-cw", { opacity: 0, x: 160 }, { opacity: 1, x: 0, duration: 0.6, ease: E, immediateRender: false }, 3.7);
-      KIT.icon(tl, $("#s04-c-gi"), "apple");
       tl.fromTo("#s04-c-breath", { opacity: 0.35, scale: 1 }, { opacity: 0, scale: 1.35, duration: 0.6, ease: "power2.out", repeat: 6, immediateRender: false }, 3.75);
       steps("s04-c", [[3.75, 3.95], [3.95, 4.15], [4.15, 4.35], [4.35, 4.55]], { anim: false });
       tl.fromTo("#s04-c-tools", { opacity: 0, y: 29 }, { opacity: 1, y: 0, duration: 0.4, ease: E, immediateRender: false }, 4.15);
-      KIT.count(tl, $("#s04-c-n"), 4.2, 6, { dur: 0.4 });
 
       // exit: build content clears out of the panel, the panel carries into s05
       tl.fromTo("#s04-f", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.25, ease: "power2.in", immediateRender: false }, 7.62);
