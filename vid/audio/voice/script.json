@@ -1,1 +1,15 @@
-[]
+[
+  { "id": "v01", "text": "Ask your AI to log breakfast... and it hits a wall.", "style": "casual, dry, unhurried" },
+  { "id": "v02", "text": "Most of the apps you live in have no API. Your AI can't touch them.", "style": "casual, matter-of-fact" },
+  { "id": "v03", "text": "Y C Y C connects them. Even the ones with no API.", "style": "confident, warm" },
+  { "id": "v04", "text": "Pick an app. Sign in on its own page.", "style": "casual, light" },
+  { "id": "v05", "text": "Y C Y C reads your account, writes the tools, and tests a real request.", "style": "casual, brisk" },
+  { "id": "v06", "text": "Then ONE link... goes into every assistant you use.", "style": "casual, warm" },
+  { "id": "v07", "text": "Now Claude can log it. Anything that writes waits for your OK.", "style": "casual, reassuring" },
+  { "id": "v08", "text": "Same link in ChatGPT.", "style": "casual, light" },
+  { "id": "v09", "text": "Or just text it.", "style": "casual, a little amused" },
+  { "id": "v10", "text": "Every app Y C Y C learns, it learns once, for everyone.", "style": "confident, building" },
+  { "id": "v11", "text": "Flo. Cronometer. ParkMobile. Whatever you open next.", "style": "confident, building" },
+  { "id": "v12", "text": "Built today at Y C, with Capy, Revyl, and Convex.", "style": "casual, proud" },
+  { "id": "v13", "text": "Y C Y C. Your apps, in every AI.", "style": "warm, calm, final" }
+]
