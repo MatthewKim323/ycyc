@@ -35,6 +35,7 @@ import type * as recipes from "../recipes.js";
 import type * as revyl from "../revyl.js";
 import type * as today from "../today.js";
 import type * as users from "../users.js";
+import type * as whop from "../whop.js";
 
 import type {
   ApiFromModules,
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   revyl: typeof revyl;
   today: typeof today;
   users: typeof users;
+  whop: typeof whop;
 }>;
 
 /**
