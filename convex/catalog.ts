@@ -20,6 +20,15 @@ export const CATALOG: CatalogApp[] = [
     blurb: "Log workouts and read your training history.",
   },
   {
+    slug: "cronometer",
+    name: "Cronometer",
+    category: "nutrition",
+    route: "web",
+    loginUrl: "https://cronometer.com/login/",
+    webOrigin: "https://cronometer.com",
+    blurb: "Nutrients and targets. Log and remove foods.",
+  },
+  {
     slug: "parkmobile",
     name: "ParkMobile",
     category: "other",

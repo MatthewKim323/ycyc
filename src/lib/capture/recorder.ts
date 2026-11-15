@@ -130,10 +130,33 @@ try {
     }
     return o;
   }
+  // GWT-RPC (Cronometer /cronometer/app): the per-session nonce rides in the body. Copy it and the
+  // serialization policy (field 4 of the |-split body) into the session, keep them out of the capture.
+  var GWT_NONCE_RE = /\b[0-9a-f]{32}\b/g;
+  function isGwtRpc(url, s) {
+    return pathOf(url).indexOf("/cronometer/app") >= 0 || /^\d+\|\d+\|\d+\|https?:\/\//.test(s);
+  }
+  function harvestGwt(s) {
+    try {
+      var parts = s.split("|");
+      if (parts.length > 4 && /^[0-9A-Fa-f]{32}$/.test(parts[4])) setSession("storage", "gwt_policy", parts[4]);
+      var m = s.match(GWT_NONCE_RE);
+      if (m && m.length) setSession("storage", "nonce", m[0]);
+    } catch (e) {}
+  }
+  // Numeric user id in REST paths (Cronometer /api/v3/user/<id>/...).
+  function harvestUrl(u) {
+    try {
+      var m = /\/api\/v3\/user\/(\d+)\//.exec(pathOf(u));
+      if (m && hostOf(u) === hostOf(C.origin)) setSession("storage", "user_id", m[1]);
+    } catch (e) {}
+  }
   function redactBody(body, url, limit) {
     if (body == null) return undefined;
     if (isSensitivePath(url)) return "<redacted>";
     var s = String(body);
+    if (url.indexOf("#res") < 0 && isGwtRpc(url, s)) harvestGwt(s);
+    if (isGwtRpc(url, s)) s = s.replace(GWT_NONCE_RE, "<redacted:nonce>");
     var t = s.replace(/^\s+/, "");
     if (t[0] === "{" || t[0] === "[") {
       try { s = JSON.stringify(redactJson(JSON.parse(t), 0)); } catch (e) {}
@@ -212,6 +235,7 @@ try {
     return out;
   }
   function redactHeaders(h, url) {
+    harvestUrl(url);
     var out = {};
     var mine = !isNoise(url) && (isApi(url) || hostOf(url) === hostOf(C.origin));
     for (var k in h) {

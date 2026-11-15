@@ -89,7 +89,8 @@ function buildRequest(recipe: Recipe, tpl: RequestTemplate, scope: RenderScope, 
     }
   }
   if (!hasHeader(headers, "accept")) headers["accept"] = "application/json, text/plain, */*";
-  const body = tpl.bodyTemplate ? renderBody(tpl.bodyTemplate, scope) : undefined;
+  const tplContentType = Object.entries(tpl.headers ?? {}).find(([k]) => k.toLowerCase() === "content-type")?.[1];
+  const body = tpl.bodyTemplate ? renderBody(tpl.bodyTemplate, scope, tplContentType) : undefined;
   if (body && !hasHeader(headers, "content-type")) {
     headers["content-type"] = body.trim().startsWith("{") || body.trim().startsWith("[") ? "application/json" : "application/x-www-form-urlencoded";
   }

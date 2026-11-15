@@ -125,9 +125,24 @@ function stripUndef(v: unknown): unknown {
   return v;
 }
 
+// Body rendering picks its mode from the request's content-type (or, without one, the template's
+// shape), like src/lib/compiler/render.ts:
+//   JSON                  JSON-aware substitution (renderJsonBody below)
+//   form-urlencoded       values URI-encoded, literal text untouched
+//   anything else         plain text (GWT-RPC "|{{session.storage.nonce}}|" stays unquoted)
+export function renderBody(tpl: string, scope: RenderScope, contentType?: string): string {
+  const ct = (contentType ?? "").toLowerCase();
+  const looksJson = /^\s*[{[]/.test(tpl);
+  if (ct.includes("json") || (!ct && looksJson)) return renderJsonBody(tpl, scope);
+  if (ct.includes("x-www-form-urlencoded")) {
+    return tpl.replace(PLACEHOLDER, (_m, name: string) => encodeURIComponent(asText(lookup(name, scope))));
+  }
+  return tpl.replace(PLACEHOLDER, (_m, name: string) => asText(lookup(name, scope)));
+}
+
 // JSON-aware: "{{x}}" as a whole JSON string becomes the JSON value of x (numbers stay numbers),
 // a placeholder inside a longer string is escaped text, a bare placeholder is the JSON value.
-export function renderBody(tpl: string, scope: RenderScope): string {
+function renderJsonBody(tpl: string, scope: RenderScope): string {
   let out = tpl.replace(/"\{\{\s*([^{}]+?)\s*\}\}"/g, (_m, name: string) => {
     const v = lookup(name, scope);
     if (v === undefined) return JSON.stringify(UNDEF);
@@ -159,8 +174,16 @@ export function prepareArgs(
   const today = todayPT(tzOf(session));
   const props = ((tool.inputSchema as { properties?: Record<string, { type?: string; default?: unknown }> })
     ?.properties ?? {}) as Record<string, { type?: string; default?: unknown }>;
+  // Split-date tools (Cronometer day/month/year): a missing date means today.
+  const blank = (x: unknown) => x === undefined || x === null || x === "";
+  if ("day" in props && "month" in props && "year" in props && blank(args.day) && blank(args.month) && blank(args.year)) {
+    const [y, m, d] = today.split("-").map(Number);
+    args.year = y;
+    args.month = m;
+    args.day = d;
+  }
   for (const [name, schema] of Object.entries(props)) {
-    const missing = (x: unknown) => x === undefined || x === null || x === "";
+    const missing = blank;
     if (missing(args[name]) && schema?.default !== undefined) args[name] = schema.default;
     if (missing(args[name]) && (name === "date" || name === "entry_date")) args[name] = today;
     // "{{today}}" / "today" defaults and values mean the user's current date.

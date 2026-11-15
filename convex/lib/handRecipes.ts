@@ -5,7 +5,7 @@ export const HAND_RECIPES: Recipe[] = [
   {
     "appSlug": "cronometer",
     "version": 1,
-    "status": "draft",
+    "status": "verified",
     "executor": "device",
     "baseUrl": "https://cronometer.com",
     "auth": {
@@ -16,16 +16,6 @@ export const HAND_RECIPES: Recipe[] = [
         "storage.gwt_policy",
         "headers.x-gwt-permutation"
       ],
-      "refresh": {
-        "method": "POST",
-        "urlTemplate": "https://cronometer.com/cronometer/app",
-        "headers": {
-          "content-type": "text/x-gwt-rpc; charset=utf-8",
-          "x-gwt-module-base": "https://cronometer.com/cronometer/",
-          "x-gwt-permutation": "{{session.headers.x-gwt-permutation}}"
-        },
-        "bodyTemplate": "7|0|5|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|authenticate|java.lang.Integer/3438268394|1|2|3|4|1|5|5|{{session.storage.tz_offset_min}}|"
-      },
       "check": {
         "method": "GET",
         "urlTemplate": "https://cronometer.com/api/v3/user/{{session.storage.user_id}}/targets",
@@ -65,7 +55,15 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "query": "banana",
+            "limit": 5
+          },
+          "ok": true,
+          "at": 1794783829029
+        }
       },
       {
         "name": "get_diary",
@@ -108,7 +106,16 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "7|0|8|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|getDayInfo|java.lang.String/2004016611|com.cronometer.shared.entries.models.Day/782579793|I|{{session.storage.nonce}}|1|2|3|4|3|5|6|7|8|6|{{day}}|{{month}}|{{year}}|{{session.storage.user_id}}|"
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "day": 15,
+            "month": 11,
+            "year": 2026
+          },
+          "ok": true,
+          "at": 1794783829029
+        }
       },
       {
         "name": "get_daily_nutrition",
@@ -151,7 +158,16 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "7|0|10|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|getTotalNutrients|java.lang.String/2004016611|I|com.cronometer.shared.entries.models.Day/782579793|com.cronometer.shared.entries.DayQueryType/1802942352|Z|{{session.storage.nonce}}|1|2|3|4|7|5|6|7|7|8|9|9|10|{{session.storage.user_id}}|7|{{day}}|{{month}}|{{year}}|7|{{day}}|{{month}}|{{year}}|8|0|0|0|"
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "day": 15,
+            "month": 11,
+            "year": 2026
+          },
+          "ok": true,
+          "at": 1794783829029
+        }
       },
       {
         "name": "get_targets",
@@ -169,7 +185,12 @@ export const HAND_RECIPES: Recipe[] = [
             "accept": "application/json"
           }
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {},
+          "ok": true,
+          "at": 1794783829029
+        }
       },
       {
         "name": "log_food",
@@ -239,7 +260,20 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "7|0|12|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|updateDiary|java.lang.String/2004016611|I|java.util.List|{{session.storage.nonce}}|java.util.Collections$SingletonList/1586180994|com.cronometer.shared.entries.changes.AddEntryChange/3949104564|com.cronometer.shared.entries.models.Serving/2895043750|com.cronometer.shared.entries.models.Day/782579793|1|2|3|4|3|5|6|7|8|{{session.storage.user_id}}|9|10|1|1|11|12|{{day}}|{{month}}|{{year}}|1|1|0|{{meal}}|0|0|{{amount}}|{{food_id}}|A|{{measure_id}}|0|"
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "food_id": 450856,
+            "measure_id": 998940,
+            "amount": 1,
+            "meal": 262145,
+            "day": 15,
+            "month": 11,
+            "year": 2026
+          },
+          "ok": true,
+          "at": 1794783829029
+        }
       },
       {
         "name": "delete_diary_entry",
@@ -268,14 +302,28 @@ export const HAND_RECIPES: Recipe[] = [
           },
           "bodyTemplate": "7|0|8|https://cronometer.com/cronometer/|{{session.storage.gwt_policy}}|com.cronometer.shared.rpc.CronometerService|removeServing|java.lang.String/2004016611|J|I|{{session.storage.nonce}}|1|2|3|4|3|5|6|7|8|{{serving_id}}|{{session.storage.user_id}}|"
         },
-        "extract": ""
+        "extract": "",
+        "sample": {
+          "args": {
+            "serving_id": "FFD66t"
+          },
+          "ok": true,
+          "at": 1794783829029
+        }
       }
     ],
-    "playbook": [],
+    "playbook": [
+      "Open https://cronometer.com/login/ in the in-app browser and sign in with email and password",
+      "Wait for https://cronometer.com/ to load the web app (script cronometer.nocache.js present, diary date arrows visible)",
+      "Visit /#diary and step the diary one day back and forward so the app sends getDayInfo; read the session nonce (lowercase 32-hex string in the GWT body), the GWT policy hash (body field 5), the X-GWT-Permutation request header and the user id (/api/v3/user/<id>/ in REST URLs) off those requests",
+      "Open Add Food, type a search (GET /api/v3/user/<id>/food-search/string), then close the dialog without adding",
+      "Leave the app page: park the relay WebView on https://cronometer.com/about/ (static). Reloading / re-runs authenticate and rotates the nonce; loading /login/ kills it"
+    ],
     "provenance": {
       "compiler": "hand",
-      "compiledAt": 0,
-      "captureCount": 0
+      "compiledAt": 1794783829029,
+      "captureCount": 9,
+      "notes": "Verified live 2026-11-15 on matt's account with scripts/re/cronometer/client.ts (device path: requests run from a signed-in cronometer.com/about/ page with cookies): auth.check, search_food, get_targets, get_diary and get_daily_nutrition pass; log_food logged 1 medium Banana, Fresh to Snacks (serving FFD66t), get_diary showed it, delete_diary_entry returned //OK[[],0,7], get_diary showed it gone. Two transports: GWT-RPC POST /cronometer/app (text/x-gwt-rpc, session nonce as the first string arg; works from Node with no cookies, so the nonce acts as a bearer) and JSON REST /api/v3/user/{id}/* (cookie only, 401 from Node without cookies). Hence executor device. Nonce rotates on every web-app page load (authenticate) and dies when /login/ is loaded while signed in. GWT policy hash and permutation change on Cronometer deploys; they are taken from the session so a re-capture heals them. Type signatures (Serving/2895043750, AddEntryChange/3949104564, Day/782579793, DayQueryType/1802942352) matched the current web JS. updateDiary body copied from the web app's own request (sent blocked, then replayed through the template); meal code is (diary group << 16) | 1, group 4 = Snacks seen live, 1-3 assumed Breakfast/Lunch/Dinner. get_daily_nutrition (getTotalNutrients) is built from the web client's proxy signature, not seen in a UI flow; its map uses GWT back-references once foods are logged, so ids are not all literal: readable totals are an open item (decoder or the /export dailySummary CSV, which needs a generateAuthorizationToken step first). Sources: jrmycanady/gocronometer and cphoskins/cronometer-mcp (web GWT + export); mobile-API projects deliberately not used."
     }
   },
   {

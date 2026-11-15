@@ -284,10 +284,41 @@ const DUOLINGO: AppCaptureConfig = {
   sensitivePaths: ["/login", "/log-in", "/register", "/password", "/users/reset"],
 };
 
+// Cronometer: from scripts/re/cronometer/capture.ts (CRONOMETER_CAPTURE). GWT app: the recorder copies
+// the body nonce (storage.nonce), serialization policy (storage.gwt_policy), x-gwt-permutation and the
+// /api/v3/user/<id>/ user id (storage.user_id) into the session.
+const CRONOMETER: AppCaptureConfig = {
+  slug: "cronometer",
+  loginUrl: "https://cronometer.com/login/",
+  webOrigin: "https://cronometer.com",
+  loggedIn: {
+    // Signed out, "/" is the marketing page; signed in, "/" serves the GWT app shell.
+    loggedOutPaths: ["/login", "/signup", "/forgot", "/password"],
+    domSelectors: ['script[src*="cronometer.nocache.js"]', "i.diary-date-previous"],
+  },
+  playbook: [
+    { kind: "visit", path: "/#diary", label: "Diary", dwellMs: 6000 },
+    { kind: "probe", path: "/api/v3/user/{{session.storage.user_id}}/targets", label: "Nutrient targets" },
+    { kind: "probe", path: "/api/v3/user/{{session.storage.user_id}}/food-search/string?query=BANANA&maxResults=5&sources=All&categoryId=0&selectedTab=ALL&type=All", label: "Food search" },
+  ],
+  sessionProbes: [],
+  sessionHeaders: ["x-gwt-permutation"],
+  storageKeys: [],
+  cookieNames: [],
+  apiHosts: ["cronometer.com"],
+  apiPathHints: ["/cronometer/app", "/api/v3/", "/export"],
+  denylist: [...COMMON_DENYLIST, "zdassets.com", "zopim", "stripe.com", "/api/v3/stripe/", "firebase", "braze", "/cronometer/deferredjs/", ".cache.js", ".nocache.js"],
+  // Must be a static page: loading /login/ while signed in kills the GWT nonce, and "/" reloads the
+  // app, whose authenticate call rotates it.
+  relayPath: "/about/",
+  sensitivePaths: ["/login", "/signup", "/password", "/forgot"],
+};
+
 export const CAPTURE_APPS: Record<string, AppCaptureConfig> = {
   myfitnesspal: MFP,
   parkmobile: PARKMOBILE,
   duolingo: DUOLINGO,
+  cronometer: CRONOMETER,
 };
 
 // The URL to load for a pasted sign-in link, or null if it isn't this app's link.
