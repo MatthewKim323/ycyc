@@ -117,7 +117,7 @@ const RIPPLE_RATE = 60;
 const PIXEL_BUDGET = 4.5e6;
 const INTRO_SECONDS = 2;
 // Same cap as the original renderer. A 3x phone renders at 2x and is upscaled, like a browser would.
-export const MAX_DPR = 2;
+export const MAX_DPR = 3; // native 3x on iPhone for crisper dots (web original caps at 2)
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
