@@ -1,5 +1,9 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## Keep shared work aligned
+
+Matthew and Stephen are working on the same project. Fetch `origin/main` before each substantial work chunk and again before deploying or pushing. Bring the working branch up to date with main, preserving all uncommitted work, and resolve overlapping changes before continuing. Re-run the checks affected by an upstream change; never overwrite a teammate's newer implementation with a stale deployment.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

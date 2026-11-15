@@ -50,6 +50,12 @@ export const requestValidator = v.object({
   body: v.optional(v.string()),
 });
 
+export const aiProviderValidator = v.union(v.literal("claude"), v.literal("codex"));
+export const aiProviderStatusValidator = v.union(
+  v.literal("disconnected"), v.literal("starting"), v.literal("authorizing"),
+  v.literal("connected"), v.literal("error"),
+);
+
 export default defineSchema({
   users: defineTable({
     deviceId: v.string(),
@@ -59,6 +65,24 @@ export default defineSchema({
   })
     .index("by_deviceId", ["deviceId"])
     .index("by_mcpToken", ["mcpToken"]),
+
+  // Provider CLIs own their authentication. Persist only sealed credential/code
+  // envelopes; public status queries deliberately omit these fields.
+  aiProviderSessions: defineTable({
+    userId: v.id("users"),
+    provider: aiProviderValidator,
+    status: aiProviderStatusValidator,
+    attemptId: v.optional(v.string()),
+    loginUrl: v.optional(v.string()),
+    userCode: v.optional(v.string()),
+    loginExpiresAt: v.optional(v.number()),
+    credentialsCipher: v.optional(v.string()),
+    codeCipher: v.optional(v.string()),
+    selected: v.boolean(),
+    error: v.optional(v.string()),
+    updatedAt: v.number(),
+    connectedAt: v.optional(v.number()),
+  }).index("by_user_provider", ["userId", "provider"]).index("by_user", ["userId"]),
 
   connections: defineTable({
     userId: v.id("users"),
