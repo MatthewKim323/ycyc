@@ -424,8 +424,14 @@ for c in cues:
 # ---------- music ----------
 # One bed under the film: assets/music/bed.mp3 (any track), starting at film time MUSIC_AT from song time
 # MUSIC_OFFSET (set it so a drop lands on a cut), at MUSIC_RMS dBFS RMS. It rides the fx stem's voice ducking.
-MUSIC = L / "assets" / "music" / "bed.mp3"
+MUSIC = L / "assets" / "music" / "bed.mp3"   # the Skarl demo track (~/dev/skarl-promo/assets/music/demomusic.mp3), ~87.6 BPM
 MUSIC_AT, MUSIC_OFFSET, MUSIC_RMS = 0.0, 0.0, -22.0
+# Lock the song's first drop (11.04 s in) to the ycyc mark landing in s03-reveal (scene-local 1.2 s): the cold open
+# stays sparse and the beat hits on the brand.
+MUSIC_DROP, DROP_SCENE, DROP_LOCAL = 11.04, "s03-reveal", 1.2
+if DROP_SCENE in S:
+    at = S[DROP_SCENE] + DROP_LOCAL - MUSIC_DROP
+    MUSIC_AT, MUSIC_OFFSET = (at, 0.0) if at >= 0 else (0.0, -at)
 if MUSIC.exists():
     layer(MUSIC, MUSIC_AT, rms_db=MUSIC_RMS, offset=MUSIC_OFFSET, length=TOTAL - MUSIC_AT, fade_in=0.4, fade_out=1.4)
 

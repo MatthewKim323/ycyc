@@ -1,6 +1,6 @@
 # SPEC: "Your apps, in every AI"
 
-GOAL:    In 15 s a judge (sound on or muted) gets that ycyc lets the AI they already pay for read and act in the apps
+GOAL:    In 15 s a judge (sound on or muted) gets that yuzu lets the AI they already pay for read and act in the apps
          on their phone, even apps with no API; by 0:40 they've watched it work for real; at the end they feel it's endless.
 OUTPUT:  HyperFrames 0.8.197, 1920x1080, authored at 30 fps, delivery render at 60 fps. Unlisted YouTube, captions on.
 TIME:    ~80 s (2400 frames @30). Scene lengths come from the VO (`audio/edl.json` → `tools/remount.py`).
@@ -23,7 +23,7 @@ LOOK
            opacity (`.p-dim`) + scale. Grain 0. Vignette 0.
 
 OBJECTS  the phone (black slab, 68 px corner radius, 14 px bezel, real capture inside); an assistant chat (always a real
-         capture, never redrawn); the ycyc mark (white rounded square, "ycyc" in Inter 600, black, as on the connect sheet);
+         capture, never redrawn); the yuzu mark (white rounded square, "yuzu" in Inter 600, black, as on the connect sheet);
          app glyphs (the app's Lordicons: Flo lotus, MyFitnessPal apple, Strong person-pushups, others as they're bundled);
          the approval card (the app's ApprovalCard: countdown, Deny / Approve); app tiles (the app's AppTile, front glyph +
          name + capability, back "Live" + "N tools in every assistant").

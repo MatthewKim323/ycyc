@@ -1,5 +1,5 @@
 {
-  "total": 84.405,
+  "total": 83.284,
   "scenes": {
     "s01-guess": {
       "start": 0.0,
@@ -11,47 +11,47 @@
     },
     "s03-reveal": {
       "start": 13.744,
-      "duration": 5.035
+      "duration": 5.04
     },
     "s04-connect": {
-      "start": 18.779,
+      "start": 18.784,
       "duration": 8.0
     },
     "s05-link": {
-      "start": 26.779,
+      "start": 26.784,
       "duration": 4.5
     },
     "s06-knows": {
-      "start": 31.279,
+      "start": 31.284,
       "duration": 10.0
     },
     "s07-approve": {
-      "start": 41.279,
+      "start": 41.284,
       "duration": 6.0
     },
     "s08-chatgpt": {
-      "start": 47.279,
+      "start": 47.284,
       "duration": 5.0
     },
     "s09-text": {
-      "start": 52.279,
+      "start": 52.284,
       "duration": 5.0
     },
     "s10-more": {
-      "start": 57.279,
+      "start": 57.284,
       "duration": 5.0
     },
     "s11-endless": {
-      "start": 62.279,
+      "start": 62.284,
       "duration": 7.0
     },
     "s12-built": {
-      "start": 69.279,
+      "start": 69.284,
       "duration": 6.0
     },
     "s13-end": {
-      "start": 75.279,
-      "duration": 9.127
+      "start": 75.284,
+      "duration": 8.0
     }
   },
   "lines": [
@@ -76,26 +76,35 @@
     {
       "scene": "s03-reveal",
       "who": "narrator",
-      "start": 15.044,
-      "end": 18.379,
+      "start": 14.944,
+      "end": 15.984,
       "text": [
-        "ycyc connects them. Even the ones with no API."
+        "Yuzu."
+      ]
+    },
+    {
+      "scene": "s03-reveal",
+      "who": "narrator",
+      "start": 15.744,
+      "end": 18.267,
+      "text": [
+        "It connects them. Even the ones with no API."
       ]
     },
     {
       "scene": "s04-connect",
       "who": "narrator",
-      "start": 19.279,
-      "end": 25.244,
+      "start": 19.284,
+      "end": 24.884,
       "text": [
-        "Sign in once. ycyc reads your account, writes the tools, and tests a real request."
+        "Sign in once. Yuzu reads your account, writes the tools, and tests a real request."
       ]
     },
     {
       "scene": "s05-link",
       "who": "narrator",
-      "start": 27.179,
-      "end": 30.304,
+      "start": 27.184,
+      "end": 30.31,
       "text": [
         "Then ONE link goes into every assistant you use."
       ]
@@ -103,8 +112,8 @@
     {
       "scene": "s06-knows",
       "who": "narrator",
-      "start": 38.079,
-      "end": 40.471,
+      "start": 38.084,
+      "end": 40.476,
       "text": [
         "Same question. Now it actually knows you."
       ]
@@ -112,8 +121,8 @@
     {
       "scene": "s07-approve",
       "who": "narrator",
-      "start": 41.779,
-      "end": 43.939,
+      "start": 41.784,
+      "end": 43.944,
       "text": [
         "Anything that writes waits for your OK."
       ]
@@ -121,8 +130,8 @@
     {
       "scene": "s08-chatgpt",
       "who": "narrator",
-      "start": 47.679,
-      "end": 49.363,
+      "start": 47.684,
+      "end": 49.368,
       "text": [
         "Same link in ChatGPT."
       ]
@@ -130,8 +139,8 @@
     {
       "scene": "s09-text",
       "who": "narrator",
-      "start": 52.879,
-      "end": 53.869,
+      "start": 52.884,
+      "end": 53.874,
       "text": [
         "Or just text it."
       ]
@@ -139,17 +148,17 @@
     {
       "scene": "s10-more",
       "who": "narrator",
-      "start": 57.579,
-      "end": 60.507,
+      "start": 57.584,
+      "end": 61.429,
       "text": [
-        "Every app ycyc learns, it learns once, for everyone."
+        "Every app yuzu learns, it learns once, for everyone."
       ]
     },
     {
       "scene": "s11-endless",
       "who": "narrator",
-      "start": 63.479,
-      "end": 66.99,
+      "start": 63.484,
+      "end": 66.995,
       "text": [
         "ParkMobile. Duolingo. Whatever you open next."
       ]
@@ -157,8 +166,8 @@
     {
       "scene": "s12-built",
       "who": "narrator",
-      "start": 69.679,
-      "end": 73.999,
+      "start": 69.684,
+      "end": 74.005,
       "text": [
         "Built today at YC, with Capy, Revyl, and Convex."
       ]
@@ -166,10 +175,10 @@
     {
       "scene": "s13-end",
       "who": "narrator",
-      "start": 77.479,
-      "end": 81.905,
+      "start": 77.484,
+      "end": 80.437,
       "text": [
-        "ycyc. Your apps, in every AI."
+        "Yuzu. Your apps, in every AI."
       ]
     }
   ]

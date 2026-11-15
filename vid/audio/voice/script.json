@@ -1,15 +1,72 @@
 [
-  { "id": "v01", "text": "You pay for the smartest AI there is. Ask it why you're tired this week... and it guesses.", "style": "casual, dry, unhurried" },
-  { "id": "v02", "text": "The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them.", "style": "casual, matter-of-fact" },
-  { "id": "v03", "text": "Y C Y C connects them. Even the ones with no API.", "style": "confident, warm" },
-  { "id": "v04", "text": "Sign in once. Y C Y C reads your account, writes the tools, and tests a real request.", "style": "casual, brisk" },
-  { "id": "v05", "text": "Then ONE link goes into every assistant you use.", "style": "casual, warm" },
-  { "id": "v06", "text": "Same question. Now it actually knows you.", "style": "warm, quietly impressed" },
-  { "id": "v07", "text": "Anything that writes waits for your OK.", "style": "casual, reassuring" },
-  { "id": "v08", "text": "Same link in ChatGPT.", "style": "casual, light" },
-  { "id": "v09", "text": "Or just text it.", "style": "casual, a little amused" },
-  { "id": "v10", "text": "Every app Y C Y C learns, it learns once, for everyone.", "style": "confident, building" },
-  { "id": "v11", "text": "ParkMobile. Duolingo. Whatever you open next.", "style": "confident, building" },
-  { "id": "v12", "text": "Built today at Y C, with Capy, Revyl, and Convex.", "style": "casual, proud" },
-  { "id": "v13", "text": "Y C Y C. Your apps, in every AI.", "style": "warm, calm, final" }
+ {
+  "id": "v01",
+  "text": "You pay for the smartest AI there is. Ask it why you're tired this week... and it guesses.",
+  "style": "casual, dry, unhurried"
+ },
+ {
+  "id": "v02",
+  "text": "The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them.",
+  "style": "casual, matter-of-fact"
+ },
+ {
+  "id": "v03a",
+  "text": "Yuzu.",
+  "style": "confident, warm, landing the name"
+ },
+ {
+  "id": "v03b",
+  "text": "It connects them. Even the ones with no API.",
+  "style": "confident, warm"
+ },
+ {
+  "id": "v04",
+  "text": "Sign in once. Yuzu reads your account, writes the tools, and tests a real request.",
+  "style": "casual, brisk"
+ },
+ {
+  "id": "v05",
+  "text": "Then ONE link goes into every assistant you use.",
+  "style": "casual, warm"
+ },
+ {
+  "id": "v06",
+  "text": "Same question. Now it actually knows you.",
+  "style": "warm, quietly impressed"
+ },
+ {
+  "id": "v07",
+  "text": "Anything that writes waits for your OK.",
+  "style": "casual, reassuring"
+ },
+ {
+  "id": "v08",
+  "text": "Same link in ChatGPT.",
+  "style": "casual, light"
+ },
+ {
+  "id": "v09",
+  "text": "Or just text it.",
+  "style": "casual, a little amused"
+ },
+ {
+  "id": "v10",
+  "text": "Every app yuzu learns, it learns once, for everyone.",
+  "style": "confident, building"
+ },
+ {
+  "id": "v11",
+  "text": "ParkMobile. Duolingo. Whatever you open next.",
+  "style": "confident, building"
+ },
+ {
+  "id": "v12",
+  "text": "Built today at Y C, with Capy, Revyl, and Convex.",
+  "style": "casual, proud"
+ },
+ {
+  "id": "v13",
+  "text": "Yuzu. Your apps, in every AI.",
+  "style": "warm, calm, final"
+ }
 ]

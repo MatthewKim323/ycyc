@@ -1,7 +1,139 @@
+<!-- s07-approve: pull back from the s06 answer, the phone buzzes, the app's ApprovalCard at 3x, Approve, the card slides
+     right (the app's exit), match cut to the Cronometer diary, push in on the new row, push through the screen to s08. -->
+<!-- sfx: t=0.20 name=phone-buzz gain=0.6 -->
+<!-- sfx: t=0.62 name=card-morph gain=0.35 -->
+<!-- sfx: t=2.40 name=ui-confirm gain=0.6 -->
+<!-- sfx: t=2.64 name=whoosh-soft gain=0.35 -->
+<!-- sfx: t=3.30 name=row-tick gain=0.55 -->
+<!-- sfx: t=5.66 name=whoosh-soft gain=0.3 -->
 <template>
-  <style>#root { position: absolute; inset: 0; } #s07-approve-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s07-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
+    #s07-cam { position: absolute; inset: 0; transform-origin: 0 0; }
+    .s07-ph { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    .s07-ph .k-phone { left: 0; top: 0; }
+    .s07-screen { position: relative; background: #141414; }
+    .s07-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
+      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+    #s07-buzz { position: absolute; inset: 0; }
+    /* ApprovalCard (rows.tsx) at 3x: surface, radius.card 16 -> 48, padding space.lg 16 -> 48, gap space.md 12 -> 36. */
+    #s07-cardpos { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #s07-card { width: 1120px; padding: 48px; border-radius: 48px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a;
+      display: flex; flex-direction: column; gap: 36px; font-family: "Inter", sans-serif; }
+    .s07-head { display: flex; gap: 36px; align-items: flex-start; }
+    .s07-glyph { width: 108px; height: 108px; border-radius: 29px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
+      display: flex; align-items: center; justify-content: center; flex: none; }
+    .s07-glyph .k-icon { width: 65px; height: 65px; }
+    .s07-text { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+    .s07-label3 { font: 500 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s07-sum { font: 500 45px/63px "Inter", sans-serif; color: #fff; }
+    .s07-actions { display: flex; align-items: center; gap: 24px; }
+    #s07-left { flex: 1; font: 400 39px/54px "Inter", sans-serif; color: #6b6b6b; font-variant-numeric: tabular-nums; }
+    .s07-btn { height: 108px; padding: 0 48px; border-radius: 54px; display: flex; align-items: center; justify-content: center;
+      font: 600 45px/60px "Inter", sans-serif; white-space: nowrap; }
+    #s07-deny { color: #fff; box-shadow: inset 0 0 0 1.5px #2a2a2a; }
+    #s07-approve { background: #fff; color: #000; }
+  </style>
   <div id="root" data-composition-id="s07-approve" data-width="1920" data-height="1080">
-    <div id="s07-approve-wrap" class="clip k-canvas" data-start="0" data-duration="6.000" data-track-index="0"><p id="s07-approve-ph">s07-approve</p></div>
+    <div id="s07-wrap" class="clip k-canvas" data-start="0" data-duration="6.000" data-track-index="0">
+      <canvas id="s07-waves" class="k-waves"></canvas>
+      <div id="s07-dim"></div>
+      <div id="s07-cam">
+        <div id="s07-ph" class="s07-ph">
+          <div id="s07-buzz">
+            <div id="s07-phone" class="k-phone">
+              <!-- footage: assets/footage/r6-claude-log.mp4 -->
+              <div id="s07-screen" class="k-screen s07-screen"><div id="s07-label" class="s07-label">R6 · Claude: log spinach salad and almonds in Cronometer</div></div>
+            </div>
+          </div>
+        </div>
+        <div id="s07-ph2" class="s07-ph">
+          <div id="s07-phone2" class="k-phone">
+            <!-- footage: assets/footage/r7-cronometer-diary.mp4 -->
+            <div id="s07-screen2" class="k-screen s07-screen"><div id="s07-label2" class="s07-label">R7 · Cronometer diary: the new entry</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="s07-cardpos">
+        <div id="s07-cardcam">
+          <div id="s07-card">
+            <div class="s07-head">
+              <div class="s07-glyph"><div id="s07-glyph-ic" class="k-icon"></div></div>
+              <div class="s07-text">
+                <div class="s07-label3">Claude wants to log food in Cronometer</div>
+                <div class="s07-sum">Spinach salad and almonds</div>
+              </div>
+            </div>
+            <div class="s07-actions">
+              <div id="s07-left">25s left</div>
+              <div id="s07-deny" class="s07-btn">Deny</div>
+              <div id="s07-approve" class="s07-btn">Approve</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <script>window.__timelines["s07-approve"] = gsap.timeline({ paused: true });</script>
+  <script>
+    (function () {
+      const D = 6.0, S = KIT.springs, $ = (s) => document.querySelector(s);
+      const tl = gsap.timeline({ paused: true });
+      const cam = (s, px, py) => ({ scale: s, x: 960 - s * px, y: 540 - s * py });
+
+      KIT.waves(tl, $("#s07-waves"), { from: 0, to: D, offset: 41.279 });
+
+      // Open on s06's last framing (1.86x on the answer) and pull back to the phone.
+      gsap.set("#s07-ph", { scale: 1, x: 0 });
+      gsap.set("#s07-ph2", { scale: 0.966, x: -1500 });
+      tl.fromTo("#s07-cam", cam(1.86, 960, 648), { ...cam(1, 960, 540), duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);
+      tl.fromTo("#s07-cam", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.25, ease: "power2.in", immediateRender: false }, 0);
+      tl.to("#s07-cam", { filter: "blur(0px)", duration: 0.25, ease: "power2.out" }, 0.25);
+      tl.fromTo("#s07-ph", { scale: 1 }, { scale: 0.966, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);
+
+      // Buzz: 4px decaying shake for 0.3s, a pure function of progress (seek-safe).
+      const bz = { p: 0 }, buzzEl = $("#s07-buzz");
+      const shake = () => gsap.set(buzzEl, { x: 4 * Math.sin(bz.p * Math.PI * 2 * 7) * (1 - bz.p) });
+      tl.fromTo(bz, { p: 0 }, { p: 1, duration: 0.3, ease: "none", immediateRender: false, onUpdate: shake }, 0.2);
+      gsap.set(buzzEl, { x: 0 });
+
+      // ApprovalCard rises on the sheet spring; the phone falls back to a dimmed neighbour.
+      gsap.set("#s07-cardcam", { scale: 1.2 });
+      gsap.set("#s07-card", { opacity: 0 });
+      tl.fromTo("#s07-card", { y: 280 }, { y: 0, duration: 0.6, ease: S.enter.ease, immediateRender: false }, 0.62);
+      tl.fromTo("#s07-card", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, 0.62);
+      tl.fromTo("#s07-cardcam", { scale: 1.2 }, { scale: 1.24, duration: 2.0, ease: "sine.inOut", immediateRender: false }, 0.62);
+      tl.fromTo("#s07-ph", { opacity: 1, filter: "blur(0px)" }, { opacity: 0.4, filter: "blur(8px)", duration: 0.4, ease: "power2.out", immediateRender: false }, 0.62);
+      KIT.icon(tl, $("#s07-glyph-ic"), "apple"); // resting frame: the bundled motion is a pinch that blanks mid-way
+
+      // Countdown: the app's TTL is 25s (APPROVAL_WAIT_MS + 5s), one tick a second.
+      const cd = { v: 0 }, left = $("#s07-left");
+      const draw = () => { left.textContent = Math.max(0, 25 - Math.floor(cd.v + 1e-6)) + "s left"; };
+      tl.fromTo(cd, { v: 0 }, { v: 3, duration: 3, ease: "none", immediateRender: false, onUpdate: draw }, 0.62);
+      draw();
+
+      // Approve: the app's press spring, then SlideOutRight; the dimmed phone leaves with it at 60-70% travel.
+      gsap.set("#s07-approve", { scale: 1 });
+      KIT.press(tl, $("#s07-approve"), 2.4);
+      tl.to("#s07-card", { x: 1560, duration: 0.38, ease: "power3.in" }, 2.64);
+      tl.to("#s07-card", { filter: "blur(8px)", duration: 0.38, ease: "power3.in" }, 2.64);
+      tl.to("#s07-ph", { x: 1300, duration: 0.38, ease: "power3.in" }, 2.72);
+
+      // Match cut: the diary phone follows the same direction in from the left and lands on the enter curve.
+      tl.fromTo("#s07-ph2", { x: -1500 }, { x: 0, duration: 0.55, ease: KIT.ease.enter, immediateRender: false }, 2.86);
+      tl.fromTo("#s07-ph2", { filter: "blur(8px)" }, { filter: "blur(0px)", duration: 0.4, ease: "power2.out", immediateRender: false }, 2.86);
+
+      // Push in on the new diary row (row-tick 3.30), then hold with a drift.
+      const ROW = 468;
+      tl.fromTo("#s07-cam", cam(1, 960, 540), { ...cam(1.45, 960, ROW), duration: 0.45, ease: "power2.inOut", immediateRender: false }, 3.3);
+      tl.fromTo("#s07-cam", cam(1.45, 960, ROW), { ...cam(1.5, 960, ROW), duration: 1.87, ease: "sine.inOut", immediateRender: false }, 3.75);
+
+      // Push through the screen into s08 (the grey screen fills the frame on the last frame).
+      tl.fromTo("#s07-label2", { opacity: 1 }, { opacity: 0, duration: 0.14, ease: "power2.in", immediateRender: false }, 5.62);
+      tl.fromTo("#s07-cam", cam(1.5, 960, ROW), { ...cam(5.2, 960, 540), duration: 0.38, ease: "power3.in", immediateRender: false }, 5.62);
+      tl.fromTo("#s07-cam", { filter: "blur(0px)" }, { filter: "blur(12px)", duration: 0.38, ease: "power3.in", immediateRender: false }, 5.62);
+
+      window.__timelines["s07-approve"] = tl;
+    })();
+  </script>
 </template>

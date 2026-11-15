@@ -1,7 +1,90 @@
+<!-- s08-chatgpt: out of the s07 screen into ChatGPT on the same link. The Strong call flashes beside the phone, then
+     the camera pushes into the answer (msg-in) and holds; whips left into s09. -->
+<!-- sfx: t=0.80 name=case-pop gain=0.35 -->
+<!-- sfx: t=1.60 name=msg-in gain=0.6 -->
+<!-- sfx: t=4.68 name=whoosh-soft gain=0.35 -->
 <template>
-  <style>#root { position: absolute; inset: 0; } #s08-chatgpt-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s08-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
+    #s08-cam { position: absolute; inset: 0; transform-origin: 0 0; }
+    #s08-ph { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    #s08-phone { left: 0; top: 0; }
+    #s08-screen { position: relative; background: #141414; }
+    #s08-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
+      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+    #s08-chip { position: absolute; left: 990px; top: 480px; display: flex; align-items: center; gap: 24px; height: 120px; padding: 0 30px 0 18px;
+      border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap;
+      font: 500 36px "Inter", sans-serif; color: #fff; }
+    #s08-rim { position: absolute; inset: 0; border-radius: 60px; box-shadow: inset 0 0 0 1.5px #fff; pointer-events: none; }
+    .s08-g { width: 84px; height: 84px; border-radius: 42px; background: #141414; box-shadow: inset 0 0 0 1.5px #1f1f1f;
+      display: flex; align-items: center; justify-content: center; flex: none; }
+    .s08-g .k-icon { width: 52px; height: 52px; }
+    .s08-app { font-weight: 600; letter-spacing: -0.01em; }
+    .s08-sep { color: #6b6b6b; margin: 0 -8px; }
+    .s08-tool { color: #a1a1a1; }
+    #s08-ok { width: 48px; height: 48px; flex: none; margin-left: 4px; }
+  </style>
   <div id="root" data-composition-id="s08-chatgpt" data-width="1920" data-height="1080">
-    <div id="s08-chatgpt-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0"><p id="s08-chatgpt-ph">s08-chatgpt</p></div>
+    <div id="s08-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0">
+      <canvas id="s08-waves" class="k-waves"></canvas>
+      <div id="s08-dim"></div>
+      <div id="s08-cam">
+        <div id="s08-ph">
+          <div id="s08-phone" class="k-phone">
+            <!-- footage: assets/footage/r8-chatgpt-bench.mp4 -->
+            <div id="s08-screen" class="k-screen"><div id="s08-label">R8 · ChatGPT: what did I bench last week?</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="s08-chip">
+        <div class="s08-g"><div id="s08-ic" class="k-icon"></div></div>
+        <span class="s08-app">Strong</span><span class="s08-sep">·</span><span class="s08-tool">get_exercise_history</span>
+        <div id="s08-ok" class="k-icon"></div>
+        <div id="s08-rim"></div>
+      </div>
+    </div>
   </div>
-  <script>window.__timelines["s08-chatgpt"] = gsap.timeline({ paused: true });</script>
+  <script>
+    (function () {
+      const D = 5.0, S = KIT.springs, $ = (s) => document.querySelector(s);
+      const tl = gsap.timeline({ paused: true });
+      const cam = (s, px, py) => ({ scale: s, x: 960 - s * px, y: 540 - s * py });
+      const PX = 700; // phone centre x (phone sits left, the tool call on its right)
+
+      KIT.waves(tl, $("#s08-waves"), { from: 0, to: D, offset: 47.279 });
+
+      // Arrive out of s07's screen: start inside the grey screen (5.2x) and pull back to the phone on a long tail.
+      gsap.set("#s08-ph", { scale: 0.966, x: PX - 960 });
+      tl.fromTo("#s08-cam", cam(5.2, PX, 540), { ...cam(1, 960, 540), duration: 0.55, ease: "expo.out", immediateRender: false }, 0);
+      tl.fromTo("#s08-cam", { filter: "blur(12px)" }, { filter: "blur(0px)", duration: 0.4, ease: "power2.out", immediateRender: false }, 0);
+      tl.fromTo("#s08-label", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 0.3);
+
+      // The Strong call lights beside the phone, returns (check), then clears for the push.
+      const chip = $("#s08-chip");
+      gsap.set(chip, { opacity: 0, transformOrigin: "0% 50%" });
+      gsap.set("#s08-ok", { opacity: 0, scale: 0.6 });
+      tl.fromTo(chip, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 0.8);
+      tl.fromTo(chip, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 0.8);
+      KIT.icon(tl, $("#s08-ic"), "person-pushups", { at: 0.8 });
+      KIT.icon(tl, $("#s08-ok"), "check", { at: 1.18 });
+      tl.fromTo("#s08-ok", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 1.18);
+      tl.fromTo("#s08-rim", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.18);
+      tl.to(chip, { opacity: 0, filter: "blur(8px)", x: 90, duration: 0.4, ease: "power2.in" }, 1.3);
+
+      // Push into the answer (lands with msg-in at ~1.6) and hold with a drift.
+      const ANS = 648;
+      tl.fromTo("#s08-cam", cam(1, 960, 540), { ...cam(1.75, PX, ANS), duration: 0.42, ease: "power2.inOut", immediateRender: false }, 1.22);
+      tl.fromTo("#s08-cam", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.21, ease: "power2.in", immediateRender: false }, 1.22);
+      tl.to("#s08-cam", { filter: "blur(0px)", duration: 0.21, ease: "power2.out" }, 1.43);
+      tl.fromTo("#s08-cam", cam(1.75, PX, ANS), { ...cam(1.81, PX, ANS), duration: 3.02, ease: "sine.inOut", immediateRender: false }, 1.64);
+
+      // Whip left into s09.
+      const end = cam(1.81, PX, ANS);
+      tl.fromTo("#s08-cam", { x: end.x }, { x: end.x - 1800, duration: 0.32, ease: "power3.in", immediateRender: false }, 4.68);
+      tl.fromTo("#s08-cam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.32, ease: "power3.in", immediateRender: false }, 4.68);
+
+      window.__timelines["s08-chatgpt"] = tl;
+    })();
+  </script>
 </template>

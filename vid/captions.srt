@@ -7,45 +7,49 @@ You pay for the smartest AI there is. Ask it why you're tired this week... and i
 The answer's in your apps. Your cycle in Flo. Your nutrients in Cronometer. Your training in Strong. Your AI can't open any of them.
 
 3
-00:00:15,044 --> 00:00:18,379
-ycyc connects them. Even the ones with no API.
+00:00:14,944 --> 00:00:15,984
+Yuzu.
 
 4
-00:00:19,279 --> 00:00:25,244
-Sign in once. ycyc reads your account, writes the tools, and tests a real request.
+00:00:15,744 --> 00:00:18,267
+It connects them. Even the ones with no API.
 
 5
-00:00:27,179 --> 00:00:30,304
-Then ONE link goes into every assistant you use.
+00:00:19,284 --> 00:00:24,884
+Sign in once. Yuzu reads your account, writes the tools, and tests a real request.
 
 6
-00:00:38,079 --> 00:00:40,471
-Same question. Now it actually knows you.
+00:00:27,184 --> 00:00:30,310
+Then ONE link goes into every assistant you use.
 
 7
-00:00:41,779 --> 00:00:43,939
-Anything that writes waits for your OK.
+00:00:38,084 --> 00:00:40,476
+Same question. Now it actually knows you.
 
 8
-00:00:47,679 --> 00:00:49,363
-Same link in ChatGPT.
+00:00:41,784 --> 00:00:43,944
+Anything that writes waits for your OK.
 
 9
-00:00:52,879 --> 00:00:53,869
-Or just text it.
+00:00:47,684 --> 00:00:49,368
+Same link in ChatGPT.
 
 10
-00:00:57,579 --> 00:01:00,507
-Every app ycyc learns, it learns once, for everyone.
+00:00:52,884 --> 00:00:53,874
+Or just text it.
 
 11
-00:01:03,479 --> 00:01:06,990
-ParkMobile. Duolingo. Whatever you open next.
+00:00:57,584 --> 00:01:01,429
+Every app yuzu learns, it learns once, for everyone.
 
 12
-00:01:09,679 --> 00:01:13,999
-Built today at YC, with Capy, Revyl, and Convex.
+00:01:03,484 --> 00:01:06,995
+ParkMobile. Duolingo. Whatever you open next.
 
 13
-00:01:17,479 --> 00:01:21,905
-ycyc. Your apps, in every AI.
+00:01:09,684 --> 00:01:14,005
+Built today at YC, with Capy, Revyl, and Convex.
+
+14
+00:01:17,484 --> 00:01:20,437
+Yuzu. Your apps, in every AI.
