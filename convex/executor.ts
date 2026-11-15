@@ -7,6 +7,7 @@ import { internalAction } from "./_generated/server";
 import { catalogApp } from "./catalog";
 import {
   extractPath,
+  fitToolText,
   prepareArgs,
   renderBody,
   renderHeader,
@@ -259,7 +260,7 @@ async function executeTemplated(
         const raw = r.raw === undefined ? "" : typeof r.raw === "string" ? r.raw : JSON.stringify(r.raw);
         return { ok: false, status: r.status || undefined, text: truncateText(`${r.error ?? "Failed"} ${raw}`.trim(), 1500) };
       }
-      return { ok: true, status: r.status, text: truncateText(toText(r.data, "Done.")), data: r.data };
+      return { ok: true, status: r.status, text: fitToolText(r.data, toText(r.data, "Done.")), data: r.data };
     }
     // A bare RequestTemplate (auth.check during verify).
     await tmpl.ensureLogin(recipe, session, state, timeoutFetch);
@@ -328,7 +329,7 @@ async function executeViaRecipeRunner(
       : err;
     return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
   }
-  return { ok: true, status: r.status, text: truncateText(toText(r.data, "Done.")), data: r.data };
+  return { ok: true, status: r.status, text: fitToolText(r.data, toText(r.data, "Done.")), data: r.data };
 }
 
 // Executor runs never see the password (it is stripped after sign-in anyway).
@@ -469,9 +470,9 @@ export async function executeRequest(
   const parsed = parseBody(res.body);
   const extracted = parsed !== undefined ? extractPath(parsed, opts.extract) : undefined;
   const ok = res.status >= 200 && res.status < 300;
-  const text = truncateText(
-    ok ? toText(extracted, res.body) : `HTTP ${res.status}: ${truncateText(res.body, 1500)}`,
-  );
+  const text = ok
+    ? fitToolText(extracted, toText(extracted, res.body))
+    : truncateText(`HTTP ${res.status}: ${truncateText(res.body, 1500)}`);
   return { ok, status: res.status, text, data: extracted };
 }
 

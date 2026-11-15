@@ -211,6 +211,21 @@ export function truncateText(text: string, max = MAX_TOOL_TEXT): string {
   return text.slice(0, max) + `\n...[truncated ${text.length - max} chars]`;
 }
 
+// A list over the cap keeps whole items (still valid JSON) instead of being cut mid-object.
+export function fitToolText(value: unknown, text: string, max = MAX_TOOL_TEXT): string {
+  if (text.length <= max || !Array.isArray(value) || value.length < 2) return truncateText(text, max);
+  const note = (k: number) => `\n[showing ${k} of ${value.length} items]`;
+  let size = 2;
+  let k = 0;
+  for (const item of value) {
+    const s = (JSON.stringify(item) ?? "null").length + (k ? 1 : 0);
+    if (size + s + note(k + 1).length > max) break;
+    size += s;
+    k++;
+  }
+  return k === 0 ? truncateText(text, max) : JSON.stringify(value.slice(0, k)) + note(k);
+}
+
 export function usesLogin(...templates: (string | undefined)[]): boolean {
   return templates.some((t) => !!t && /\{\{\s*login[.}\s]/.test(t));
 }
