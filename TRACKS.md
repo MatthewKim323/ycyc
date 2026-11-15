@@ -54,4 +54,4 @@ Ask the one question judges score: "what brings someone back tomorrow?" Our answ
 
 ## Submission (changed from the deck)
 - **Due 6:30 PM** on vibeapps.dev (deck said 6:00), tagged "Consumer Mobile Hackathon"
-- **Demo video + public GitHub repo required.** This repo is private right now
+- **Demo video + public GitHub repo required.** Repo is public
