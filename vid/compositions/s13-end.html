@@ -1,7 +1,69 @@
 <template>
-  <style>#root { position: absolute; inset: 0; } #s13-end-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 64px "Inter", sans-serif; color: #8a8a90; }</style>
+  <!-- sfx: t=2.08 name=logo-bloom gain=0.6 -->
+  <!-- sfx: t=2.96 name=brand-shimmer gain=0.3 -->
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s13-dim { position: absolute; inset: 0; background: #000; opacity: 0.3; }
+    #s13-black { position: absolute; inset: 0; background: #000; opacity: 0; }
+    #s13-lock { position: absolute; left: 0; top: 276px; width: 1920px; height: 200px; }
+    #s13-mark { position: absolute; left: 860px; top: 0; width: 200px; height: 200px; font-size: 66px; }
+    #s13-link { position: absolute; left: 1000px; top: 0; width: 200px; height: 200px; }
+    #s13-link .k-icon { width: 200px; height: 200px; }
+    #s13-title { position: absolute; left: 0; top: 540px; width: 1920px; text-align: center; font-size: 120px; }
+    #s13-url { position: absolute; left: 0; top: 700px; width: 1920px; text-align: center; font-size: 40px; color: #ffffff; font-weight: 500; }
+    #s13-url span { display: inline-block; padding: 14px 32px; border-radius: 999px; background: rgb(0 0 0 / 0.72); }
+  </style>
   <div id="root" data-composition-id="s13-end" data-width="1920" data-height="1080">
-    <div id="s13-end-wrap" class="clip k-canvas" data-start="0" data-duration="9.127" data-track-index="0"><p id="s13-end-ph">s13-end</p></div>
+    <div id="s13-wrap" class="clip k-canvas" data-start="0" data-duration="8.000" data-track-index="0">
+      <canvas id="s13-waves" class="k-waves" width="1920" height="1080"></canvas>
+      <div id="s13-dim"></div>
+      <div id="s13-lock">
+        <div id="s13-mark" class="k-mark">yuzu</div>
+        <div id="s13-link"><div id="s13-link-ic" class="k-icon"></div></div>
+      </div>
+      <h1 id="s13-title" class="k-head">Your apps, in every AI.</h1>
+      <p id="s13-url" class="k-sub"><span>github.com/MatthewKim323/ycyc</span></p>
+      <div id="s13-black"></div>
+    </div>
   </div>
-  <script>window.__timelines["s13-end"] = gsap.timeline({ paused: true });</script>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      const $ = (s) => document.querySelector(s);
+
+      // the wave at full strength, calming: shader clock continues from s12 (film time) and slows to 0.4x over 2 s
+      const pw = window.PatternWaves ? PatternWaves.create($("#s13-waves"), { width: 1920, height: 1080, dpr: 1.5, intro: false }) : null;
+      const g = (t) => { const x = Math.min(t, 2) / 2; const a = Math.min(t, 2) - 1.2 * (x * x * x - (x * x * x * x) / 2); return t <= 2 ? a : a + 0.4 * (t - 2); };
+      const clk = { t: 0 };
+      if (pw) {
+        tl.fromTo(clk, { t: 0 }, { t: 8, duration: 8, ease: "none", immediateRender: false, onUpdate: () => pw.renderAt(75.284 + g(clk.t)) }, 0);
+        pw.renderAt(75.284);
+      }
+      tl.fromTo("#s13-dim", { opacity: 0.3 }, { opacity: 0.26, duration: 1.2, ease: "power2.inOut", immediateRender: false }, 0);
+
+      // the mark lands on the downbeat at 2.28 (VO "Yuzu." at 2.20): pop spring, opacity never bounces
+      const pop = KIT.springs.pop, lay = KIT.springs.layout;
+      gsap.set("#s13-mark", { opacity: 0, scale: 0.3, x: 0, filter: "blur(10px)" });
+      tl.fromTo("#s13-mark", { scale: 0.3 }, { scale: 1, duration: pop.dur, ease: pop.ease, immediateRender: false }, 2.08);
+      tl.fromTo("#s13-mark", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power2.out", immediateRender: false }, 2.08);
+      // the link joins beside it on the next beat (2.96), the mark makes room on the layout spring
+      tl.fromTo("#s13-mark", { x: 0 }, { x: -120, duration: lay.dur, ease: lay.ease, immediateRender: false }, 2.96);
+      gsap.set("#s13-link", { opacity: 0, scale: 0.5, x: -60 });
+      tl.fromTo("#s13-link", { scale: 0.5, x: -60 }, { scale: 1, x: 0, duration: pop.dur, ease: pop.ease, immediateRender: false }, 2.96);
+      tl.fromTo("#s13-link", { opacity: 0 }, { opacity: 1, duration: 0.18, ease: "power2.out", immediateRender: false }, 2.96);
+      KIT.icon(tl, $("#s13-link-ic"), "link", { at: 2.96 });
+      // the lockup drifts 2% until the line has landed, then everything holds still
+      tl.fromTo("#s13-lock", { scale: 1, transformOrigin: "50% 50%" }, { scale: 1.02, duration: 1.8, ease: "sine.inOut", immediateRender: false }, 2.7);
+
+      // the line, word by word, done by 4.0; the repo URL on the 4.32 beat
+      KIT.words(tl, $("#s13-title"), 3.1, { gap: 0.15 });
+      gsap.set("#s13-url", { opacity: 0, filter: "blur(8px)" });
+      tl.fromTo("#s13-url", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power3.out", immediateRender: false }, 4.32);
+
+      // everything still from 4.5 to 7.5 (3 s); end by subtraction over the last 0.5 s
+      tl.fromTo("#s13-black", { opacity: 0 }, { opacity: 1, duration: 0.47, ease: "power1.in", immediateRender: false }, 7.5);
+
+      window.__timelines["s13-end"] = tl;
+    })();
+  </script>
 </template>
