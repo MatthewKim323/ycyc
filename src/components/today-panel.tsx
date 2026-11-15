@@ -1,29 +1,41 @@
 import { useAction, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Component, memo, useEffect, useState, type ReactNode } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, type Id, type MyConnection } from "@/hooks/convex";
-import { colors, enter, radius, space, springs } from "@/theme";
+import { colors, enter, layout, motion, radius, space, springs } from "@/theme";
 
 import { Button } from "./button";
 import { Icon, type IconName } from "./icon";
 import { PressableScale } from "./pressable-scale";
 import { ProgressRing } from "./progress-ring";
+import { statusLook } from "./rows";
 import { Text } from "./text";
 import { TweenNumber } from "./tween-number";
 
 type Metric = { value: number; goal: number } | null;
 type Achievement = { key: string; title: string; unlocked: boolean; at?: number };
 
-const BADGES: Record<string, { icon: IconName; took: string }> = {
-  first_log: { icon: "pencil", took: "An assistant logged something for you." },
-  first_approval: { icon: "check", took: "You approved a change from your phone." },
-  streak_3: { icon: "flame", took: "Something got logged three days in a row." },
-  two_apps: { icon: "puzzle", took: "Two apps connected at the same time." },
+// Only badges we can explain are shown. Anything else from the backend stays hidden.
+const BADGES: Record<string, { icon: IconName; took: string; how: string }> = {
+  first_log: { icon: "pencil", took: "An assistant logged something for you.", how: "Have an assistant log something for you." },
+  first_approval: { icon: "check", took: "You approved a change from your phone.", how: "Approve a change from your phone." },
+  streak_3: { icon: "flame", took: "Something got logged three days in a row.", how: "Log something three days in a row." },
+  two_apps: { icon: "puzzle", took: "Two apps connected at the same time.", how: "Connect a second app." },
 };
+
+const HIDDEN_BADGES = new Set(["logged_by_text"]);
+
+const APP_NAMES: Record<string, string> = {
+  myfitnesspal: "MyFitnessPal",
+  cronometer: "Cronometer",
+  strong: "Strong",
+};
+
+const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 /** Keeps Today from taking the screen down if the backend query is missing or throws. */
 class Boundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
@@ -40,46 +52,77 @@ function Ring({
   label,
   unit,
   metric,
-  app,
-  appName,
-  connected,
+  slug,
+  connection,
   index,
+  size,
+  ready,
 }: {
   label: string;
   unit: string;
   metric: Metric;
-  app: string;
-  appName: string;
-  connected: boolean;
+  slug: string;
+  connection: MyConnection | undefined;
   index: number;
+  size: number;
+  /** False until connections load, so a connected ring never flashes "Connect". */
+  ready: boolean;
 }) {
   const router = useRouter();
-  const progress = metric && metric.goal > 0 ? metric.value / metric.goal : 0;
+  const appName = APP_NAMES[slug] ?? slug;
+  const live = connection?.status === "live";
+  const hasGoal = !!metric && metric.goal > 0;
+  const progress = live && metric && hasGoal ? metric.value / metric.goal : 0;
+  const delay = Math.min(index, 8) * motion.stagger + 120;
+
+  const open = () => {
+    if (live) {
+      router.push({ pathname: "/app/[slug]", params: { slug } });
+    } else if (connection && (connection.status === "building" || connection.status === "capturing" || connection.status === "needs_code")) {
+      router.push({ pathname: "/build/[connectionId]", params: { connectionId: connection._id, slug } });
+    } else {
+      router.push({ pathname: "/connect/[slug]", params: { slug } });
+    }
+  };
+
+  const action = connection && !live ? statusLook(connection.status).label || "Connect" : "Connect";
+  const a11y = live
+    ? `${label}, ${metric ? `${fmt(metric.value)}${hasGoal ? ` of ${fmt(metric.goal)}` : ""} ${unit}` : "no data yet"}. Open ${appName}`
+    : `${action} ${appName} for ${label}`;
+
   return (
     <Animated.View entering={enter(index)} style={styles.ringCell}>
-      {connected ? (
-        <ProgressRing progress={progress}>
-          <TweenNumber value={Math.round(metric?.value ?? 0)} variant="heading" />
+      <PressableScale haptic="selection" accessibilityLabel={a11y} onPress={open} disabled={!ready} style={styles.ringPress}>
+        <ProgressRing progress={progress} size={size} stroke={Math.round(size / 13)} delay={delay}>
+          {live && metric ? (
+            hasGoal ? (
+              <View style={styles.pct}>
+                <TweenNumber value={Math.round((metric.value / metric.goal) * 100)} variant="heading" />
+                <Text variant="label" color={colors.textSecondary}>
+                  %
+                </Text>
+              </View>
+            ) : (
+              <TweenNumber value={Math.round(metric.value)} variant="heading" />
+            )
+          ) : null}
         </ProgressRing>
-      ) : (
-        <PressableScale
-          haptic="selection"
-          accessibilityLabel={`Connect ${appName} for ${label}`}
-          onPress={() => router.push({ pathname: "/connect/[slug]", params: { slug: app } })}
-        >
-          <ProgressRing progress={0}>
-            <Text variant="micro" color={colors.textSecondary}>
-              Connect
+        <View style={styles.ringText}>
+          <Text variant="label">
+            {label}
+            {live && metric ? <Text variant="label" color={colors.textTertiary}>{` ${unit}`}</Text> : null}
+          </Text>
+          {live ? (
+            <Text variant="caption" color={colors.textSecondary} style={styles.tabular} numberOfLines={1} adjustsFontSizeToFit>
+              {metric ? (hasGoal ? `${fmt(metric.value)} / ${fmt(metric.goal)}` : "No goal set") : "No data yet"}
             </Text>
-          </ProgressRing>
-        </PressableScale>
-      )}
-      <View style={styles.ringText}>
-        <Text variant="label">{label}</Text>
-        <Text variant="micro" color={colors.textTertiary} style={styles.tabular}>
-          {connected ? (metric ? `of ${Math.round(metric.goal)} ${unit}` : "No data yet") : appName}
-        </Text>
-      </View>
+          ) : (
+            <Text variant="caption" color={colors.text} numberOfLines={1}>
+              {ready ? action : " "}
+            </Text>
+          )}
+        </View>
+      </PressableScale>
     </Animated.View>
   );
 }
@@ -106,7 +149,7 @@ function AchievementSheet({ badge, onClose }: { badge: Achievement | null; onClo
               {badge.title}
             </Text>
             <Text variant="body" color={colors.textSecondary} style={styles.center}>
-              {meta?.took ?? "Keep using ycyc to unlock it."}
+              {meta ? (badge.unlocked ? meta.took : meta.how) : "Keep using yuzu to unlock it."}
             </Text>
             <Text variant="label" color={colors.textTertiary} style={styles.center}>
               {badge.unlocked
@@ -135,49 +178,78 @@ const Badge = memo(function Badge({ a, index, onPress }: { a: Achievement; index
   );
 });
 
-function TodayBody({ userId, connections }: { userId: Id<"users">; connections: MyConnection[] | undefined }) {
+function TodayBody({
+  userId,
+  connections,
+  afterRings,
+}: {
+  userId: Id<"users">;
+  connections: MyConnection[] | undefined;
+  afterRings?: ReactNode;
+}) {
   const today = useQuery(api.today.get, { userId });
   const refresh = useAction(api.today.summary);
   const [open, setOpen] = useState<Achievement | null>(null);
+  const { width } = useWindowDimensions();
+  const ringSize = Math.max(84, Math.min(108, Math.floor((Math.min(width, 520) - space.gutter * 2 - space.md * 2) / 3)));
 
   useEffect(() => {
     refresh({ userId }).catch(() => {});
   }, [refresh, userId]);
 
-  const live = (slug: string) => !!connections?.some((c) => c.appSlug === slug && c.status === "live");
+  const conn = (slug: string) => connections?.find((c) => c.appSlug === slug);
+  const isLive = (slug: string) => conn(slug)?.status === "live";
+  // Food rings fill from MyFitnessPal; Cronometer stands in only when it's the one you connected.
+  const foodSlug = !isLive("myfitnesspal") && isLive("cronometer") ? "cronometer" : "myfitnesspal";
+
   const streak = today?.streakDays ?? 0;
-  // Only badges we can explain; anything else from the backend stays hidden.
-  const badges = (today?.achievements ?? []).filter((a) => a.key in BADGES);
+  const xp = today?.xp ?? 0;
+  const badges = (today?.achievements ?? []).filter((a) => a.key in BADGES && !HIDDEN_BADGES.has(a.key));
+  const unlocked = badges.filter((a) => a.unlocked).length;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.rings}>
-        <Ring index={0} label="Fuel" unit="kcal" metric={today?.fuel ?? null} app="myfitnesspal" appName="MyFitnessPal" connected={live("myfitnesspal")} />
-        <Ring index={1} label="Protein" unit="g" metric={today?.protein ?? null} app="myfitnesspal" appName="MyFitnessPal" connected={live("myfitnesspal")} />
-        <Ring index={2} label="Training" unit="sets" metric={today?.training ?? null} app="strong" appName="Strong" connected={live("strong")} />
+        <Ring index={0} size={ringSize} label="Fuel" unit="kcal" metric={today?.fuel ?? null} slug={foodSlug} connection={conn(foodSlug)} ready={connections !== undefined} />
+        <Ring index={1} size={ringSize} label="Protein" unit="g" metric={today?.protein ?? null} slug={foodSlug} connection={conn(foodSlug)} ready={connections !== undefined} />
+        <Ring index={2} size={ringSize} label="Training" unit="sets" metric={today?.training ?? null} slug="strong" connection={conn("strong")} ready={connections !== undefined} />
       </View>
 
-      <Animated.View entering={enter(3)} style={styles.statsRow}>
-        <View style={styles.chip}>
-          <Icon name="flame" size={18} autoPlay={streak > 0} />
-          <Text variant="label" style={styles.tabular}>
-            {streak > 0 ? `${streak}-day streak` : "Log today to start a streak"}
-          </Text>
-        </View>
-        <View style={styles.xp}>
-          <TweenNumber value={today?.xp ?? 0} variant="label" />
-          <Text variant="label" color={colors.textTertiary}>
-            XP
-          </Text>
-        </View>
-      </Animated.View>
+      {afterRings}
+
+      {today && (streak > 0 || xp > 0) ? (
+        <Animated.View entering={enter(3)} layout={layout} style={styles.statsRow}>
+          <View style={styles.chip}>
+            {streak > 0 ? <Icon name="flame" size={18} autoPlay /> : null}
+            <Text variant="label" style={styles.tabular}>
+              {streak > 0 ? `${streak}-day streak` : "Log today to start a streak"}
+            </Text>
+          </View>
+          <View style={styles.xp}>
+            <TweenNumber value={xp} variant="heading" />
+            <Text variant="label" color={colors.textTertiary}>
+              XP
+            </Text>
+          </View>
+        </Animated.View>
+      ) : null}
 
       {badges.length > 0 ? (
-        <View style={styles.badges}>
-          {badges.map((a, i) => (
-            <Badge key={a.key} a={a} index={i + 4} onPress={() => setOpen(a)} />
-          ))}
-        </View>
+        <Animated.View entering={enter(4)} layout={layout}>
+          <View style={styles.sectionHead}>
+            <Text variant="label" color={colors.textSecondary}>
+              Achievements
+            </Text>
+            <Text variant="label" color={colors.textTertiary} style={styles.tabular}>
+              {unlocked} of {badges.length}
+            </Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badges}>
+            {badges.map((a, i) => (
+              <Badge key={a.key} a={a} index={i + 5} onPress={() => setOpen(a)} />
+            ))}
+          </ScrollView>
+        </Animated.View>
       ) : null}
 
       <AchievementSheet badge={open} onClose={() => setOpen(null)} />
@@ -185,20 +257,31 @@ function TodayBody({ userId, connections }: { userId: Id<"users">; connections: 
   );
 }
 
-export function TodayPanel({ userId, connections }: { userId: Id<"users"> | null; connections: MyConnection[] | undefined }) {
-  if (!userId) return null;
+export function TodayPanel({
+  userId,
+  connections,
+  afterRings,
+}: {
+  userId: Id<"users"> | null;
+  connections: MyConnection[] | undefined;
+  /** Rendered right under the rings (the first-run prompt lives here). */
+  afterRings?: ReactNode;
+}) {
+  if (!userId) return afterRings ?? null;
   return (
-    <Boundary fallback={null}>
-      <TodayBody userId={userId} connections={connections} />
+    <Boundary fallback={afterRings ?? null}>
+      <TodayBody userId={userId} connections={connections} afterRings={afterRings} />
     </Boundary>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.lg },
-  rings: { flexDirection: "row", justifyContent: "space-between" },
-  ringCell: { alignItems: "center", gap: space.sm, flex: 1 },
-  ringText: { alignItems: "center", gap: 1 },
+  wrap: { gap: space.xl },
+  rings: { flexDirection: "row", justifyContent: "space-between", gap: space.md },
+  ringCell: { flex: 1, alignItems: "center" },
+  ringPress: { alignItems: "center", gap: space.md },
+  ringText: { alignItems: "center", gap: 2 },
+  pct: { flexDirection: "row", alignItems: "baseline", gap: 1 },
   tabular: { fontVariant: ["tabular-nums"] },
   statsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   chip: {
@@ -212,12 +295,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  xp: { flexDirection: "row", alignItems: "center", gap: 4 },
-  badges: { flexDirection: "row", justifyContent: "space-between" },
+  xp: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: space.sm,
+    paddingHorizontal: space.xs,
+  },
+  badges: { gap: space.md, paddingHorizontal: space.xs },
   badge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
