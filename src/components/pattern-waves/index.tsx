@@ -37,6 +37,8 @@ import {
   type WaveName,
 } from "./engine";
 
+import NativeField, { nativeFieldAvailable, type NativeFieldHandle } from "./native-field";
+
 export type { FadeName, PatternName, PresetName, WaveName } from "./engine";
 
 export type PatternWavesProps = {
@@ -125,9 +127,13 @@ const PatternWaves = ({
   // If GL never presents a frame (no ES3 context, shader rejected), show the same silk frame as a still.
   const drawnRef = useRef(false);
   // iOS simulators (and some devices) present expo-gl frames black; native uses the pre-rendered silk still.
-  const [fallback, setFallback] = useState(!isWeb && !NATIVE_GL);
+  // Native draws with Skia (native-field.native.tsx); the still is the fallback if Skia fails.
+  const nativeSkia = !isWeb && !NATIVE_GL;
+  const nativeRef = useRef<NativeFieldHandle>(null);
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const [fallback, setFallback] = useState(nativeSkia && !nativeFieldAvailable);
   useEffect(() => {
-    if (isWeb) return undefined;
+    if (isWeb || !NATIVE_GL) return undefined;
     const t = setTimeout(() => {
       if (!drawnRef.current) setFallback(true);
     }, 1500);
@@ -147,29 +153,31 @@ const PatternWaves = ({
     [color, backgroundColor],
   );
 
+  const settings: Settings = {
+    ...colors,
+    pattern: pick(pattern, "pattern"),
+    wave: pick(wave, "wave"),
+    spacing: pick(spacing, "spacing"),
+    markSize: pick(markSize, "markSize"),
+    depth: pick(depth, "depth"),
+    light: pick(light, "light"),
+    shine: pick(shine, "shine"),
+    contrast: pick(contrast, "contrast"),
+    speed: pick(speed, "speed"),
+    scale: pick(scale, "scale"),
+    direction: pick(direction, "direction"),
+    opacity,
+    fade,
+    fadeSize,
+    interactive,
+    cursorSize,
+    cursorStrength,
+    intro,
+    paused,
+  };
+
   useEffect(() => {
-    settingsRef.current = {
-      ...colors,
-      pattern: pick(pattern, "pattern"),
-      wave: pick(wave, "wave"),
-      spacing: pick(spacing, "spacing"),
-      markSize: pick(markSize, "markSize"),
-      depth: pick(depth, "depth"),
-      light: pick(light, "light"),
-      shine: pick(shine, "shine"),
-      contrast: pick(contrast, "contrast"),
-      speed: pick(speed, "speed"),
-      scale: pick(scale, "scale"),
-      direction: pick(direction, "direction"),
-      opacity,
-      fade,
-      fadeSize,
-      interactive,
-      cursorSize,
-      cursorStrength,
-      intro,
-      paused,
-    };
+    settingsRef.current = settings;
     engineRef.current?.wake();
   });
 
@@ -266,6 +274,7 @@ const PatternWaves = ({
   const onLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
     sizeRef.current = { width, height };
+    if (nativeSkia) setLayout({ width, height });
     engineRef.current?.resize(width, height);
     containerRef.current?.measureInWindow((x, y) => {
       offsetRef.current = { x, y };
@@ -332,27 +341,46 @@ const PatternWaves = ({
           });
           const spot = locateTouch(event);
           engineRef.current?.pointerDown(spot.x, spot.y, spot.inside);
+          if (spot.inside) nativeRef.current?.pointerDown(spot.x, spot.y);
         },
         onTouchMove: (event: GestureResponderEvent) => {
           const spot = locateTouch(event);
           engineRef.current?.pointerMove(spot.x, spot.y, spot.inside);
+          if (spot.inside) nativeRef.current?.pointerMove(spot.x, spot.y);
+          else nativeRef.current?.pointerLeave();
         },
-        onTouchEnd: () => engineRef.current?.pointerLeave(),
-        onTouchCancel: () => engineRef.current?.pointerLeave(),
+        onTouchEnd: () => {
+          engineRef.current?.pointerLeave();
+          nativeRef.current?.pointerLeave();
+        },
+        onTouchCancel: () => {
+          engineRef.current?.pointerLeave();
+          nativeRef.current?.pointerLeave();
+        },
       };
 
   return (
     <View ref={containerRef} style={[styles.root, style]} onLayout={onLayout} {...touchHandlers}>
       {isWeb || NATIVE_GL ? (
-      <GLView
-        style={StyleSheet.absoluteFill}
-        msaaSamples={0}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        onContextCreate={onContextCreate as (gl: unknown) => void}
-        {...(isWeb ? { webglContextAttributes: WEB_CONTEXT_ATTRIBUTES } : null)}
-      />
+        <GLView
+          style={StyleSheet.absoluteFill}
+          msaaSamples={0}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          onContextCreate={onContextCreate as (gl: unknown) => void}
+          {...(isWeb ? { webglContextAttributes: WEB_CONTEXT_ATTRIBUTES } : null)}
+        />
+      ) : null}
+      {nativeSkia && !fallback ? (
+        <NativeField
+          ref={nativeRef}
+          settings={settings}
+          width={layout.width}
+          height={layout.height}
+          active={focused && appActive}
+          onError={() => setFallback(true)}
+        />
       ) : null}
       {fallback ? <SilkStill /> : null}
       {children}

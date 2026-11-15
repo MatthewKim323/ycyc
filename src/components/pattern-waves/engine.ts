@@ -572,7 +572,15 @@ export const createEngine = (gl: GL, host: EngineHost): Engine => {
       try {
         const side = 48;
         const px = new Uint8Array(side * side * 4);
-        gl.readPixels(Math.max(0, Math.floor(bufferW / 2 - side / 2)), Math.max(0, Math.floor(bufferH / 2 - side / 2)), side, side, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        gl.readPixels(
+          Math.max(0, Math.floor(bufferW / 2 - side / 2)),
+          Math.max(0, Math.floor(bufferH / 2 - side / 2)),
+          side,
+          side,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          px,
+        );
         let max = 0;
         for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
         host.onProbe(max);
