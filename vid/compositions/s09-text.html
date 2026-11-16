@@ -23,7 +23,9 @@
 
     /* the rebuilt chat, monochrome, at device points */
     #s09-head { position: absolute; left: 0; top: 50px; width: 100%; height: 54px; display: flex; align-items: center; justify-content: center;
-      font: 600 17px/1 "Inter", sans-serif; color: #fff; box-shadow: inset 0 -1px 0 #1f1f1f; }
+      gap: 9px; font: 600 17px/1 "Inter", sans-serif; color: #fff; box-shadow: inset 0 -1px 0 #1f1f1f; }
+    #s09-hlogo { width: 28px; height: 28px; border-radius: 8px; background: #141414 url(assets/assistants/grok.png) center / cover; box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.14); flex: none; }
+    .s09-glogo { width: 72px; height: 72px; border-radius: 19px; background: #141414 url(assets/assistants/grok.png) center / cover; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); flex: none; margin-right: -4px; }
     #s09-bub { position: absolute; right: 16px; top: 130px; max-width: 262px; padding: 12px 16px; border-radius: 22px; background: #1f1f1f;
       font: 500 17px/23px "Inter", sans-serif; color: #fff; }
     #s09-tool { position: absolute; left: 16px; top: 224px; display: flex; align-items: center; gap: 10px; font: 500 16px/28px "Inter", sans-serif; color: #a1a1a1; white-space: nowrap; }
@@ -37,7 +39,7 @@
     #s09-send .k-icon { width: 24px; height: 24px; }
 
     /* the chip beside the phone (screen space, like s08's) */
-    #s09-chip { position: absolute; left: 1170px; top: 470px; display: flex; align-items: center; gap: 22px; height: 120px; padding: 0 36px 0 36px;
+    #s09-chip { position: absolute; left: 1170px; top: 470px; display: flex; align-items: center; gap: 22px; height: 120px; padding: 0 36px 0 24px;
       border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #fff; }
     .s09-app { font-weight: 600; letter-spacing: -0.01em; }
     .s09-sep { color: #6b6b6b; margin: 0 -6px; }
@@ -53,7 +55,7 @@
           <div id="s09-ph">
             <div id="s09-phone" class="k-phone">
               <div id="s09-screen" class="k-screen">
-                <div id="s09-head">Grok</div>
+                <div id="s09-head"><span id="s09-hlogo"></span>Grok</div>
                 <div id="s09-bub">am I about to lose my Duolingo streak?</div>
                 <div id="s09-tool"><div id="s09-tlogo"></div><span>Check your streak</span><span class="sep">·</span><span>Duolingo</span></div>
                 <p id="s09-ans">Not yet. You're on a 47-day streak and today's lesson isn't done. You have until midnight. Want a 5-minute review of the words you keep missing?</p>
@@ -66,7 +68,7 @@
           </div>
         </div>
         <div id="s09-chip">
-          <span class="s09-app">Grok</span><span class="s09-sep">·</span>
+          <span class="s09-glogo"></span><span class="s09-app">Grok</span><span class="s09-sep">·</span>
           <img id="s09-logo" class="s09-logo" src="assets/apps/duolingo.png" alt="" />
           <span class="s09-verb">Duolingo</span>
         </div>

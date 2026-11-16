@@ -27,20 +27,28 @@
     .s9-f { font-family: "Inter", sans-serif; }
     .s9-cam { position: absolute; inset: 0; transform-origin: 0 0; }
 
-    /* A: onboarding "Pick your AI" at 3x (content 361pt -> 1083), shown at 0.95; Glass card; login sheet at 3x x 0.84. */
-    #s09b-pick { position: absolute; left: 418px; top: 99px; width: 1083px; display: flex; flex-direction: column; gap: 72px; }
+    /* A: onboarding "Pick your AI" (current PickAI: "Your plan" + "Or use the app") at 3x, shown at 0.82. The list fades
+       out at the frame bottom like the scroll view; the plan group is where the action is. */
+    #s09b-pick { position: absolute; left: 418px; top: -45px; width: 1083px; display: flex; flex-direction: column; gap: 72px; }
     .s9-ptitle { font: 600 90px/108px "Inter", sans-serif; letter-spacing: -1.8px; color: #fff; }
-    .s9-pbody { font: 400 45px/63px "Inter", sans-serif; color: #a1a1a1; }
-    #s09b-glass { border-radius: 48px; background: rgba(11,11,11,0.8); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); overflow: hidden; }
+    .s9-group { display: flex; flex-direction: column; gap: 24px; }
+    .s9-glabel { padding: 0 12px; font: 500 39px/54px "Inter", sans-serif; color: #6b6b6b; }
+    .s9-glass { border-radius: 48px; background: rgba(11,11,11,0.8); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); overflow: hidden; }
     .s9-prow { display: flex; align-items: center; gap: 36px; padding: 36px 48px; }
     .s9-prow + .s9-prow { box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.1); }
-    .s9-pname { flex: 1; font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; }
-    .s9-pst { display: grid; justify-items: end; align-items: center; font: 500 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-alogo { width: 120px; height: 120px; border-radius: 32px; background-color: #141414; background-size: cover; background-position: center;
+      box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); flex: none; }
+    .s9-ptext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .s9-pname { font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; }
+    .s9-pcap { font: 400 39px/54px "Inter", sans-serif; color: #a1a1a1; white-space: nowrap; }
+    .s9-pst { display: grid; justify-items: end; align-items: center; min-width: 72px; }
     .s9-pst > * { grid-area: 1 / 1; white-space: nowrap; }
-    .s9-live { display: flex; align-items: center; gap: 18px; color: #fff; }
-    .s9-dot { width: 18px; height: 18px; border-radius: 9px; background: #fff; }
-    #s09b-cont { height: 156px; border-radius: 78px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
-      font: 600 45px/60px "Inter", sans-serif; }
+    .s9-cpill { padding: 18px 36px; border-radius: 999px; background: rgba(255,255,255,0.1); font: 500 39px/54px "Inter", sans-serif; color: #fff; }
+    .s9-cpill.s9-sign { color: #a1a1a1; }
+    .s9-conn { display: flex; align-items: center; gap: 12px; font: 500 39px/54px "Inter", sans-serif; color: #fff; }
+    .s9-conn .k-icon { width: 54px; height: 54px; }
+    .s9-ext { width: 54px; height: 54px; opacity: 0.4; }
+    #s09b-g2 { -webkit-mask-image: linear-gradient(to bottom, #000 38%, transparent 60%); mask-image: linear-gradient(to bottom, #000 38%, transparent 60%); }
     #s09b-acam { z-index: 3; }
     #s09b-scrim { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 4; }
     #s09b-sheetpos { position: absolute; left: 370px; bottom: -70px; width: 1179px; z-index: 5; }
@@ -62,7 +70,9 @@
     #s09b-chat { position: absolute; left: 418px; top: 118px; width: 1083px; font-family: "Inter", sans-serif; color: #fff; }
     .s9-bar { height: 156px; display: flex; align-items: center; justify-content: space-between; }
     .s9-side { width: 240px; }
-    .s9-switch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .s9-switch { display: flex; align-items: center; gap: 24px; }
+    .s9-swlabels { display: flex; flex-direction: column; align-items: flex-start; }
+    .s9-swlogo { width: 78px; height: 78px; border-radius: 21px; background: #141414 url(assets/assistants/claude.png) center / cover; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); flex: none; }
     .s9-swname { font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; }
     .s9-swsub { display: flex; align-items: center; gap: 15px; font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #a1a1a1; }
     .s9-swdot { width: 15px; height: 15px; border-radius: 8px; background: #fff; }
@@ -112,14 +122,34 @@
       <div id="s09b-acam" class="s9-cam">
         <div id="s09b-pick" class="s9-f">
           <div id="s09b-ptitle" class="s9-ptitle">Pick your AI</div>
-          <div id="s09b-pbody" class="s9-pbody">Use the plan you already pay for. It answers right inside yuzu.</div>
-          <div id="s09b-glass">
-            <div id="s09b-row1" class="s9-prow"><div class="s9-pname">Claude plan</div>
-              <div class="s9-pst"><span id="s09b-st-conn">Connect</span><span id="s09b-st-sign">Signing in</span><span id="s09b-st-live" class="s9-live"><span class="s9-dot"></span>Connected</span></div></div>
-            <div id="s09b-row2" class="s9-prow"><div class="s9-pname">ChatGPT plan</div>
-              <div class="s9-pst"><span>Connect</span></div></div>
+          <div id="s09b-g1" class="s9-group">
+            <div class="s9-glabel">Your plan</div>
+            <div id="s09b-glass" class="s9-glass">
+            <div id="s09b-row1" class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/claude.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">Claude</div><div class="s9-pcap">Use your Claude plan</div></div>
+              <div class="s9-pst"><span id="s09b-st-conn" class="s9-cpill">Connect</span><span id="s09b-st-sign" class="s9-cpill s9-sign">Signing in</span><span id="s09b-st-live" class="s9-conn"><span id="s09b-st-ic" class="k-icon"></span>Connected</span></div></div>
+            <div id="s09b-row2" class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/chatgpt.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">ChatGPT</div><div class="s9-pcap">Use your ChatGPT plan</div></div>
+              <div class="s9-pst"><span class="s9-cpill">Connect</span></div></div>
+            </div>
           </div>
-          <div id="s09b-cont">Continue</div>
+          <div id="s09b-g2" class="s9-group">
+            <div class="s9-glabel">Or use the app</div>
+            <div class="s9-glass">
+            <div class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/grok.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">Grok</div><div class="s9-pcap">Opens the Grok app</div></div>
+              <div class="s9-pst"><div id="s09b-ext1" class="s9-ext k-icon"></div></div></div>
+            <div class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/perplexity.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">Perplexity</div><div class="s9-pcap">Opens the Perplexity app</div></div>
+              <div class="s9-pst"><div id="s09b-ext2" class="s9-ext k-icon"></div></div></div>
+            <div class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/gemini.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">Gemini</div><div class="s9-pcap">Copies your link, opens Gemini</div></div>
+              <div class="s9-pst"><div id="s09b-ext3" class="s9-ext k-icon"></div></div></div>
+            <div class="s9-prow"><div class="s9-alogo" style="background-image: url(assets/assistants/muse.png)"></div>
+              <div class="s9-ptext"><div class="s9-pname">Muse</div><div class="s9-pcap">Copies your link, opens Muse</div></div>
+              <div class="s9-pst"><div id="s09b-ext4" class="s9-ext k-icon"></div></div></div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="s09b-scrim"></div>
@@ -147,7 +177,7 @@
         <div id="s09b-chat">
           <div class="s9-bar">
             <div class="s9-side"></div>
-            <div class="s9-switch"><div class="s9-swname">Claude</div><div class="s9-swsub"><span class="s9-swdot"></span>Your plan</div></div>
+            <div class="s9-switch"><div class="s9-swlogo"></div><div class="s9-swlabels"><div class="s9-swname">Claude</div><div class="s9-swsub"><span class="s9-swdot"></span>Your plan</div></div></div>
             <div class="s9-new">New chat</div>
           </div>
           <div class="s9-thread">
@@ -224,15 +254,16 @@
       KIT.waves(tl, $("#s09b-waves"), { from: 0, to: D, offset: 57.284 });
 
       // ---------------- A: Pick your AI (0 - 2.6) ----------------
-      gsap.set("#s09b-acam", cam(0.95, 960, 540));
-      tl.fromTo("#s09b-acam", cam(0.95, 960, 540), { ...cam(0.985, 960, 540), duration: 2.2, ease: "sine.inOut", immediateRender: false }, 0);
-      // Lands at 0.00: title (Reveal 0), body (Reveal 80ms), Glass card (enter 3).
-      [["#s09b-ptitle", 0], ["#s09b-pbody", 0.08], ["#s09b-glass", 0.165]].forEach(([el, at]) => {
+      gsap.set("#s09b-acam", cam(0.82, 960, 540));
+      tl.fromTo("#s09b-acam", cam(0.82, 960, 540), { ...cam(0.85, 960, 540), duration: 2.2, ease: "sine.inOut", immediateRender: false }, 0);
+      // Lands at 0.00: title (Reveal 0), the plan group (enter 1-3), the app group (enter 4+), 55ms stagger.
+      [["#s09b-ptitle", 0], ["#s09b-g1", 0.055], ["#s09b-g2", 0.22]].forEach(([el, at]) => {
         gsap.set(el, { opacity: 0 });
         tl.fromTo(el, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, at);
         tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, at);
       });
-      gsap.set(["#s09b-st-sign", "#s09b-st-live", "#s09b-cont"], { opacity: 0 });
+      gsap.set(["#s09b-st-sign", "#s09b-st-live"], { opacity: 0 });
+      [1, 2, 3, 4].forEach((n) => KIT.icon(tl, $("#s09b-ext" + n), "arrow-out-square", { at: 0 }));
 
       // 0.54: tap Claude plan (press 0.98), status Connect -> Signing in.
       gsap.set("#s09b-row1", { scale: 1 });
@@ -263,12 +294,13 @@
 
       // 1.90: the row goes live (dot + Connected) and Continue fades in.
       swap($("#s09b-st-sign"), $("#s09b-st-live"), 1.9);
-      tl.fromTo("#s09b-cont", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 1.9);
+      tl.fromTo("#s09b-st-live", { scale: 0.6 }, { scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 1.9);
+      KIT.icon(tl, $("#s09b-st-ic"), "check", { at: 1.96 });
 
       // 2.24: zoom through the live Claude row into B (A sits above B, so B shows through as A clears).
-      const glass = $("#s09b-glass"), row1 = $("#s09b-row1");
-      const rowY = 99 + (glass.offsetTop || 378) + (row1.offsetTop || 0) + (row1.offsetHeight || 138) / 2;
-      tl.fromTo("#s09b-acam", cam(0.985, 960, 540), { ...cam(2.6, 960, rowY), duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
+      const g1 = $("#s09b-g1"), glass = $("#s09b-glass"), row1 = $("#s09b-row1");
+      const rowY = -45 + (g1.offsetTop || 180) + (glass.offsetTop || 78) + (row1.offsetTop || 0) + (row1.offsetHeight || 192) / 2;
+      tl.fromTo("#s09b-acam", cam(0.85, 960, 540), { ...cam(2.6, 960, rowY), duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
       tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
       tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.44);
 
