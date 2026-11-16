@@ -34,7 +34,7 @@ import { useOnboarding } from "@/hooks/onboarding";
 import { useUser } from "@/hooks/user";
 import { captureConfigFor, magicLinkFor } from "@/lib/capture/apps";
 import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
-import { useAiPlans } from "@/lib/agent";
+import { startAppLearning, useAiPlans } from "@/lib/agent";
 import { copyFor, plainError, type Capability } from "@/components/app-copy";
 import { colors, enter, layout, radius, space, springs, stageIn, stageOut } from "@/theme";
 
@@ -253,6 +253,8 @@ export default function ConnectFlow() {
 
   const [web, setWeb] = useState({ phase: "login" as "login" | "capturing", requests: 0, loggedIn: false });
   const [submitting, setSubmitting] = useState(false);
+  const [startingLearning, setStartingLearning] = useState(false);
+  const [learningError, setLearningError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [settled, setSettled] = useState(false);
   const [shownSteps, setShownSteps] = useState(0);
@@ -339,6 +341,21 @@ export default function ConnectFlow() {
     } else {
       router.dismissTo(to);
     }
+  };
+
+  const learn = async () => {
+    if (startingLearning) return;
+    if (!planReady) { await leave("/agent"); return; }
+    setStartingLearning(true);
+    setLearningError(null);
+    try {
+      const result = await startAppLearning(connectionId);
+      if (onboarding || onboarded === false) await finish();
+      router.dismissAll();
+      router.replace({ pathname: "/agent", params: { learningThread: result.threadId, learningProvider: result.provider } });
+    } catch (error) {
+      setLearningError(plainError(error instanceof Error ? error.message : undefined, "Couldn't start your assistant. Try again."));
+    } finally { setStartingLearning(false); }
   };
 
   const submit = async (session: SessionBundle, capture: CaptureEntry[]) => {
@@ -527,7 +544,8 @@ export default function ConnectFlow() {
               </Text>
             </View>
             <View style={[styles.footer, { paddingBottom: insets.bottom + space.md }]}>
-              <Button label="Continue in agent" onPress={() => leave("/agent")} disabled={checkingPlan} fullWidth />
+              {learningError ? <Text variant="caption" color={colors.error}>{learningError}</Text> : null}
+              <Button label="Learn with my assistant" onPress={learn} loading={startingLearning} disabled={checkingPlan} fullWidth />
             </View>
           </Animated.View>
         ) : null}

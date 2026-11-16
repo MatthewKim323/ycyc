@@ -11,6 +11,7 @@ import { useUser } from "@/hooks/user";
 
 import {
   notifyProvidersChanged,
+  rememberPick,
   registerProvider,
   type AgentChunk,
   type AgentMessage,
@@ -149,6 +150,16 @@ function rememberThread(plan: PlanId, id: string | null) {
   threads[plan] = id;
   emitThreads();
   store.set(threadKey(plan), id ?? "").catch(() => {});
+}
+
+/** Queue real learning once per saved capture; the server owns idempotency. */
+export async function startAppLearning(connectionId: Id<"connections">) {
+  const { client, token } = bridge;
+  if (!client || !token) throw new Error("Your yuzu session is still loading. Try again.");
+  const result = await client.mutation(api.aiChat.learnApp, { token, connectionId });
+  rememberThread(result.provider, result.threadId);
+  rememberPick(PLAN_PROVIDER_ID[result.provider]);
+  return result;
 }
 
 /** The thread the Agent tab is showing for a plan, or null for a new chat. */

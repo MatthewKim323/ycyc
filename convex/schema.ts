@@ -77,12 +77,29 @@ export default defineSchema({
   }).index("by_user", ["userId"]).index("by_user_plugin", ["userId", "pluginId"]),
 
   // Agent learning is private, immutable evidence + versioned tools, never shared recipes.
+  nativeAppBuilds: defineTable({
+    appSlug: v.string(), buildId: v.string(), packageName: v.string(), platform: v.union(v.literal("android"), v.literal("ios")),
+    approvedOrigins: v.array(v.string()), sessionHeaders: v.array(v.string()),
+    sourceSha256: v.optional(v.string()), vendorCertificateSha256: v.optional(v.string()), createdAt: v.number(),
+  }).index("by_app", ["appSlug"]),
+  nativeDiscoveryJobs: defineTable({
+    userId: v.id("users"), connectionId: v.id("connections"), appSlug: v.string(), buildId: v.string(),
+    status: v.union(v.literal("starting"), v.literal("running"), v.literal("collecting"), v.literal("ready"), v.literal("error"), v.literal("stopped")),
+    dispatchClaimedAt: v.optional(v.number()), collectionClaimedAt: v.optional(v.number()), stopAttempts: v.optional(v.number()), packageInspectionCount: v.optional(v.number()), sessionId: v.optional(v.string()), workflowRunId: v.optional(v.string()), viewerUrl: v.optional(v.string()),
+    sessionJson: v.optional(v.string()), captureCount: v.optional(v.number()), hasPartialCapture: v.optional(v.boolean()), errorCode: v.optional(v.string()),
+    captureExpiresAt: v.optional(v.number()), createdAt: v.number(), updatedAt: v.number(), expiresAt: v.number(),
+  }).index("by_user", ["userId"]).index("by_user_status", ["userId", "status"]).index("by_connection", ["connectionId"]),
+  nativeDiscoveryCaptures: defineTable({
+    jobId: v.id("nativeDiscoveryJobs"), chunk: v.number(), entriesJson: v.string(), count: v.number(), createdAt: v.number(),
+  }).index("by_job_chunk", ["jobId", "chunk"]),
   appLearningEvidence: defineTable({
     userId: v.id("users"), appSlug: v.string(),
     kind: v.union(v.literal("source"), v.literal("endpoint"), v.literal("write_endpoint")),
     origin: v.string(), url: v.string(),
     method: v.optional(v.string()), requestSchemaJson: v.optional(v.string()), bodyPresent: v.optional(v.boolean()),
+    requestEnvelopeJson: v.optional(v.string()),
     connectionId: v.optional(v.id("connections")), sessionEpoch: v.optional(v.string()),
+    nativeJobId: v.optional(v.id("nativeDiscoveryJobs")),
     headerNames: v.array(v.string()), shapeJson: v.string(),
     createdAt: v.number(), expiresAt: v.number(),
   }).index("by_user_app", ["userId", "appSlug"]),

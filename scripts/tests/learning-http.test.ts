@@ -1,19 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
+import { brotliCompressSync, gzipSync } from "node:zlib";
 import type { ClientRequest, IncomingMessage } from "node:http";
-import { extractResearchCandidates, isPublicIp, MAX_SOURCE_BYTES, pinnedLookup, resolvePublicAddress, safeResearchFetch, safeAppRequest, MAX_WRITE_BYTES, validateResearchUrl, type ResearchTransport, type ResearchRequestOptions, type AppWriteMethod } from "../../convex/lib/learningHttp";
+import { extractResearchCandidates, inspectPublicSource, isPublicIp, MAX_SOURCE_BYTES, MAX_PUBLIC_SOURCE_BYTES, MAX_SOURCE_EXCERPT_BYTES, pinnedLookup, resolvePublicAddress, safePublicSourceFetch, safeResearchFetch, safeAppRequest, safeNativeArtifactFetch, safeNativePackageFetch, MAX_WRITE_BYTES, validateResearchUrl, type ResearchTransport, type ResearchRequestOptions, type AppWriteMethod } from "../../convex/lib/learningHttp";
 
 const origin = "https://app.example.com";
 type FixtureOptions = { status?: number; headers?: Record<string, string>; chunks?: Buffer[]; error?: boolean; stall?: boolean; stallBody?: boolean; abort?: boolean };
 function fixture(options: FixtureOptions = {}) {
   let requests = 0, lookups = 0;
   let sent: ResearchRequestOptions | undefined;
+  let requestedUrl: string | undefined;
   let body = "";
   const io: ResearchTransport = {
     resolve: async () => { lookups++; return [{ address: "8.8.8.8", family: 4 }]; },
-    request: (_url, config, callback) => {
-      requests++; sent = config;
+    request: (url, config, callback) => {
+      requests++; sent = config; requestedUrl = url.href;
       const request = new PassThrough();
       request.on("data", (chunk: Buffer) => { body += chunk.toString("utf8"); });
       request.on("finish", () => {
@@ -28,7 +30,7 @@ function fixture(options: FixtureOptions = {}) {
       return request as unknown as ClientRequest;
     },
   };
-  return { io, get requests() { return requests; }, get lookups() { return lookups; }, get sent() { return sent; }, get body() { return body; } };
+  return { io, get requests() { return requests; }, get lookups() { return lookups; }, get sent() { return sent; }, get body() { return body; }, get requestedUrl() { return requestedUrl; } };
 }
 
 function lookupResult(lookup: ReturnType<typeof pinnedLookup>, all: boolean): Promise<unknown[]> {
@@ -113,7 +115,7 @@ test("enforces declared and streamed byte caps, valid UTF-8, network failures an
   await assert.rejects(safeResearchFetch(origin, origin, undefined, fixture({ abort: true }).io), /fetch_failed/);
 });
 
-test("extractor finds literal same-origin sources and API evidence without evaluating text or leaking secret queries", () => {
+test("extractor finds linked public scripts and same-origin API evidence without evaluating text or leaking secret queries", () => {
   const text = `<base href="https://evil.example/"><script src="/assets/main.js?v=2&amp;lang=en"></script><link rel="modulepreload" href="./lazy.js"><script src="https://evil.example/x.js"></script><script src="/secret.js?api_key=private"></script><script src="/%7B%7Bdynamic%7D%7D"></script><script>throw new Error('must never run'); const a='/api/me'; const b="https://app.example.com/api/items"; const c='/api/keys?token=private'; const d='/api/{{dynamic}}'; const e='https://evil.example/api/me'; const f="\\/api\\/escaped";</script>`;
   assert.deepEqual(extractResearchCandidates(text, origin + "/docs/index", origin), {
     sources: [origin + "/assets/main.js?v=2&lang=en", origin + "/docs/lazy.js"],
@@ -125,7 +127,93 @@ test("extractor bounds source text and deduplicates/caps candidate lists", () =>
   const text = Array.from({ length: 100 }, (_, index) => `<script src="/source${index}.js"></script> const x${index}='/api/item${index}';`).join("");
   const result = extractResearchCandidates(text, origin, origin);
   assert.equal(result.sources.length, 40); assert.equal(result.endpoints.length, 40);
-  assert.deepEqual(extractResearchCandidates(" ".repeat(MAX_SOURCE_BYTES) + "'/api/late'", origin, origin), { sources: [], endpoints: [] });
+  assert.deepEqual(extractResearchCandidates(" ".repeat(MAX_PUBLIC_SOURCE_BYTES) + "'/api/late'", origin, origin), { sources: [], endpoints: [] });
+});
+
+test("linked CDN modules are discovery only; app endpoint origin and credential URL restrictions stay strict", () => {
+  const cdn = "https://static.example.com";
+  const source = `<script src="${cdn}/main.js"></script><script src="https://127.0.0.1/private.js"></script><script src="https://user:password@static.example.com/secret.js"></script><script src="${cdn}/auth.js?access_token=private"></script><script src="${cdn}/file.wasm"></script>
+    import Thing from "./chunks/a.mjs"; export { Thing } from "https://other.example.com/b.js";
+    import("./chunks/c.js"); require("./chunks/d.js"); importScripts("./chunks/e.js");
+    const arbitraryString = "https://not-linked.example.com/no.js";
+    const dynamic = import("./chunk-" + token + ".js");
+    const endpoint = "https://app.example.com/api/items"; const foreignEndpoint = "https://other.example.com/api/private";
+    const relativeEndpoint = "/api/on-the-cdn";`;
+  assert.deepEqual(extractResearchCandidates(source, cdn + "/assets/root.mjs", cdn, origin), {
+    sources: [cdn + "/main.js", cdn + "/assets/chunks/a.mjs", "https://other.example.com/b.js", cdn + "/assets/chunks/c.js", cdn + "/assets/chunks/d.js", cdn + "/assets/chunks/e.js"],
+    endpoints: [origin + "/api/items"],
+  });
+});
+
+test("public sources allow larger code bundles without expanding authenticated app responses or carrying credentials", async () => {
+  const body = Buffer.alloc(MAX_SOURCE_BYTES + 1, " ");
+  const f = fixture({ headers: { "content-type": "application/javascript", "content-length": String(body.length) }, chunks: [body] });
+  const result = await safePublicSourceFetch("https://static.example.com/main.js", "https://static.example.com", f.io);
+  assert.equal(Buffer.byteLength(result.text), body.length);
+  assert.equal(f.requests, 1); assert.equal(f.lookups, 1);
+  assert.deepEqual(f.sent?.headers, { accept: "text/html, application/javascript, application/json, text/plain", "accept-encoding": "identity" });
+  assert.deepEqual(await lookupResult(f.sent!.lookup!, false), ["8.8.8.8", 4]);
+  await assert.rejects(safeResearchFetch(origin, origin, { authorization: "Bearer server-only" }, fixture({ chunks: [body] }).io), /source_too_large/);
+  for (const options of [
+    { headers: { "content-length": String(MAX_PUBLIC_SOURCE_BYTES + 1) } },
+    { chunks: [Buffer.alloc(MAX_PUBLIC_SOURCE_BYTES), Buffer.from("x")] },
+  ]) await assert.rejects(safePublicSourceFetch(origin, origin, fixture(options).io), /source_too_large/);
+});
+
+test("public source inspection retains DNS pinning, redirect rejection, deadlines and private URL refusal", async () => {
+  const f = fixture();
+  await assert.rejects(safePublicSourceFetch("https://static.example.com/main.js?token=private", "https://static.example.com", f.io), /private_source_url/);
+  await assert.rejects(safePublicSourceFetch("https://user:password@static.example.com/main.js", "https://static.example.com", f.io), /invalid_url/);
+  await assert.rejects(safePublicSourceFetch("https://other.example.com/main.js", origin, f.io), /origin_mismatch/);
+  for (const addresses of [[{ address: "169.254.169.254", family: 4 }], [{ address: "8.8.8.8", family: 4 }, { address: "::ffff:7f00:1", family: 6 }]]) {
+    await assert.rejects(safePublicSourceFetch(origin, origin, { ...f.io, resolve: async () => addresses }), /fetch_failed/);
+  }
+  await assert.rejects(safePublicSourceFetch(origin, origin, { ...f.io, timeoutMs: 5, resolve: async () => { await new Promise((resolve) => setTimeout(resolve, 20)); return [{ address: "8.8.8.8", family: 4 }]; } }), /fetch_timeout/);
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.equal(f.requests, 0);
+  const redirected = fixture({ status: 302, headers: { location: "http://169.254.169.254/metadata" } });
+  await assert.rejects(safePublicSourceFetch(origin, origin, redirected.io), /redirect_rejected/);
+  assert.equal(redirected.requests, 1);
+  await assert.rejects(safePublicSourceFetch(origin, origin, fixture({ headers: { "content-encoding": "deflate" } }).io), /unsupported_encoding/);
+});
+
+test("only public sources decode CDN gzip/br with independent wire and decoded caps", async () => {
+  const text = "query ReadItems { items } " + " ".repeat(MAX_SOURCE_BYTES);
+  for (const [encoding, compress] of [["gzip", gzipSync], ["br", brotliCompressSync]] as const) {
+    const compressed = compress(Buffer.from(text));
+    const options = { headers: { "content-encoding": encoding, "content-length": String(compressed.length) }, chunks: [compressed] };
+    assert.equal((await safePublicSourceFetch(origin, origin, fixture(options).io)).text, text);
+    await assert.rejects(safeResearchFetch(origin, origin, { authorization: "Bearer private" }, fixture(options).io), /unsupported_encoding/);
+    const bomb = compress(Buffer.alloc(MAX_PUBLIC_SOURCE_BYTES + 1, "x"));
+    const f = fixture({ headers: { "content-encoding": encoding }, chunks: [bomb] });
+    await assert.rejects(safePublicSourceFetch(origin, origin, f.io), /source_too_large/);
+    assert.equal(f.requests, 1);
+    await assert.rejects(safePublicSourceFetch(origin, origin, fixture({ headers: { "content-encoding": encoding }, chunks: [compressed.subarray(0, Math.floor(compressed.length / 2))] }).io), /invalid_encoding/);
+    await assert.rejects(safePublicSourceFetch(origin, origin, fixture({ headers: { "content-encoding": encoding, "content-length": String(MAX_PUBLIC_SOURCE_BYTES + 1) }, chunks: [compressed] }).io), /source_too_large/);
+    await assert.rejects(safePublicSourceFetch(origin, origin, { ...fixture({ headers: { "content-encoding": encoding }, chunks: [compressed], stallBody: true }).io, timeoutMs: 5 }), /fetch_timeout/);
+  }
+});
+
+test("source excerpts expose bounded untrusted query windows and metadata without executing source text", () => {
+  const hash = "a".repeat(64);
+  const code = "é".repeat(3000) + `; query ReadItems($limit:Int){ items } mutation DeleteItem { deleteItem } subscription Changes { changes } const proof={sha256Hash:"${hash}"}; throw new Error('never execute');`;
+  const initial = inspectPublicSource(code, origin + "/main.js", origin);
+  assert.ok(Buffer.byteLength(initial.excerpt.text) <= MAX_SOURCE_EXCERPT_BYTES);
+  assert.equal(initial.excerpt.startByte, 0); assert.equal(initial.excerpt.matched, false);
+  const result = inspectPublicSource(code, origin + "/main.js", origin, "READITEMS");
+  assert.equal(result.excerpt.untrusted, true); assert.equal(result.excerpt.matched, true);
+  assert.ok(result.excerpt.startByte > 0); assert.ok(result.excerpt.text.includes("query ReadItems"));
+  assert.ok(!result.excerpt.text.includes("�"));
+  assert.ok(Buffer.byteLength(result.excerpt.text) <= MAX_SOURCE_EXCERPT_BYTES);
+  assert.equal(result.excerpt.endByte - result.excerpt.startByte, Buffer.byteLength(result.excerpt.text));
+  assert.equal(result.excerpt.totalBytes, Buffer.byteLength(code));
+  assert.deepEqual(result.operations.map(({ kind, name }) => ({ kind, name })), [{ kind: "query", name: "ReadItems" }, { kind: "mutation", name: "DeleteItem" }, { kind: "subscription", name: "Changes" }]);
+  assert.deepEqual(result.persistedQueryHashes, [hash]);
+  for (const query of ["x".repeat(81), "private\nheader", "null\0byte"]) assert.throws(() => inspectPublicSource(code, origin, origin, query), /invalid_source_query/);
+  const missing = inspectPublicSource(code, origin, origin, "no-match");
+  assert.equal(missing.excerpt.matched, false); assert.equal(missing.excerpt.startByte, 0);
+  const many = inspectPublicSource(Array.from({ length: 100 }, (_, i) => `query Q${i}{items}; {sha256Hash:"${i.toString(16).padStart(64, "0")}"}`).join(""), origin, origin);
+  assert.equal(many.operations.length, 40); assert.equal(many.persistedQueryHashes.length, 40);
 });
 
 test("extractor discovers same-origin documentation anchors and literal JSON API paths", () => {
@@ -223,4 +311,123 @@ test("write request byte limit accepts the exact boundary and never coerces malf
   assert.equal(f.body, body); assert.equal(f.requests, 1);
   await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body: body + " " }, f.io), /learning_invalid_body/);
   assert.equal(f.requests, 1);
+});
+
+
+const nativeSignedUrl = "https://vendor-artifacts.example.com/private/network.json?X-Amz-Credential=FAKE_VENDOR_CREDENTIAL%2Fdate%2Fregion&X-Amz-Signature=FAKE_VENDOR_SIGNATURE&X-Amz-Security-Token=FAKE_VENDOR_SESSION";
+
+test("native storage downloads allow provider-signed query bytes with fresh pinned TLS and no ambient authorization", async () => {
+  for (const download of [safeNativeArtifactFetch, safeNativePackageFetch]) {
+    const f = fixture({ headers: { "content-type": "application/octet-stream" }, chunks: [Buffer.from('{"requests":[]}')] });
+    await download(nativeSignedUrl, f.io);
+    assert.equal(f.requestedUrl, nativeSignedUrl);
+    assert.equal(f.requests, 1); assert.equal(f.lookups, 1);
+    assert.equal(f.sent?.method, "GET"); assert.equal(f.sent?.agent, false);
+    assert.equal(f.sent?.autoSelectFamily, false); assert.equal(f.sent?.rejectUnauthorized, undefined);
+    assert.deepEqual(await lookupResult(f.sent!.lookup!, false), ["8.8.8.8", 4]);
+    assert.deepEqual(f.sent?.headers, { accept: "text/html, application/javascript, application/json, text/plain", "accept-encoding": "identity" });
+    assert.equal(f.body, "");
+  }
+  const publicSource = fixture();
+  await assert.rejects(safePublicSourceFetch(nativeSignedUrl, new URL(nativeSignedUrl).origin, publicSource.io), /private_source_url/);
+  assert.equal(publicSource.requests, 0);
+});
+
+test("native artifacts decode both gzip storage objects and HTTP gzip without changing the exact JSON bytes", async () => {
+  const text = '{"requests":[{"url":"https://api.example.com/items","note":"héllo 😀"}]}';
+  const encoded = gzipSync(Buffer.from(text));
+  const gzipCases: { url: string; headers: Record<string, string> }[] = [
+    { url: nativeSignedUrl.replace("network.json?", "network.json.gz?"), headers: { "content-type": "application/octet-stream" } },
+    { url: nativeSignedUrl, headers: { "content-type": "application/gzip" } },
+    { url: nativeSignedUrl, headers: { "content-type": "application/x-gzip" } },
+    { url: nativeSignedUrl, headers: { "content-type": "application/json", "content-encoding": "gzip" } },
+  ];
+  for (const options of gzipCases) {
+    const f = fixture({ headers: { ...options.headers, "content-length": String(encoded.length) }, chunks: [encoded.subarray(0, 7), encoded.subarray(7)] });
+    const result = await safeNativeArtifactFetch(options.url, f.io);
+    assert.equal(result.text, text);
+    assert.equal(Buffer.byteLength(result.text), Buffer.byteLength(text));
+    assert.equal(result.status, 200);
+    assert.equal(f.requests, 1);
+  }
+});
+
+test("native artifact compressed and decoded byte budgets fail closed, including corrupt gzip and invalid UTF8", async () => {
+  const compressedBomb = gzipSync(Buffer.alloc(MAX_PUBLIC_SOURCE_BYTES + 1, "x"));
+  const gzipHeaders = { "content-type": "application/gzip" };
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: gzipHeaders, chunks: [compressedBomb] }).io), /source_too_large/);
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: { ...gzipHeaders, "content-length": String(MAX_PUBLIC_SOURCE_BYTES + 1) }, chunks: [] }).io), /source_too_large/);
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: gzipHeaders, chunks: [Buffer.alloc(MAX_PUBLIC_SOURCE_BYTES + 1)] }).io), /source_too_large/);
+  const encoded = gzipSync(Buffer.from('{"requests":[]}'));
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: gzipHeaders, chunks: [encoded.subarray(0, encoded.length - 4)] }).io), /invalid_encoding/);
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: gzipHeaders, chunks: [gzipSync(Buffer.from([0xff, 0xfe]))] }).io), /invalid_text/);
+  await assert.rejects(safeNativeArtifactFetch(nativeSignedUrl, fixture({ headers: { "content-encoding": "deflate" } }).io), /unsupported_encoding/);
+});
+
+test("native artifact and package reads reject private or mixed DNS, redirects and unsafe URLs without forwarding a request", async () => {
+  for (const download of [safeNativeArtifactFetch, safeNativePackageFetch]) {
+    for (const addresses of [[{ address: "127.0.0.1", family: 4 }], [{ address: "169.254.169.254", family: 4 }],
+      [{ address: "8.8.8.8", family: 4 }, { address: "::ffff:7f00:1", family: 6 }]]) {
+      const f = fixture();
+      await assert.rejects(download(nativeSignedUrl, { ...f.io, resolve: async () => addresses }), /^Error: learning_fetch_failed$/);
+      assert.equal(f.requests, 0);
+    }
+    for (const url of ["http://vendor-artifacts.example.com/object", "https://user:FAKE_PASSWORD@vendor-artifacts.example.com/object", "https://127.0.0.1/object", "https://[::1]/object", "https://metadata.internal/object", "https://vendor-artifacts.example.com:8443/object"]) {
+      const f = fixture();
+      await assert.rejects(download(url, f.io), /learning_/);
+      assert.equal(f.requests, 0); assert.equal(f.lookups, 0);
+    }
+    for (const location of ["http://169.254.169.254/metadata", "https://vendor-artifacts.example.com/next"]) {
+      const f = fixture({ status: 302, headers: { location } });
+      await assert.rejects(download(nativeSignedUrl, f.io), /^Error: learning_redirect_rejected$/);
+      assert.equal(f.requests, 1); assert.equal(f.lookups, 1);
+    }
+  }
+});
+
+test("native package bytes survive invalid UTF8, NULs and chunk boundaries without decoding or decompression", async () => {
+  const bytes = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff, 0xfe, 0x80]), Buffer.from(Array.from({ length: 256 }, (_, index) => index))]);
+  for (const contentType of ["application/vnd.android.package-archive", "application/octet-stream", "application/zip", "binary/octet-stream"]) {
+    const f = fixture({ headers: { "content-type": contentType, "content-length": String(bytes.length) }, chunks: [bytes.subarray(0, 3), bytes.subarray(3, 11), bytes.subarray(11)] });
+    const result = await safeNativePackageFetch(nativeSignedUrl, f.io);
+    assert.ok(result instanceof Uint8Array);
+    assert.equal(result.byteLength, bytes.byteLength);
+    assert.deepEqual(Buffer.from(result), bytes);
+    assert.equal(f.requests, 1);
+  }
+  const compressed = gzipSync(bytes);
+  await assert.rejects(safeNativePackageFetch(nativeSignedUrl, fixture({ headers: { "content-type": "application/octet-stream", "content-encoding": "gzip" }, chunks: [compressed] }).io), /unsupported_encoding/);
+});
+
+test("native packages enforce the 200MiB declared and streamed limit before allocating a combined body", async () => {
+  const limit = 200 * 1024 * 1024;
+  const declared = fixture({ headers: { "content-type": "application/octet-stream", "content-length": String(limit + 1) }, chunks: [] });
+  await assert.rejects(safeNativePackageFetch(nativeSignedUrl, declared.io), /^Error: learning_source_too_large$/);
+  assert.equal(declared.requests, 1);
+  // Reuse one MiB of memory: the fixture feeds 201 distinct chunk events, so the
+  // stream counter must reject before Buffer.concat could allocate >200MiB.
+  const chunk = Buffer.alloc(1024 * 1024);
+  const streamed = fixture({ headers: { "content-type": "application/octet-stream" }, chunks: Array(201).fill(chunk) });
+  await assert.rejects(safeNativePackageFetch(nativeSignedUrl, streamed.io), /^Error: learning_source_too_large$/);
+  assert.equal(streamed.requests, 1);
+  for (const contentLength of ["-1", "private", "1.5"]) await assert.rejects(safeNativePackageFetch(nativeSignedUrl, fixture({ headers: { "content-type": "application/octet-stream", "content-length": contentLength }, chunks: [] }).io), /source_too_large/);
+});
+
+test("native downloads bound DNS and body stalls, preserve static errors and never retry partial transfers", async () => {
+  for (const download of [safeNativeArtifactFetch, safeNativePackageFetch]) {
+    const delayed = fixture();
+    await assert.rejects(download(nativeSignedUrl, { ...delayed.io, timeoutMs: 5, resolve: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20)); return [{ address: "8.8.8.8", family: 4 }];
+    } }), /^Error: learning_fetch_timeout$/);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    assert.equal(delayed.requests, 0);
+    for (const options of [{ stall: true }, { stallBody: true }, { error: true }, { abort: true }]) {
+      const f = fixture({ ...options, headers: { "content-type": "application/octet-stream" } });
+      await assert.rejects(download(nativeSignedUrl, { ...f.io, timeoutMs: 5 }), /^Error: learning_fetch_(?:timeout|failed)$/);
+      assert.equal(f.requests, 1);
+    }
+  }
+  const rejected = fixture({ status: 403, chunks: [Buffer.from("FAKE_PRIVATE_PROVIDER_ERROR")] });
+  await assert.rejects(safeNativePackageFetch(nativeSignedUrl, rejected.io), /^Error: native_package_download_failed$/);
+  assert.equal(rejected.requests, 1);
 });

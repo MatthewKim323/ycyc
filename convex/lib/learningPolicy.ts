@@ -1,6 +1,19 @@
 // The agent selects immutable observations; it never supplies executable code,
 // request headers, destinations, methods, bodies, or credentials.
 import type { SessionBundle } from "../../src/lib/contract";
+import { getDomain } from "tldts";
+
+// Only origins actually observed in this owner's capture can use app session
+// headers. A shared registrable domain excludes OAuth/analytics providers and
+// handles public/private suffix boundaries (including hosted multi-tenant apps).
+export function capturedAppOrigin(raw: string, appOrigin: string): string {
+  const url = new URL(raw), app = new URL(appOrigin);
+  if (url.protocol !== "https:" || url.username || url.password || url.port || app.protocol !== "https:") throw new Error("Unsupported app origin");
+  if (url.origin === app.origin) return url.origin;
+  const own = getDomain(app.hostname, { allowPrivateDomains: true });
+  if (!own || getDomain(url.hostname, { allowPrivateDomains: true }) !== own) throw new Error("Not a captured first-party app origin");
+  return url.origin;
+}
 
 const PRIVATE = /token|secret|password|credential|cookie|authorization|api.?key|session|otp|code|signature/i;
 const UNSAFE = /(?:^|[/_.-])(?:create|add|delete|remove|update|edit|save|set|send|submit|post|put|patch|destroy|logout|login|signout|signin|auth|oauth|register|unsubscribe|subscribe|purchase|pay|charge|checkout|execute|exec|run|command|action|track|event|reset|verify|confirm|accept|approve|revoke|refresh|export|import)(?:$|[/_.-])/i;

@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { AppState, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -24,7 +24,7 @@ import { Text } from "@/components/text";
 import { api, type CatalogEntry, type MyConnection } from "@/hooks/convex";
 import { useNow } from "@/hooks/format";
 import { useUser } from "@/hooks/user";
-import { planForProvider, selectPlan, useActiveThread, useAgent, useAiPlans, type AgentProvider } from "@/lib/agent";
+import { PLAN_PROVIDER_ID, planForProvider, selectPlan, useActiveThread, useAgent, useAiPlans, type AgentProvider } from "@/lib/agent";
 import { colors, enter, fadeIn, fonts, layout, radius, space } from "@/theme";
 
 const RECENT = 3;
@@ -50,6 +50,7 @@ function buildSuggestions(live: MyConnection[]): Suggestion[] {
 
 export default function AgentScreen() {
   const router = useRouter();
+  const { learningThread, learningProvider } = useLocalSearchParams<{ learningThread?: string; learningProvider?: string }>();
   const insets = useSafeAreaInsets();
   const { userId } = useUser();
   const now = useNow();
@@ -66,6 +67,17 @@ export default function AgentScreen() {
 
   const agent = useAgent({ userId, apps: agentApps });
   const { provider, lastHandoffAt } = agent;
+  const selectAgent = agent.select, openAgentThread = agent.open;
+  const openedLearning = useRef<string | null>(null);
+  useEffect(() => {
+    if (!learningThread || (learningProvider !== "claude" && learningProvider !== "codex")) return;
+    const desired = PLAN_PROVIDER_ID[learningProvider];
+    if (provider?.id !== desired) { selectAgent(desired); return; }
+    if (openedLearning.current === learningThread) return;
+    openedLearning.current = learningThread;
+    openAgentThread(learningThread);
+    router.setParams({ learningThread: undefined, learningProvider: undefined });
+  }, [learningThread, learningProvider, provider?.id, selectAgent, openAgentThread, router]);
 
   // Past chats exist only for the in-app plans. useQueries so an unknown token doesn't throw;
   // the input is memoized because a fresh object each render loops forever.

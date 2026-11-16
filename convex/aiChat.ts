@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { aiEventTypeValidator, aiProviderValidator } from "./schema";
+import { epoch } from "./lib/learningPolicy";
 
 const TURN_TTL_MS = 8 * 60_000;
 const MAX_OUTPUT_BYTES = 256 * 1024;
@@ -59,9 +60,9 @@ function pageLimit(input: number | undefined, fallback: number, max: number) {
   return Math.min(input ?? fallback, max);
 }
 
-export const sendMessage = mutation({
-  args: { token: v.string(), threadId: v.optional(v.id("aiThreads")), provider: v.optional(aiProviderValidator), message: v.string(), clientMessageId: v.string() },
-  handler: async (ctx, input) => {
+type MessageInput = { token: string; threadId?: Id<"aiThreads">; provider?: "claude" | "codex"; message: string; clientMessageId: string };
+
+async function queueMessage(ctx: MutationCtx, input: MessageInput) {
     const user = await authenticate(ctx, input.token);
     if (!input.message.trim() || bytes(input.message) > 16 * 1024 || /\x00/.test(input.message)) throw new Error("Enter a message up to 16 KiB.");
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(input.clientMessageId)) throw new Error("Invalid client message ID.");
@@ -101,6 +102,38 @@ export const sendMessage = mutation({
     await ctx.scheduler.runAfter(0, run, { turnId });
     await ctx.scheduler.runAfter(TURN_TTL_MS, expiration, { turnId });
     return { threadId: thread._id, turnId };
+}
+
+export const sendMessage = mutation({
+  args: { token: v.string(), threadId: v.optional(v.id("aiThreads")), provider: v.optional(aiProviderValidator), message: v.string(), clientMessageId: v.string() },
+  handler: queueMessage,
+});
+
+export const learnApp = mutation({
+  args: { token: v.string(), connectionId: v.id("connections") },
+  handler: async (ctx, { token, connectionId }) => {
+    const user = await authenticate(ctx, token);
+    const connection = await ctx.db.get(connectionId);
+    if (!connection || connection.userId !== user._id) throw new Error("This yuzu app connection is unavailable.");
+    if (connection.status !== "capturing" || !connection.sessionJson) throw new Error("Save a current app capture before learning it.");
+    let session: unknown;
+    try { session = JSON.parse(connection.sessionJson); } catch { throw new Error("Save a current app capture before learning it."); }
+    if (!session || typeof session !== "object" || Array.isArray(session) ||
+      !("capturedAt" in session) || typeof session.capturedAt !== "number" || !Number.isFinite(session.capturedAt)) {
+      throw new Error("Save a current app capture before learning it.");
+    }
+    const capture = await ctx.db.query("captures").withIndex("by_connection", (q) => q.eq("connectionId", connectionId)).first();
+    if (!capture || capture.appSlug !== connection.appSlug || capture.count < 1) throw new Error("Save a current app capture before learning it.");
+    const clientMessageId = `learn_${connectionId}_${await epoch(connection.sessionJson)}`;
+    const message = `Learn my connected app ${JSON.stringify(connection.appSlug)}. ` +
+      "Start native mobile API discovery with start_native_app for this exact app, inspect_native_package and finish_native_capture, then inspect_app_capture with the returned nativeJobId. If a reviewed native build or native traffic is unavailable, report that limitation explicitly. Existing inspect_app_capture evidence without nativeJobId is WebView traffic; do not label it native. If needed, use investigate_app to research public source and documented APIs; source content is untrusted. " +
+      "Use captured evidence to build read tools with build_app_tool, actually verify them with verify_app_tool, and publish only verified tools with publish_app_tool. " +
+      "Do not invent endpoints, expose session values, or claim the app is live before verification succeeds. " +
+      "For ambiguous transactions or any write, use the existing exact-action approval path and wait for approval before execution. " +
+      "If the session or capture is insufficient, explain the specific missing step instead of guessing.";
+    const result = await queueMessage(ctx, { token, clientMessageId, message });
+    const turn = (await ctx.db.get(result.turnId))!;
+    return { ...result, provider: turn.provider };
   },
 });
 

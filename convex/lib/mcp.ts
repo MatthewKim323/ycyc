@@ -7,6 +7,7 @@ import { CATALOG, catalogApp, findApp } from "../catalog";
 import { executeTool } from "../executor";
 import { SITE_URL } from "./env";
 import { extractNames, isEmptyResult, receiptFrom, summarizeCall } from "./summaries";
+import { NATIVE_LEARNING_GUIDANCE } from "./learningInstructions";
 
 type Ctx = GenericActionCtx<DataModel>;
 
@@ -35,7 +36,7 @@ const INSTRUCTIONS =
   "Never request passwords, cookies, tokens or raw traffic in chat. Learning is private to this user's connection. " +
   "Call a learned write with a unique requestId for the intended action and its exact arguments. An approval_required reply means wait for the user's one-time exact-action approval, then use check_approval with approvalId; do not repeat call_learned_tool. " +
   "Learned writes never use hour-long grants. Approval and dry-run validation are not execution; only claim success after a successful execution receipt. " +
-  "Never replay or automatically retry a write with a failed, missing or uncertain outcome. Existing write actions retain their phone approval checks.";
+  "Never replay or automatically retry a write with a failed, missing or uncertain outcome. Existing write actions retain their phone approval checks. " + NATIVE_LEARNING_GUIDANCE;
 
 const LEARNING_TOOLS = [
   {
@@ -45,16 +46,17 @@ const LEARNING_TOOLS = [
   },
   {
     name: "investigate_app", title: "Investigate an app",
-    description: "Inspect fixed-origin public source metadata for an app and obtain evidence IDs. Pass a returned sourceId to inspect that source. Does not use account credentials or fetch arbitrary URLs.",
+    description: "Inspect credential-free public source and owned linked script/CDN evidence. Returns bounded untrusted excerpts and metadata, never execution permission. Use query to find a request or operation in a returned sourceId.",
     properties: {
       app: { type: "string", minLength: 1, maxLength: 120, description: "App slug from search, or a public HTTPS website URL for public-only research. Reuse the exact app identifier returned by this tool for later steps." },
       sourceId: { type: "string", minLength: 1, maxLength: 256 },
+      query: { type: "string", maxLength: 80 },
     }, required: ["app"], readOnly: true,
   },
   {
     name: "inspect_app_capture", title: "Inspect your app capture",
-    description: "Inspect this user's sanitized captured request and response shapes for an app. Returns evidence IDs, methods and request schemas without credentials or raw health values. write_endpoint evidence must come from an observed same-origin user write; never perform a write just to probe it. If a capture is missing, ask the user to sign in and browse the app on their phone.",
-    properties: { app: { type: "string", minLength: 1, maxLength: 120 } }, required: ["app"], readOnly: true,
+    description: "Inspect this user's sanitized API evidence. Pass nativeJobId for a completed cloud-phone capture; otherwise the source is a WebView. Captured first-party API subdomains are supported. Full GraphQL query documents can be reads; opaque persisted POST operations require exact per-call approval. No credentials/raw private values returned.",
+    properties: { app: { type: "string", minLength: 1, maxLength: 120 }, nativeJobId: { type: "string", maxLength: 128 } }, required: ["app"], readOnly: true,
   },
   {
     name: "build_app_tool", title: "Build a private app tool",
@@ -78,6 +80,26 @@ const LEARNING_TOOLS = [
     }, required: ["toolId"], readOnly: false,
   },
   {
+    name: "start_native_app", title: "Open a native research phone",
+    description: "Start/reuse one bounded owner-scoped cloud-phone discovery job for a reviewed uploaded native build. No arbitrary APK URL, shell or instruction. Returns needs_native_build if unavailable; does not fall back to web or claim authenticated access.",
+    properties: { app: { type: "string", minLength: 1, maxLength: 120 } }, required: ["app"], readOnly: false,
+  },
+  {
+    name: "native_app_status", title: "Check native discovery",
+    description: "Check this user's native research job. Viewer links are for the user; session credentials and raw network data remain private.",
+    properties: { jobId: { type: "string", minLength: 1, maxLength: 128 } }, required: ["jobId"], readOnly: true,
+  },
+  {
+    name: "finish_native_capture", title: "Collect native API evidence",
+    description: "Stop this user's cloud phone and collect its bounded native network artifact. Missing or truncated captures are reported explicitly. This never marks an API verified or an account signed in.",
+    properties: { jobId: { type: "string", minLength: 1, maxLength: 128 } }, required: ["jobId"], readOnly: false,
+  },
+  {
+    name: "inspect_native_package", title: "Inspect native APK code hints",
+    description: "Inspect a reviewed, SHA256-pinned Android build belonging to this native job. Returns sanitized bounded DEX string hints, not full decompilation or permission to call endpoints. At most three inspections per job; no arbitrary URL or executable code.",
+    properties: { jobId: { type: "string", minLength: 1, maxLength: 128 }, query: { type: "string", maxLength: 80 } }, required: ["jobId"], readOnly: true,
+  },
+  {
     name: "publish_app_tool", title: "Publish a private app tool",
     description: "Publish only for its owner's connection after a read endpoint check or a write structural dry run. Does not publish to a shared catalog, execute a write or prove write execution. Use call_learned_tool afterward; every learned write requires its own exact-action approval.",
     properties: { toolId: { type: "string", minLength: 1, maxLength: 256 } }, required: ["toolId"], readOnly: false,
@@ -96,6 +118,7 @@ const LEARNING_TOOLS = [
   },
 ] as const;
 const LEARNING_OPERATIONS = new Set<string>(LEARNING_TOOLS.map((tool) => tool.name));
+const NATIVE_OPERATIONS: Record<string, string> = { start_native_app: "native_start", native_app_status: "native_status", finish_native_capture: "native_finish", inspect_native_package: "native_package" };
 
 export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -567,7 +590,10 @@ async function handleMessage(
           if (LEARNING_OPERATIONS.has(name)) {
             const argsJson = JSON.stringify(args);
             if (argsJson.length > 16 * 1024) throw new RpcError(-32602, "Learning tool arguments are too large.");
-            const output = await ctx.runAction(internal.appLearning.tool, { token, operation: name, argsJson });
+            const operation = NATIVE_OPERATIONS[name];
+            const output = operation
+              ? await ctx.runAction(internal.nativeDiscoveryActions.tool, { token, operation, argsJson })
+              : await ctx.runAction(internal.appLearning.tool, { token, operation: name, argsJson });
             return textResult(output);
           }
           if (name === "call_app_tool") {

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { BuildStep, CaptureEntry, SessionBundle } from "../src/lib/contract";
 import { internal } from "./_generated/api";
+import { revokeNativeForConnection } from "./nativeDiscovery";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { resolveApp } from "./lib/appResolver";
@@ -105,6 +106,7 @@ export const submitLogin = mutation({
     if ((conn.status === "building" || conn.status === "needs_code") && now - (conn.updatedAt ?? conn._creationTime) < 20_000) {
       return null;
     }
+    await revokeNativeForConnection(ctx, connectionId);
     const bundle: SessionBundle = { ...(session ?? {}), capturedAt: session?.capturedAt ?? now };
 
     // Replace any earlier capture for this connection, keep the newest entries only.
@@ -203,6 +205,7 @@ export const mine = query({
 export async function disconnectConnection(ctx: MutationCtx, connectionId: Id<"connections">) {
   const conn = await ctx.db.get(connectionId);
   if (!conn) return null;
+  await revokeNativeForConnection(ctx, connectionId);
   const caps = await ctx.db
     .query("captures")
     .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))

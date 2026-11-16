@@ -8,10 +8,11 @@ import { capturedHeaders, epoch, redactSessionEcho } from "./lib/learningPolicy"
 import { writeArguments, writeEndpointUrl, writeMethod, writePreview } from "./lib/learnedWritePolicy";
 import { publicToolData } from "./lib/publicToolData";
 import { installationFor } from "./marketplace";
+import { operationBody, operationEndpointUrl } from "./lib/capturedOperationPolicy";
+import { evidenceSession } from "./lib/learningSession";
 
 const INTENT_TTL = 5 * 60_000;
 const RUN_TTL = 30_000;
-const usable = (c: Doc<"connections"> | null) => c && ["live", "capturing"].includes(c.status) && c.sessionJson;
 async function authenticated(ctx: QueryCtx, token: string) {
   const user = token.length >= 16 && token.length <= 256 ? await ctx.db.query("users").withIndex("by_mcpToken", (q) => q.eq("mcpToken", token)).unique() : null;
   if (!user) throw new Error("Authentication required");
@@ -24,19 +25,18 @@ async function definition(ctx: QueryCtx, userId: Doc<"users">["_id"], toolId: st
   const tool = id ? await ctx.db.get(id) : null;
   const evidence = tool ? await ctx.db.get(tool.evidenceId) : null;
   if (!tool || tool.userId !== userId || tool.kind !== "write" || tool.status !== "published" || !evidence || evidence.userId !== userId || evidence.kind !== "write_endpoint" || evidence.appSlug !== tool.appSlug || evidence.expiresAt <= Date.now() || !evidence.connectionId || !evidence.sessionEpoch || !evidence.requestSchemaJson) throw new Error("Published private write is unavailable");
-  const conn = await ctx.db.get(evidence.connectionId);
-  if (!usable(conn) || conn!.userId !== userId || conn!.appSlug !== tool.appSlug || await epoch(conn!.sessionJson!) !== evidence.sessionEpoch) throw new Error("App session changed");
-  const session = JSON.parse(conn!.sessionJson!) as SessionBundle;
-  return { tool, evidence, conn: conn!, session };
+  const binding = await evidenceSession(ctx, evidence);
+  const session = JSON.parse(binding.sessionJson) as SessionBundle;
+  return { tool, evidence, conn: binding.conn, session };
 }
 
 function rendered(e: Doc<"appLearningEvidence">, args: unknown, session: SessionBundle) {
   const values = writeArguments(e.requestSchemaJson!, args);
   if (JSON.stringify(redactSessionEcho(values, session)) !== JSON.stringify(values)) throw new Error("Credentials cannot be write arguments");
   const method = writeMethod(e.method);
-  const url = writeEndpointUrl(e.url, e.origin);
-  const body = e.bodyPresent === false ? undefined : JSON.stringify(values);
-  const preview = writePreview(method, url, values);
+  const url = e.requestEnvelopeJson ? operationEndpointUrl(e.url, e.origin) : writeEndpointUrl(e.url, e.origin);
+  const body = e.requestEnvelopeJson ? operationBody(e.requestEnvelopeJson, values, e.requestSchemaJson!) : e.bodyPresent === false ? undefined : JSON.stringify(values);
+  const preview = writePreview(method, url, e.requestEnvelopeJson ? JSON.parse(body!) : values);
   if (JSON.stringify(redactSessionEcho(preview, session)) !== JSON.stringify(preview)) throw new Error("Captured destination includes session material");
   return { values, request: { method, url, ...(body !== undefined ? { body } : {}) }, preview };
 }
@@ -171,9 +171,11 @@ export const runApproved = internalAction({
       const response = await ctx.runAction(internal.learningResearch.writeEndpoint, { url: claim.url, origin: claim.origin, method: claim.method, headersJson: claim.headersJson, ...(claim.body !== undefined ? { bodyJson: claim.body } : {}) });
       const raw: unknown = response.text ? JSON.parse(response.text) : null;
       const data = publicToolData(redactSessionEcho(raw, JSON.parse(claim.sessionJson) as SessionBundle), claim.capability);
-      const rejected = raw && typeof raw === "object" && (Object.hasOwn(raw, "ok") && (raw as { ok: unknown }).ok === false || Object.hasOwn(raw, "success") && (raw as { success: unknown }).success === false);
+      const errors = raw && typeof raw === "object" && "errors" in raw ? raw.errors : undefined;
+      const graphErrors = Array.isArray(errors) ? errors.length > 0 : errors != null;
+      const rejected = raw && typeof raw === "object" && (Object.hasOwn(raw, "ok") && (raw as { ok: unknown }).ok === false || Object.hasOwn(raw, "success") && (raw as { success: unknown }).success === false || graphErrors);
       const ok = response.status >= 200 && response.status < 300 && !rejected;
-      const uncertain = response.status >= 500;
+      const uncertain = response.status >= 500 || graphErrors;
       await ctx.runMutation(internal.appLearningWrites.finishRun, { approvalId, ok, resultJson: JSON.stringify({ status: ok ? "succeeded" : uncertain ? "outcome_uncertain" : "rejected", httpStatus: response.status, data,
         detail: ok ? "The app accepted this approved request. Report only the state confirmed by its response." : "Check the app before retrying; this request will not be sent again automatically." }) });
     } catch {

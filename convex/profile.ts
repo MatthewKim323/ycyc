@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { revokeNativeForUser } from "./nativeDiscovery";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 
@@ -291,14 +292,23 @@ export const deleteSlice = internalMutation({
     if (await drop(await db.query("appRequests").filter((q) => q.eq(q.field("userId"), userId)).take(BATCH))) return false;
     if (await drop(await db.query("profiles").withIndex("by_user", (q) => q.eq("userId", userId)).take(BATCH))) return false;
 
+    // Schedule final cleanup in the transaction that removes the owner, so an
+    // earlier cleanup cannot race the batched account deletion and no-op.
+    await revokeNativeForUser(ctx, userId);
     if (await db.get(userId)) await db.delete(userId);
     return true;
   },
 });
 
+export const revokeNativeBeforeDeletion = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => { await revokeNativeForUser(ctx, userId); },
+});
+
 export const deleteAccount = action({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }): Promise<{ deleted: true }> => {
+    await ctx.runMutation(internal.profile.revokeNativeBeforeDeletion, { userId });
     for (let i = 0; i < 500; i++) {
       const done: boolean = await ctx.runMutation(internal.profile.deleteSlice, { userId });
       if (done) return { deleted: true };

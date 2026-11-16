@@ -228,7 +228,7 @@ test("capture learning supports observed JSON write methods while excluding fina
   const base = f.entries[0];
   f.entries.splice(0, f.entries.length, ...["POST", "PUT", "PATCH", "DELETE"].map((method) => ({ ...base, method })),
     ...["/api/payments", "/api/account/password", "/api/notes?token=PRIVATE_QUERY_SECRET"].map((path) => ({ ...base, url: origin + path })),
-    { ...base, url: "https://foreign.example.test/api/notes" },
+    { ...base, url: "https://foreign.other.test/api/notes" },
     { ...base, reqBody: '{"amount":100,"currency":"USD"}' },
     { ...base, reqHeaders: { "content-type": "application/x-www-form-urlencoded" }, reqBody: "title=private" });
   const result = await f.inspect();

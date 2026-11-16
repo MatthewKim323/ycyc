@@ -368,3 +368,90 @@ test("a subscription usage limit reaches the client without disconnecting or exp
   assert.equal(f.row(f.provider).credentialsCipher, "sealed-a");
   assert.equal(f.row(ids.threadId).activeTurnId, undefined);
 });
+
+function learningConnection(f: ReturnType<typeof fixture>, extra: Record<string, unknown> = {}) {
+  const connectionId = f.seed("connections", { userId: f.user, appSlug: "myfitnesspal", status: "capturing",
+    sessionJson: JSON.stringify({ headers: { authorization: "Bearer private-app-session" }, capturedAt: 123 }), ...extra });
+  f.seed("captures", { connectionId, appSlug: extra.appSlug ?? "myfitnesspal", chunk: 0, count: 1,
+    entriesJson: JSON.stringify([{ url: "https://example.test/api/items", resBody: "private-capture-content" }]) });
+  return connectionId;
+}
+
+test("learnApp queues one real selected-provider turn per captured session, with no private values in its prompt", async () => {
+  const f = fixture();
+  const connectionId = learningConnection(f, { appSlug: "custom_calendar" });
+  const first = await api.learnApp._handler(f.ctx, { token, connectionId });
+  assert.equal(first.provider, "claude");
+  const turn = f.row(first.turnId);
+  assert.equal(turn.providerSessionId, f.provider);
+  assert.equal(turn.providerAttemptId, "epoch-a");
+  assert.equal(turn.status, "queued");
+  assert.equal(f.row(connectionId).status, "capturing", "kickoff must not fake successful publication");
+  assert.match(turn.message, /custom_calendar/);
+  for (const tool of ["inspect_app_capture", "investigate_app", "build_app_tool", "verify_app_tool", "publish_app_tool"]) assert.ok(turn.message.includes(tool));
+  assert.match(turn.message, /approval/);
+  for (const secret of [token, "private-app-session", "private-capture-content", "sealed-a", "myfitnesspal", "Spotify"]) assert.ok(!turn.message.includes(secret));
+  assert.deepEqual(f.scheduled, [
+    { delay: 0, name: "aiChatActions:run", args: { turnId: first.turnId } },
+    { delay: 480_000, name: "aiChat:expire", args: { turnId: first.turnId } },
+  ]);
+  assert.deepEqual(await api.learnApp._handler(f.ctx, { token, connectionId }), first);
+  assert.equal(f.scheduled.length, 2);
+  f.row(f.provider).selected = false;
+  f.seed("aiProviderSessions", { userId: f.user, provider: "codex", selected: true, status: "connected", attemptId: "codex-new", credentialsCipher: "sealed-codex" });
+  assert.deepEqual(await api.learnApp._handler(f.ctx, { token, connectionId }), first, "retry retains the original turn/provider");
+  assert.equal(await api.claim._handler(f.ctx, { turnId: first.turnId }) !== null, true);
+  assert.equal(await api.claim._handler(f.ctx, { turnId: first.turnId }), null);
+});
+
+test("learnApp rejects foreign capabilities, missing sessions/captures and unusable connections without scheduling", async () => {
+  const f = fixture();
+  const connectionId = learningConnection(f);
+  await assert.rejects(api.learnApp._handler(f.ctx, { token: "unknown", connectionId }), /yuzu session/);
+  await assert.rejects(api.learnApp._handler(f.ctx, { token: "private-user-b", connectionId }), /connection is unavailable/);
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId: "missing" }), /connection is unavailable/);
+  for (const sessionJson of [undefined, "", "{}", "null", "[]", "invalid-json"]) {
+    f.row(connectionId).sessionJson = sessionJson;
+    await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current app capture/);
+  }
+  f.row(connectionId).sessionJson = JSON.stringify({ capturedAt: 123 });
+  for (const status of ["needs_login", "needs_code", "building", "live", "error"]) {
+    f.row(connectionId).status = status;
+    await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current app capture/);
+  }
+  f.row(connectionId).status = "capturing";
+  const capture = [...f.records.values()].find((row) => row.table === "captures")!;
+  capture.count = 0;
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current app capture/);
+  capture.count = 1; capture.appSlug = "other_app";
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current app capture/);
+  f.records.delete(capture._id);
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current app capture/);
+  assert.equal(f.scheduled.length, 0);
+});
+
+test("learnApp follows normal per-user concurrency and fresh-session idempotency boundaries", async () => {
+  const f = fixture();
+  const connectionId = learningConnection(f);
+  const active = await f.send();
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /current reply/);
+  assert.equal(f.scheduled.length, 2);
+  await api.cancelTurn._handler(f.ctx, { token, turnId: active.turnId });
+  f.row(f.provider).selected = false;
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId }), /select an AI subscription/);
+  f.row(f.provider).selected = true;
+  const first = await api.learnApp._handler(f.ctx, { token, connectionId });
+  await api.claim._handler(f.ctx, { turnId: first.turnId });
+  await api.finish._handler(f.ctx, { turnId: first.turnId, status: "completed" });
+  const repeated = await api.learnApp._handler(f.ctx, { token, connectionId });
+  assert.deepEqual(repeated, first);
+  f.row(connectionId).sessionJson = JSON.stringify({ headers: { authorization: "Bearer renewed-private-session" }, capturedAt: 456 });
+  const renewed = await api.learnApp._handler(f.ctx, { token, connectionId });
+  assert.notEqual(renewed.turnId, first.turnId);
+  assert.equal(f.scheduled.length, 6);
+  const ownSecond = learningConnection(f, { appSlug: "other_calendar" });
+  await assert.rejects(api.learnApp._handler(f.ctx, { token, connectionId: ownSecond }), /current reply/);
+  const foreignConnection = learningConnection(f, { userId: f.otherUser });
+  const foreign = await api.learnApp._handler(f.ctx, { token: "private-user-b", connectionId: foreignConnection });
+  assert.equal(f.row(foreign.turnId).providerSessionId, f.otherProvider);
+});

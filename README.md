@@ -7,7 +7,7 @@ Built in one day at the YC Consumer Mobile Hackathon (Nov 15, 2026) with Capy, R
 ## How it works
 
 1. **Pick an app and sign in** on its own page, inside yuzu.
-2. **yuzu learns the app.** A recorder watches the app's own private API calls in your session, and a compiler turns them into a *recipe*: a small JSON file of tools with request templates. Phone-only apps are mapped the same way and can run on a Revyl cloud phone.
+2. **yuzu learns the app.** The in-app recorder captures website requests; these are explicitly labeled WebView evidence. The assistant can also start native research on a reviewed Revyl build, inspect APK code hints and collect available phone traffic. Native discovery is experimental: a build must be registered first, and missing provider traffic cannot produce verified native tools. See [native discovery](docs/native-discovery.md).
 3. **Paste one link into your assistants.** Every connected app shows up there as tools. Anything that changes your data asks you first, with an approve tap on your phone.
 
 **A recipe is learned once and reused by everyone.** The first person to connect an app teaches it; every user after that connects instantly and only their own session is stored. That shared, self-repairing library of connectors is the moat, the same way Plaid's bank connections were.
@@ -54,7 +54,7 @@ claude mcp add --transport http yuzu https://<your-deployment>.convex.site/mcp/<
 3. Compile it: `compileCapture()` in `src/lib/compiler/compile.ts` turns the capture into a draft recipe.
 4. Verify every tool live with a client like `scripts/re/mfp/client.ts`, then add `recipes/<app>.json`.
 
-Rules we hold to: the user's own account and session only, writes behind approval, no bypassing bot protection or captchas, no mobile app decompiling, and skip apps whose terms ban automation.
+Rules we hold to: the user's own account and session only, writes behind approval, no bypassing bot protection or captchas, and skip apps whose terms ban automation. Native APK inspection currently extracts bounded DEX string hints; it does not perform full decompilation or prove that an endpoint works.
 
 ## Repo map
 

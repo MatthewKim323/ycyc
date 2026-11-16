@@ -21,6 +21,7 @@ export {
   planForProvider,
   planStatus,
   selectPlan,
+  startAppLearning,
   tokenFrom,
   useActiveThread,
   useAiPlans,
