@@ -7,12 +7,12 @@ All functions below are deployed to Convex. Matthew owns the mobile UI; these AP
 Call `api.users.ensure` to establish the Yuzu device identity, then subscribe to **`api.aiOnboarding.state({ token })`**. Its authoritative order is:
 
 1. `connect_ai`: connect and select a Claude or ChatGPT subscription using [AI_LOGIN_API.md](AI_LOGIN_API.md). Show this before the app picker/login/capture pipeline. A provider must report `connected` and be selected before advancing.
-2. `connect_apps`: run the existing app connection pipeline. At least one app must become `live`.
-3. `ready`: finish onboarding and enter the agent.
+2. `connect_apps`: run the existing app connection pipeline, or explicitly defer app setup after AI login.
+3. `ready`: at least one app is `live`, completing the recommended setup.
 
 Result: `{ step: "connect_ai" | "connect_apps" | "ready", provider: "claude" | "codex" | null, connectedApps: number, ready: boolean }`.
 
-The current local `yuzu.onboarded` flag is not proof of AI login. The mobile wiring must consult this query before entering/completing onboarding; do not call `useOnboarding().finish()` while it says `connect_ai` or `connect_apps`. This backend change does not edit the mobile flow. Disconnecting the selected provider returns the query to `connect_ai`.
+The local `yuzu.onboarded` flag is not proof of AI login. The mobile flow now consults this query and cannot continue, skip or finish while it says `connect_ai` (or while the query is unavailable). Once AI is connected and selected, the existing Skip option may defer app setup; the backend still reports `connect_apps` until an app is live. Disconnecting the selected provider returns the query to `connect_ai`.
 
 `token` is the final path component of the current user's `mcpUrl`. Use the same Convex deployment that issued it. Never use `userId` alone as authentication or log the capability, provider codes, or credential material.
 
@@ -35,7 +35,7 @@ Generate one `clientMessageId` per user send (a UUID works) and reuse it across 
 
 ## Streaming and reconnect
 
-`watchMessages` is the easiest source of truth for rendering and app resumes. `turns` are chronological, default latest 20 / maximum 50, further bounded to about 1 MiB of text. Each turn has `{ turnId, message, assistantText, status, error?, createdAt, updatedAt, completedAt? }`. The thread has `{ threadId, provider, title, activeTurnId?, createdAt, updatedAt }`.
+`watchMessages` returns `{thread, turns, cursor}` from one transactional snapshot and is the source of truth for app resumes. `turns` are chronological, default latest 20 / maximum 50, further bounded to about 1 MiB of text. Each turn has `{ turnId, message, assistantText, status, error?, createdAt, updatedAt, completedAt? }`. The thread has `{ threadId, provider, title, activeTurnId?, createdAt, updatedAt }`. Resume events after this **snapshot cursor**, not a later event cursor fetched while reconstructing cards: generation can continue between those reads.
 
 Status is `queued → running → completed | error | cancelled`. A failed/cancelled reply retains text already persisted. The scheduled action starts immediately; the send mutation returns before native startup/download. Do not treat a slow cold start as a disconnected account.
 
@@ -76,7 +76,7 @@ The encryption key is also configured in the shared `optimistic-newt-247` deploy
 
 State/security/process/parser fixtures and lint/typechecks are run locally. Native fixture providers verify both CLIs' tool restrictions without billing or real account grants. A separate hosted Convex transport fixture verified three distinct live text updates, reconnect cursors, cancellation and private-field exclusion through a real WebSocket subscription; its temporary admin seed was removed and its rows deleted.
 
-A real subscription authorization and authenticated model response still require a user to finish provider login. Fixture replies are not evidence of paid inference, refresh-token renewal, or a complete mobile UI flow.
+Real provider login and inference were verified on November 15: Claude delivered 20 pre-completion text updates and Codex 39; both completed a real `list_apps` follow-up. A separate real midstream restore recovered all text across a delayed restore. See [AI_LIVE_VERIFICATION.md](AI_LIVE_VERIFICATION.md). These results do not establish refresh-token renewal or a complete rendered mobile UI flow.
 
 Reproduce native runtime/resource smoke checks (Docker and the installed esbuild CLI required):
 

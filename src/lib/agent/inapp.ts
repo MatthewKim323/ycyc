@@ -18,6 +18,7 @@ import {
   type AgentProvider,
   type AgentRestore,
 } from "./provider";
+import { snapshotEvents, streamTurnUpdates, TERMINAL } from "./turn-updates";
 
 // In-app providers: the person's own Claude or ChatGPT plan, running on yuzu's backend.
 // See docs/AI_LOGIN_API.md and docs/AI_STREAMING_API.md. The capability token is never logged.
@@ -182,129 +183,15 @@ export function errorCopy(code: string | undefined, plan: PlanId): string {
   return (ERROR_COPY[code ?? ""] ?? ERROR_COPY.turn_failed)(PLAN_NAME[plan]);
 }
 
-const TERMINAL = new Set(["completed", "error", "cancelled"]);
 // Last consumed seq per thread, so a follow-up turn doesn't re-read the whole thread.
 const cursors = new Map<string, number>();
 
-/**
- * Streams one turn: events after `cursor`, deduped by seq and filtered to the turn, pages drained
- * while hasMore. watchMessages decides when it's over. Aborting cancels the cloud turn.
- */
-async function* streamTurn(o: {
-  client: ConvexReactClient;
-  token: string;
-  plan: PlanId;
-  threadId: Id<"aiThreads">;
-  turnId: Id<"aiTurns">;
-  cursor: number;
-  signal: AbortSignal;
-}): AsyncGenerator<AgentChunk> {
-  const { client, token, threadId, turnId, signal } = o;
-  const queue: AgentChunk[] = [];
-  let wake: (() => void) | null = null;
-  let done = false;
-  let last = o.cursor;
-  let draining = false;
-  const poke = () => wake?.();
-
-  const take = (events: ChatEvent[]) => {
-    for (const e of events) {
-      if (e.seq <= last) continue;
-      last = e.seq;
-      if (e.turnId !== turnId) continue;
-      const chunk = actionChunk(e);
-      if (chunk) queue.push(chunk);
-    }
-    poke();
-  };
-
-  let stopEvents: (() => void) | null = null;
-  let subscribedAt = -1;
-  let resub: ReturnType<typeof setTimeout> | null = null;
-  const subscribe = () => {
-    if (done) return;
-    stopEvents?.();
-    subscribedAt = last;
-    const watch = client.watchQuery(api.aiChat.events, { token, threadId, afterSeq: last, limit: 200 });
-    const read = () => {
-      let r: FunctionReturnType<typeof api.aiChat.events> | undefined;
-      try {
-        r = watch.localQueryResult();
-      } catch {
-        return;
-      }
-      if (!r) return;
-      take(r.events);
-      // Move the window forward once a page fills, so updates stay small.
-      if ((r.hasMore || r.events.length >= 120) && last > subscribedAt && !resub) {
-        resub = setTimeout(() => {
-          resub = null;
-          subscribe();
-        }, 0);
-      }
-    };
-    stopEvents = watch.onUpdate(read);
-    read();
-  };
-
-  const finish = async (turn: Turn) => {
-    if (draining || done) return;
-    draining = true;
-    try {
-      for (let i = 0; i < 20; i++) {
-        const page = await client.query(api.aiChat.events, { token, threadId, afterSeq: last, limit: 200 });
-        take(page.events);
-        if (!page.hasMore) break;
-      }
-    } catch {
-      // The persisted text is restored from watchMessages next time.
-    }
-    if (turn.status === "error") queue.push({ type: "error", message: errorCopy(turn.error, o.plan) });
-    done = true;
-    poke();
-  };
-
-  const watchTurn = client.watchQuery(api.aiChat.watchMessages, { token, threadId, limit: 5 });
-  const checkTurn = () => {
-    let r: FunctionReturnType<typeof api.aiChat.watchMessages> | undefined;
-    try {
-      r = watchTurn.localQueryResult();
-    } catch {
-      return;
-    }
-    const turn = r?.turns.find((t) => t.turnId === turnId);
-    if (turn && TERMINAL.has(turn.status)) void finish(turn);
-  };
-  const stopTurn = watchTurn.onUpdate(checkTurn);
-
-  const onAbort = () => {
-    client.mutation(api.aiChat.cancelTurn, { token, turnId }).catch(() => {});
-    done = true;
-    poke();
-  };
-  signal.addEventListener("abort", onAbort);
-  // Stopped while the send was still in flight: cancel the turn that just started.
-  if (signal.aborted) onAbort();
-
-  try {
-    subscribe();
-    checkTurn();
-    while (true) {
-      while (queue.length) yield queue.shift()!;
-      if (done || signal.aborted) break;
-      await new Promise<void>((resolve) => {
-        wake = resolve;
-      });
-      wake = null;
-    }
-  } finally {
-    signal.removeEventListener("abort", onAbort);
-    cursors.set(threadId, Math.max(cursors.get(threadId) ?? 0, last));
-    const timer = resub as ReturnType<typeof setTimeout> | null;
-    if (timer) clearTimeout(timer);
-    (stopEvents as (() => void) | null)?.();
-    stopTurn();
-  }
+function streamTurn(o: {
+  client: ConvexReactClient; token: string; plan: PlanId;
+  threadId: Id<"aiThreads">; turnId: Id<"aiTurns">; cursor: number; signal: AbortSignal;
+}) {
+  return streamTurnUpdates({ ...o, chunk: actionChunk, error: (code) => errorCopy(code, o.plan),
+    saveCursor: (cursor) => cursors.set(o.threadId, Math.max(cursors.get(o.threadId) ?? 0, cursor)) });
 }
 
 // ---------- Restore ----------
@@ -340,23 +227,18 @@ async function restoreThread(plan: PlanId, signal: AbortSignal): Promise<AgentRe
 
   // Rebuild app cards from tool events; text comes from assistantText.
   const cards = new Map<string, Map<string, AgentPart>>();
-  let cursor = 0;
+  const cursor = view.cursor;
   try {
-    for (let i = 0; i < 10; i++) {
-      const page = await client.query(api.aiChat.events, { token, threadId: id, afterSeq: cursor, limit: 200 });
-      for (const e of page.events) {
-        cursor = Math.max(cursor, e.seq);
-        if (e.type === "text_delta") continue;
-        const chunk = actionChunk(e);
-        if (!chunk || chunk.type !== "action") continue;
-        const forTurn = cards.get(e.turnId) ?? new Map<string, AgentPart>();
-        forTurn.set(chunk.id, chunk);
-        cards.set(e.turnId, forTurn);
-      }
-      if (!page.hasMore) break;
+    for (const e of await snapshotEvents(client, token, id, cursor)) {
+      if (e.type === "text_delta") continue;
+      const chunk = actionChunk(e);
+      if (!chunk || chunk.type !== "action") continue;
+      const forTurn = cards.get(e.turnId) ?? new Map<string, AgentPart>();
+      forTurn.set(chunk.id, chunk);
+      cards.set(e.turnId, forTurn);
     }
   } catch {
-    // Cards are a nicety; the text still restores.
+    // Cards are a nicety; resume still starts at the atomic text snapshot cursor.
   }
 
   const messages: AgentMessage[] = [];

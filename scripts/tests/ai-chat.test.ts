@@ -141,6 +141,23 @@ test("claim is single-use and stream reconnect returns monotonic normalized even
   assert.equal((await api.events._handler(f.ctx, { token, threadId: ids.threadId, afterSeq: 4 })).events[0].seq, 5);
 });
 
+test("restored text and its atomic cursor cannot skip a later generation delta", async () => {
+  const f = fixture();
+  const ids = await f.send();
+  await api.claim._handler(f.ctx, { turnId: ids.turnId });
+  await api.append._handler(f.ctx, { turnId: ids.turnId, events: [{ type: "text_delta", text: "before " }] });
+  const snapshot = await api.watchMessages._handler(f.ctx, { token, threadId: ids.threadId });
+  assert.equal(snapshot.cursor, 1);
+  assert.equal(snapshot.turns[0].assistantText, "before ");
+  // Generation continues while mobile reconstructs cards/history.
+  await api.append._handler(f.ctx, { turnId: ids.turnId, events: [{ type: "text_delta", text: "during restore" }] });
+  const resumed = await api.events._handler(f.ctx, { token, threadId: ids.threadId, afterSeq: snapshot.cursor });
+  const restored = snapshot.turns[0].assistantText + resumed.events.map((event: { text?: string }) => event.text ?? "").join("");
+  const latest = await api.watchMessages._handler(f.ctx, { token, threadId: ids.threadId });
+  assert.equal(restored, latest.turns[0].assistantText);
+  assert.equal(latest.cursor, 2);
+});
+
 test("cancellation is idempotent and blocks late streaming, completion, and credential writes", async () => {
   const f = fixture();
   const ids = await f.send();

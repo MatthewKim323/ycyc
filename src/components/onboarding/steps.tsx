@@ -124,15 +124,13 @@ function planState(row: ProviderStatus | undefined): { text: string; live: boole
   return { text: "Connect", live: false };
 }
 
-/** Pick your AI: sign in a Claude or ChatGPT plan, or keep using an assistant app. Never blocks. */
+/** Pick your AI before setting up apps. The backend confirms the selected plan. */
 export function PickAI({
   bottomInset,
   onNext,
-  onOwnAssistant,
 }: {
   bottomInset: number;
   onNext: () => void;
-  onOwnAssistant: () => void;
 }) {
   const { token, status } = useAiPlans();
   const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
@@ -140,7 +138,7 @@ export function PickAI({
   const state = result.state instanceof Error ? undefined : result.state;
   const selected = state?.provider ?? status?.find((s) => s.selected)?.provider ?? null;
   const connectedCount = status?.filter((s) => s.status === "connected").length ?? 0;
-  const anyConnected = connectedCount > 0;
+  const planReady = !!state?.provider && (state.step === "connect_apps" || state.step === "ready");
 
   const choose = (plan: PlanId, row: ProviderStatus | undefined) => {
     if (row?.status === "connected") {
@@ -196,21 +194,11 @@ export function PickAI({
       </View>
 
       <Animated.View entering={FadeIn.delay(320).duration(280)} style={styles.actions}>
-        {anyConnected ? (
+        {planReady ? (
           <Animated.View entering={FadeIn.duration(200)} layout={layout}>
             <Button label="Continue" onPress={onNext} fullWidth />
           </Animated.View>
         ) : null}
-        <PressableScale
-          onPress={onOwnAssistant}
-          haptic="selection"
-          style={styles.textButton}
-          accessibilityLabel="I'll use my own assistant app"
-        >
-          <Text variant="bodyMedium" color={colors.textSecondary}>
-            I&rsquo;ll use my own assistant app
-          </Text>
-        </PressableScale>
       </Animated.View>
     </View>
   );

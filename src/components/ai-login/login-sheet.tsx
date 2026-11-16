@@ -146,7 +146,8 @@ function Sheet({ plan }: { plan: PlanId }) {
     if (!token || !attemptId || !trimmed || submitting || submitted) return;
     setSubmitting(true);
     try {
-      await submitCode({ token, provider: "claude", attemptId, code: trimmed });
+      const result = await submitCode({ token, provider: "claude", attemptId, code: trimmed });
+      if (!result.ok) throw new Error("code_rejected");
       setSubmitted(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } catch {

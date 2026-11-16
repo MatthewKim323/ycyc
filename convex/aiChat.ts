@@ -118,7 +118,10 @@ export const watchMessages = query({
       if (size > 1024 * 1024) break;
       bounded.push(turnView(turn));
     }
-    return { thread: threadView(thread), turns: bounded.reverse() };
+    // Text and cursor must come from the same transactional snapshot. A client
+    // restoring text cannot advance to a later events cursor without losing
+    // deltas generated between those reads.
+    return { thread: threadView(thread), turns: bounded.reverse(), cursor: thread.nextSeq - 1 };
   },
 });
 

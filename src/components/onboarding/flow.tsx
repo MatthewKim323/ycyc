@@ -1,4 +1,4 @@
-import { useQuery } from "convex/react";
+import { useQueries, useQuery } from "convex/react";
 import { type Href, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
@@ -19,12 +19,12 @@ import { colors, space, stageIn, stageOut } from "@/theme";
 
 import { ConnectStep } from "./connect-step";
 import { ProgressDots } from "./progress-dots";
-import { Assistant, How, Pick, PickAI, Ready, Welcome } from "./steps";
+import { How, Pick, PickAI, Ready, Welcome } from "./steps";
 
-type Step = "welcome" | "ai" | "how" | "pick" | "connect" | "ready" | "assistant";
+type Step = "welcome" | "ai" | "how" | "pick" | "connect" | "ready";
 type ConnectPhase = "intro" | "loading" | "signin" | "code" | "build" | "error";
 
-const DOTS: Step[] = ["ai", "how", "pick", "connect", "ready", "assistant"];
+const DOTS: Step[] = ["ai", "how", "pick", "connect", "ready"];
 const BACK: Partial<Record<Step, Step>> = {
   ai: "welcome",
   how: "ai",
@@ -39,7 +39,6 @@ const SCRIM: Record<Step, number> = {
   pick: 0.3,
   connect: 0.32,
   ready: 0.15,
-  assistant: 0.3,
 };
 
 /**
@@ -49,20 +48,25 @@ const SCRIM: Record<Step, number> = {
 export function OnboardingFlow() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { userId, mcpUrl } = useUser();
+  const { userId } = useUser();
   const { finish } = useOnboarding();
   const apps = useQuery(api.apps.list);
   const installed = useInstalledApps();
-  const { status: plans } = useAiPlans();
-  // Never gates onboarding: a connected plan only changes where "Done" lands.
-  const planReady = !!plans?.some((p) => p.status === "connected");
+  const { token } = useAiPlans();
+  const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  const result = useQueries(queries);
+  const state = result.state instanceof Error ? undefined : result.state;
+  const planReady = !!state?.provider && (state.step === "connect_apps" || state.step === "ready");
 
-  const [step, setStep] = useState<Step>("welcome");
+  const [requestedStep, setStep] = useState<Step>("welcome");
+  const step = planReady || requestedStep === "welcome" ? requestedStep : "ai";
   const [slug, setSlug] = useState<string | null>(null);
   const [ready, setReady] = useState<{ slug: string; name: string } | null>(null);
   const [connectPhase, setConnectPhase] = useState<ConnectPhase>("intro");
 
   useScrim(SCRIM[step]);
+
+  const advance = (next: Step) => setStep(planReady ? next : "ai");
 
   // Mid-build there is nothing to go back to; the connection keeps going either way.
   const canBack = !!BACK[step] && !(step === "connect" && (connectPhase === "build" || connectPhase === "loading"));
@@ -81,14 +85,15 @@ export function OnboardingFlow() {
   }, [canBack, back, step]);
 
   const leave = async (to: Href) => {
+    if (!planReady) { setStep("ai"); return; }
     await finish();
     router.replace(to);
   };
 
   const onReady = useCallback((app: { slug: string; name: string }) => {
     setReady(app);
-    setStep("ready");
-  }, []);
+    setStep(planReady ? "ready" : "ai");
+  }, [planReady]);
 
   const dotIndex = DOTS.indexOf(step);
   const bottom = insets.bottom;
@@ -108,7 +113,7 @@ export function OnboardingFlow() {
             </View>
             <ProgressDots count={DOTS.length} index={Math.max(0, dotIndex)} />
             <View style={[styles.side, styles.sideRight]}>
-              {step !== "assistant" ? (
+              {planReady && step !== "ai" ? (
                 <PressableScale
                   onPress={() => leave("/")}
                   hitSlop={12}
@@ -130,9 +135,9 @@ export function OnboardingFlow() {
         <Animated.View key={step} entering={stageIn} exiting={stageOut} style={StyleSheet.absoluteFill}>
           {step === "welcome" ? <Welcome bottomInset={bottom} onNext={() => setStep("ai")} /> : null}
           {step === "ai" ? (
-            <PickAI bottomInset={bottom} onNext={() => setStep("how")} onOwnAssistant={() => setStep("how")} />
+            <PickAI bottomInset={bottom} onNext={() => advance("how")} />
           ) : null}
-          {step === "how" ? <How bottomInset={bottom} onNext={() => setStep("pick")} /> : null}
+          {step === "how" ? <How bottomInset={bottom} onNext={() => advance("pick")} /> : null}
           {step === "pick" ? (
             <Pick
               apps={apps}
@@ -140,6 +145,7 @@ export function OnboardingFlow() {
               userId={userId}
               bottomInset={bottom}
               onPick={(s) => {
+                if (!planReady) { setStep("ai"); return; }
                 setSlug(s);
                 setConnectPhase("intro");
                 setStep("connect");
@@ -152,7 +158,7 @@ export function OnboardingFlow() {
               bottomInset={bottom}
               onPhase={setConnectPhase}
               onReady={onReady}
-              onPickAnother={() => setStep("pick")}
+              onPickAnother={() => advance("pick")}
             />
           ) : null}
           {step === "ready" && ready ? (
@@ -160,11 +166,8 @@ export function OnboardingFlow() {
               app={ready}
               bottomInset={bottom}
               planReady={planReady}
-              onNext={() => (planReady ? leave("/agent") : setStep("assistant"))}
+              onNext={() => leave("/agent")}
             />
-          ) : null}
-          {step === "assistant" ? (
-            <Assistant mcpUrl={mcpUrl} bottomInset={bottom} onDone={() => leave("/")} onOthers={() => leave("/link")} />
           ) : null}
         </Animated.View>
       </View>
