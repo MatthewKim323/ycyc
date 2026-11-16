@@ -33,6 +33,12 @@ References: [Expo Go ownership and self-hosting policy](https://expo.dev/changel
 
 ## Verified public preview
 
+The latest preview includes the onboarding capture lifetime fix from `206cc86`:
+
+https://optimistic-newt-247.convex.site/expo-preview/8450e2ab-f0a2-43be-9c55-25c6916897da
+
+Both platform manifests and all 66 asset hashes passed anonymous checks. A fresh physical-phone onboarding retry is pending; the earlier launch confirmation below applies only to the previous snapshot. This change is mobile UI only and does not require redeploying Convex functions.
+
 The user confirmed a physical-phone Expo Go launch from this self-hosted snapshot after the EAS preview had failed with403:
 
 https://optimistic-newt-247.convex.site/expo-preview/1741c4c8-abfc-43b0-bb4f-2cd07791e337
