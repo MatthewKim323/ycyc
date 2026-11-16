@@ -9,6 +9,10 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as aiChat from "../aiChat.js";
+import type * as aiChatActions from "../aiChatActions.js";
+import type * as aiChatApprovals from "../aiChatApprovals.js";
+import type * as aiOnboarding from "../aiOnboarding.js";
 import type * as aiProviders from "../aiProviders.js";
 import type * as approvalRunner from "../approvalRunner.js";
 import type * as approvals from "../approvals.js";
@@ -30,7 +34,10 @@ import type * as lib_handRecipes from "../lib/handRecipes.js";
 import type * as lib_mcp from "../lib/mcp.js";
 import type * as lib_nativeProvider from "../lib/nativeProvider.js";
 import type * as lib_providerCli from "../lib/providerCli.js";
+import type * as lib_providerEvents from "../lib/providerEvents.js";
+import type * as lib_providerTurn from "../lib/providerTurn.js";
 import type * as lib_providerVault from "../lib/providerVault.js";
+import type * as lib_publicToolData from "../lib/publicToolData.js";
 import type * as lib_recipeOverrides from "../lib/recipeOverrides.js";
 import type * as lib_recipeStore from "../lib/recipeStore.js";
 import type * as lib_render from "../lib/render.js";
@@ -38,6 +45,7 @@ import type * as lib_sanitize from "../lib/sanitize.js";
 import type * as lib_sessionDerive from "../lib/sessionDerive.js";
 import type * as lib_summaries from "../lib/summaries.js";
 import type * as lib_templateShim from "../lib/templateShim.js";
+import type * as lib_turnStream from "../lib/turnStream.js";
 import type * as lib_webhook from "../lib/webhook.js";
 import type * as mcpData from "../mcpData.js";
 import type * as pipeline from "../pipeline.js";
@@ -57,6 +65,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  aiChat: typeof aiChat;
+  aiChatActions: typeof aiChatActions;
+  aiChatApprovals: typeof aiChatApprovals;
+  aiOnboarding: typeof aiOnboarding;
   aiProviders: typeof aiProviders;
   approvalRunner: typeof approvalRunner;
   approvals: typeof approvals;
@@ -78,7 +90,10 @@ declare const fullApi: ApiFromModules<{
   "lib/mcp": typeof lib_mcp;
   "lib/nativeProvider": typeof lib_nativeProvider;
   "lib/providerCli": typeof lib_providerCli;
+  "lib/providerEvents": typeof lib_providerEvents;
+  "lib/providerTurn": typeof lib_providerTurn;
   "lib/providerVault": typeof lib_providerVault;
+  "lib/publicToolData": typeof lib_publicToolData;
   "lib/recipeOverrides": typeof lib_recipeOverrides;
   "lib/recipeStore": typeof lib_recipeStore;
   "lib/render": typeof lib_render;
@@ -86,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sessionDerive": typeof lib_sessionDerive;
   "lib/summaries": typeof lib_summaries;
   "lib/templateShim": typeof lib_templateShim;
+  "lib/turnStream": typeof lib_turnStream;
   "lib/webhook": typeof lib_webhook;
   mcpData: typeof mcpData;
   pipeline: typeof pipeline;

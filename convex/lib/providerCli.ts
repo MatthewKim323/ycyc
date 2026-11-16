@@ -37,7 +37,7 @@ export function loginChallenge(provider: NativeProvider, output: string): Challe
   return null;
 }
 
-async function layout(directory: string, provider: NativeProvider, credentials?: ProviderCredentials) {
+export async function layout(directory: string, provider: NativeProvider, credentials?: ProviderCredentials) {
   const config = join(directory, "account");
   const work = join(directory, "work");
   await mkdir(config, { mode: 0o700 });
@@ -57,7 +57,7 @@ async function layout(directory: string, provider: NativeProvider, credentials?:
   return { config, work, env, authFile };
 }
 
-async function snapshot(config: string, authFile: string): Promise<ProviderCredentials> {
+export async function snapshot(config: string, authFile: string): Promise<ProviderCredentials> {
   const text = await readFile(join(config, authFile), "utf8");
   if (!text.trim()) throw new Error("invalid_provider_credentials");
   JSON.parse(text);

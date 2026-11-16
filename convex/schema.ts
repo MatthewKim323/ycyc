@@ -55,6 +55,11 @@ export const aiProviderStatusValidator = v.union(
   v.literal("disconnected"), v.literal("starting"), v.literal("authorizing"),
   v.literal("connected"), v.literal("error"),
 );
+export const aiTurnStatusValidator = v.union(
+  v.literal("queued"), v.literal("running"), v.literal("completed"),
+  v.literal("error"), v.literal("cancelled"),
+);
+export const aiEventTypeValidator = v.union(v.literal("text_delta"), v.literal("tool_start"), v.literal("tool_end"));
 
 export default defineSchema({
   users: defineTable({
@@ -84,6 +89,30 @@ export default defineSchema({
     updatedAt: v.number(),
     connectedAt: v.optional(v.number()),
   }).index("by_user_provider", ["userId", "provider"]).index("by_user", ["userId"]),
+
+  aiThreads: defineTable({
+    userId: v.id("users"), provider: aiProviderValidator, title: v.string(),
+    activeTurnId: v.optional(v.id("aiTurns")), nextSeq: v.number(),
+    createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_user_updated", ["userId", "updatedAt"]),
+
+  aiTurns: defineTable({
+    userId: v.id("users"), threadId: v.id("aiThreads"), provider: aiProviderValidator,
+    providerSessionId: v.id("aiProviderSessions"), providerAttemptId: v.string(),
+    clientMessageId: v.string(), message: v.string(), assistantText: v.string(),
+    status: aiTurnStatusValidator, error: v.optional(v.string()),
+    eventCount: v.number(), eventBytes: v.number(), outputBytes: v.number(),
+    createdAt: v.number(), updatedAt: v.number(), expiresAt: v.number(),
+    startedAt: v.optional(v.number()), completedAt: v.optional(v.number()),
+  }).index("by_user_client", ["userId", "clientMessageId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_thread_created", ["threadId", "createdAt"]),
+
+  aiEvents: defineTable({
+    threadId: v.id("aiThreads"), turnId: v.id("aiTurns"), seq: v.number(),
+    type: aiEventTypeValidator, text: v.optional(v.string()),
+    name: v.optional(v.string()), id: v.optional(v.string()), createdAt: v.number(),
+  }).index("by_thread_seq", ["threadId", "seq"]),
 
   connections: defineTable({
     userId: v.id("users"),

@@ -1,6 +1,6 @@
 # AI subscription login API
 
-Backend-only contract for the Yuzu mobile UI. Providers are `"claude" | "codex"`. These endpoints connect the user's own subscription through the unmodified Claude Code/Codex login flow. They do not implement chat/inference or establish that a connected account has model entitlement.
+Backend-only contract for the Yuzu mobile UI. Providers are `"claude" | "codex"`. These endpoints connect the user's own subscription through the unmodified Claude Code/Codex login flow. Message streaming is documented in [AI_STREAMING_API.md](AI_STREAMING_API.md); a connected status alone does not establish model entitlement.
 
 ## Convex functions
 
@@ -48,7 +48,7 @@ Login actions execute in Convex's Node runtime, with private temporary directori
 
 Development verification uses **`matt-5326f:ycyc:dev/yuzu-subscriptions`**, `https://watchful-oyster-561.convex.cloud`, inside Matt's project. This isolated deployment expires around November 20, 2026. It avoids overwriting Matthew's running `convex dev` deployment. Mobile and backend must point at the same deployment; a token from a different deployment will not work. To integrate into the shared deployment, pull this branch's backend changes first, keep main current, configure the encryption key there, then deploy the combined source. Never push this branch's stale snapshot over a teammate's newer backend.
 
-Connection only uses native login. Provider policies still govern hosted use and distribution; this API is not a generic OAuth-token proxy or a promise that subscription inference is approved or available. The native CLI's subsequent inference/session-refresh integration is separate work.
+Connection uses native login. Provider policies still govern hosted use and distribution; this API is not a generic OAuth-token proxy or a promise that subscription inference is approved or available. [AI_STREAMING_API.md](AI_STREAMING_API.md) documents the native turn runner and credential snapshots.
 
 ## Checks
 

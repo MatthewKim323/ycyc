@@ -31,6 +31,7 @@ Install packages with `npx expo install <pkg>` and tell the lead which ones you 
 ## Convex API (names the UI calls)
 
 AI subscription login (Claude and Codex): see [AI_LOGIN_API.md](AI_LOGIN_API.md) for the backend-only mobile contract, status flow and deployment configuration. Matthew owns the mobile UI.
+AI message streaming and approval callbacks: see [AI_STREAMING_API.md](AI_STREAMING_API.md). Subscribe to `aiOnboarding.state` so AI login is first, before app login/capture and entering the agent.
 
 Queries/mutations (`api.<file>.<fn>`):
 - `users.ensure({ deviceId }) -> { userId, mcpUrl }` (mutation; creates user + random mcp token on first launch)
