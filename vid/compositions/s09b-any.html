@@ -136,29 +136,17 @@
         <div id="s09b-real" class="rb-badge" style="position: absolute; left: 566px; top: 40px;"><span id="s09b-real-dot" class="rb-dot"></span>Real screen recording</div>
         <div id="s09b-pchip" class="s9-pc" style="position: absolute; left: 1010px; top: 508px;">Your ChatGPT plan, inside yuzu</div>
       </div>
-      <!-- B: yuzu's in-app chat on the Claude plan -->
-      <div data-hf-id="hf-37hi" id="s09b-bcam" class="s9-cam">
-        <div data-hf-id="hf-fsps" id="s09b-chat">
-          <div data-hf-id="hf-iqpc" class="s9-bar">
-            <div data-hf-id="hf-yzyk" class="s9-side"></div>
-            <div data-hf-id="hf-50cd" class="s9-switch"><div data-hf-id="hf-5qnm" class="s9-swlogo"></div><div data-hf-id="hf-7lnm" class="s9-swlabels"><div data-hf-id="hf-vrb0" class="s9-swname">Claude</div><div data-hf-id="hf-uxor" class="s9-swsub"><span data-hf-id="hf-khh1" class="s9-swdot"></span>Your plan</div></div></div>
-            <div data-hf-id="hf-kh79" class="s9-new">New chat</div>
-          </div>
-          <div data-hf-id="hf-nw45" class="s9-thread">
-            <div data-hf-id="hf-i4hm" id="s09b-ub">How much protein do I have left today?</div>
-            <div data-hf-id="hf-sa1g" class="s9-asst">
-              <div data-hf-id="hf-v33a" id="s09b-card2">
-                <img data-hf-id="hf-zpip" src="assets/apps/myfitnesspal.png" alt="" />
-                <div data-hf-id="hf-n92p" class="s9-ctext"><div data-hf-id="hf-irzi" class="s9-ctitle">Read today's diary</div><div data-hf-id="hf-g5ph" class="s9-ccap">MyFitnessPal · 915 of 3,080 cal</div></div>
-                <div data-hf-id="hf-2yo1" class="s9-cst">
-                  <div data-hf-id="hf-8s33" id="s09b-cs-run"><span data-hf-id="hf-25r0" class="s9-sdot" style="opacity:0.5"></span>Working</div>
-                  <div data-hf-id="hf-pc2z" id="s09b-cs-ok"><span data-hf-id="hf-vtku" class="s9-sdot"></span>Done</div>
-                </div>
-              </div>
-              <div data-hf-id="hf-iouf" id="s09b-a2">You've had 52 g of protein today. That's 102 g left to hit 154 g.</div>
-            </div>
+      <!-- B: real recording, yuzu's Agent tab on the Claude plan (Duolingo) -->
+      <div id="s09b-bcam" class="s9-cam">
+        <div id="s09b-bph" style="position: absolute; left: 545px; top: 74px; width: 430px; height: 932px;">
+          <div id="s09b-bphone" class="k-phone" style="left: 0; top: 0;">
+            <!-- footage: assets/footage/_proc/duo-chat.mp4 (real recording) -->
+            <video id="s09b-b1" class="clip" src="assets/footage/_proc/duo-chat.mp4" muted playsinline data-start="2.42" data-duration="0.98" data-media-start="3.0" data-playback-rate="3" data-track-index="2" style="position: absolute; left: 14px; top: 14px; width: 402px; height: 904px; border-radius: 54px; object-fit: cover; background: #000;"></video>
+            <video id="s09b-b2" class="clip" src="assets/footage/_proc/duo-chat.mp4" muted playsinline data-start="3.4" data-duration="1.94" data-media-start="58.0" data-track-index="2" style="position: absolute; left: 14px; top: 14px; width: 402px; height: 904px; border-radius: 54px; object-fit: cover; background: #000;"></video>
           </div>
         </div>
+        <div id="s09b-real2" class="rb-badge" style="position: absolute; left: 566px; top: 40px;"><span id="s09b-real2-dot" class="rb-dot"></span>Real screen recording</div>
+        <div id="s09b-bchip" class="s9-pc" style="position: absolute; left: 1010px; top: 508px;">Claude plan · Duolingo</div>
       </div>
       <!-- C: Link tab rows -->
       <div data-hf-id="hf-2ln1" id="s09b-cpos">
@@ -233,39 +221,20 @@
       tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
       tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.44);
 
-      // ---------------- B: yuzu's in-app chat (2.42 - 5.34) ----------------
+      // ---------------- B: real recording of yuzu's Agent tab on the Claude plan (2.42 - 5.34) ----------------
+      gsap.set("#s09b-bph", { scale: 0.92 });
       gsap.set("#s09b-bcam", { ...cam(1.25, 960, 540), opacity: 0 });
       tl.fromTo("#s09b-bcam", cam(1.25, 960, 540), { ...cam(1, 960, 540), duration: 0.5, ease: "expo.out", immediateRender: false }, 2.42);
       tl.fromTo("#s09b-bcam", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.42);
       tl.fromTo("#s09b-bcam", cam(1, 960, 540), { ...cam(1.04, 960, 540), duration: 2.08, ease: "sine.inOut", immediateRender: false }, 2.92);
-      // 2.58: the question lands; 3.26: the MyFitnessPal card (Working); 3.94: Done.
-      [["#s09b-ub", 2.58], ["#s09b-card2", 3.26]].forEach(([el, at]) => {
-        gsap.set(el, { opacity: 0 });
-        tl.fromTo(el, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, at);
-        tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, at);
-      });
-      gsap.set("#s09b-cs-ok", { opacity: 0 });
-      swap($("#s09b-cs-run"), $("#s09b-cs-ok"), 3.94);
-      // 4.00: the answer streams in chunks, each fading 0.15 -> 1 over 320ms (StreamingText).
-      const a2 = $("#s09b-a2");
-      const w2 = a2.textContent.trim().split(/\s+/);
-      a2.innerHTML = w2.map((w) => "<span>" + w + "</span>").join(" ");
-      const sp2 = [...a2.querySelectorAll("span")];
-      gsap.set(sp2, { opacity: 0 });
-      const chunks = [2, 1, 2, 2, 1, 2, 2, 1, 2];
-      let k = 0, ct = 4.0;
-      chunks.forEach((n, ci) => {
-        const ch = sp2.slice(k, k + n);
-        if (!ch.length) return;
-        tl.set(ch, { opacity: 0.15 }, ct - 0.001);
-        tl.fromTo(ch, { opacity: 0.15 }, { opacity: 1, duration: 0.32, ease: "none", immediateRender: false }, ct);
-        k += n;
-        ct += [0.1, 0.08, 0.12, 0.09, 0.11, 0.08, 0.1, 0.12, 0.09][ci];
-      });
+      gsap.set(["#s09b-real2", "#s09b-bchip"], { opacity: 0 });
+      tl.fromTo("#s09b-real2", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, 2.5);
+      tl.fromTo("#s09b-real2-dot", { opacity: 1 }, { opacity: 0.25, duration: 0.2, yoyo: true, repeat: 1, ease: "sine.inOut", immediateRender: false }, 2.8);
+      tl.fromTo("#s09b-bchip", { opacity: 0, y: 6, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.24, ease: "power2.out", immediateRender: false }, 2.7);
       // One page push up into C (same distance and ease as C's arrival).
       const BE = cam(1.04, 960, 540);
       tl.fromTo("#s09b-bcam", { y: BE.y }, { y: BE.y - 1080, duration: 0.34, ease: "power3.inOut", immediateRender: false }, 5.0);
-      tl.to("#s09b-chat", { filter: "blur(6px)", duration: 0.34, ease: "power2.in" }, 5.0);
+      tl.to("#s09b-bph", { filter: "blur(6px)", duration: 0.34, ease: "power2.in" }, 5.0);
       // ---------------- C: Link tab rows at speed (5.14 - 8.10) ----------------
       // Bottoms (3x px, column space) after each step; the column shows at 0.8 and keeps the newest row in frame.
       const CS = 0.8, beats = [5.3, 5.698, 6.097, 6.495, 6.893, 7.292, 7.69]; // 7 rows spread evenly over 5.30 - 7.69
