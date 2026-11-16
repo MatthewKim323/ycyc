@@ -41,6 +41,8 @@ export function OnboardingBackdrop({ children }: { children: ReactNode }) {
           paused={reduced}
           style={StyleSheet.absoluteFill}
         >
+          {/* Constant base dim so the shader sits behind the content instead of competing with it. */}
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overlay, styles.baseDim]} />
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overlay, overlay]} />
           {children}
         </PatternWaves>
@@ -75,6 +77,7 @@ export function Glass({ children, style }: { children: ReactNode; style?: StyleP
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   overlay: { backgroundColor: "#000000" },
+  baseDim: { opacity: 0.28 },
   glass: {
     backgroundColor: "rgba(11,11,11,0.8)",
     borderRadius: radius.card,
