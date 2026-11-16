@@ -55,6 +55,11 @@
   "style": "confident, brisk, a little proud"
  },
  {
+  "id": "v09c",
+  "text": "Under the hood, every app gets mapped once, on a cloud iPhone. Yuzu watches how it talks to its servers, and turns that into tools. If it runs on a phone, yuzu can learn it.",
+  "style": "confident, building, a little awed"
+ },
+ {
   "id": "v10",
   "text": "Every app yuzu learns, it learns once, for everyone.",
   "style": "confident, building"

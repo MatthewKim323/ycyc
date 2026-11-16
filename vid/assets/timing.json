@@ -1,5 +1,5 @@
 {
-  "total": 90.091,
+  "total": 100.981,
   "scenes": {
     "s01-guess": {
       "start": 0.0,
@@ -41,20 +41,24 @@
       "start": 57.284,
       "duration": 8.168
     },
-    "s10-more": {
+    "s09c-cloud": {
       "start": 65.451,
+      "duration": 10.89
+    },
+    "s10-more": {
+      "start": 76.341,
       "duration": 5.0
     },
     "s11-endless": {
-      "start": 70.451,
+      "start": 81.341,
       "duration": 7.0
     },
     "s12-built": {
-      "start": 77.451,
+      "start": 88.341,
       "duration": 6.0
     },
     "s13-end": {
-      "start": 83.451,
+      "start": 94.341,
       "duration": 6.64
     }
   },
@@ -159,10 +163,19 @@
       ]
     },
     {
-      "scene": "s10-more",
+      "scene": "s09c-cloud",
       "who": "narrator",
       "start": 65.751,
-      "end": 69.596,
+      "end": 76.071,
+      "text": [
+        "Under the hood, every app gets mapped once, on a cloud iPhone. Yuzu watches how it talks to its servers, and turns that into tools. If it runs on a phone, yuzu can learn it."
+      ]
+    },
+    {
+      "scene": "s10-more",
+      "who": "narrator",
+      "start": 76.641,
+      "end": 80.486,
       "text": [
         "Every app yuzu learns, it learns once, for everyone."
       ]
@@ -170,8 +183,8 @@
     {
       "scene": "s11-endless",
       "who": "narrator",
-      "start": 71.651,
-      "end": 75.162,
+      "start": 82.541,
+      "end": 86.052,
       "text": [
         "ParkMobile. Duolingo. Whatever you open next."
       ]
@@ -179,8 +192,8 @@
     {
       "scene": "s12-built",
       "who": "narrator",
-      "start": 77.851,
-      "end": 82.172,
+      "start": 88.741,
+      "end": 93.062,
       "text": [
         "Built today at YC, with Capy, Revyl, and Convex."
       ]
@@ -188,8 +201,8 @@
     {
       "scene": "s13-end",
       "who": "narrator",
-      "start": 84.371,
-      "end": 87.324,
+      "start": 95.261,
+      "end": 98.214,
       "text": [
         "Yuzu. Your apps, in every AI."
       ]

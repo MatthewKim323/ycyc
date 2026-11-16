@@ -43,17 +43,21 @@ Or just text it.
 Yuzu runs no model of its own. It plugs into the AI you already pay for, and any agent that speaks MCP.
 
 12
-00:01:05,751 --> 00:01:09,596
-Every app yuzu learns, it learns once, for everyone.
+00:01:05,751 --> 00:01:16,071
+Under the hood, every app gets mapped once, on a cloud iPhone. Yuzu watches how it talks to its servers, and turns that into tools. If it runs on a phone, yuzu can learn it.
 
 13
-00:01:11,651 --> 00:01:15,162
-ParkMobile. Duolingo. Whatever you open next.
+00:01:16,641 --> 00:01:20,486
+Every app yuzu learns, it learns once, for everyone.
 
 14
-00:01:17,851 --> 00:01:22,172
-Built today at YC, with Capy, Revyl, and Convex.
+00:01:22,541 --> 00:01:26,052
+ParkMobile. Duolingo. Whatever you open next.
 
 15
-00:01:24,371 --> 00:01:27,324
+00:01:28,741 --> 00:01:33,062
+Built today at YC, with Capy, Revyl, and Convex.
+
+16
+00:01:35,261 --> 00:01:38,214
 Yuzu. Your apps, in every AI.

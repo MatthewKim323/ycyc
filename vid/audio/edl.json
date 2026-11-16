@@ -163,6 +163,21 @@
    ]
   },
   {
+   "id": "s09c-cloud",
+   "min": 10.89,
+   "tail": 0.2,
+   "lines": [
+    {
+     "who": "narrator",
+     "src": "audio/voice/chris/v09c-t2.mp3",
+     "at": 0.3,
+     "text": [
+      "Under the hood, every app gets mapped once, on a cloud iPhone. Yuzu watches how it talks to its servers, and turns that into tools. If it runs on a phone, yuzu can learn it."
+     ]
+    }
+   ]
+  },
+  {
    "id": "s10-more",
    "min": 5.0,
    "tail": 0.4,
