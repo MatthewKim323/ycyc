@@ -35,8 +35,8 @@ Anything that writes waits for your OK.
 Same link in ChatGPT.
 
 10
-00:00:52,884 --> 00:00:53,874
-Or just text it.
+00:00:52,884 --> 00:00:53,869
+Same link in Grok.
 
 11
 00:00:57,634 --> 00:01:03,958

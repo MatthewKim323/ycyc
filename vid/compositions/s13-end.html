@@ -6,8 +6,10 @@
     #s13-dim { position: absolute; inset: 0; background: #000; opacity: 0.3; }
     #s13-black { position: absolute; inset: 0; background: #000; opacity: 0; }
     #s13-lock { position: absolute; left: 0; top: 276px; width: 1920px; height: 200px; }
-    #s13-mark { position: absolute; left: 860px; top: 0; width: 200px; height: 200px; font-size: 66px; }
-    #s13-link { position: absolute; left: 1000px; top: 0; width: 200px; height: 200px; }
+    #s13-mark { position: absolute; left: 860px; top: 0; width: 200px; height: 200px; font-size: 66px; background: transparent !important; color: transparent !important; box-shadow: none !important; overflow: visible; mix-blend-mode: screen; }
+    #s13-mark::before { content: ""; position: absolute; inset: -110px; background: url("assets/brand/yuzu-icon.png") center / contain no-repeat; }
+    #s13-link { position: absolute; left: 1000px; top: 0; width: 320px; height: 200px; display: flex; align-items: center; }
+    #s13-word { font: 600 132px "Inter", sans-serif; letter-spacing: -0.045em; color: #fff; line-height: 1; }
     #s13-link .k-icon { width: 200px; height: 200px; }
     #s13-title { position: absolute; left: 0; top: 540px; width: 1920px; text-align: center; font-size: 120px; }
     #s13-url { position: absolute; left: 0; top: 700px; width: 1920px; text-align: center; font-size: 40px; color: #ffffff; font-weight: 500; }
@@ -19,7 +21,7 @@
       <div id="s13-dim"></div>
       <div id="s13-lock">
         <div id="s13-mark" class="k-mark">yuzu</div>
-        <div id="s13-link"><div id="s13-link-ic" class="k-icon"></div></div>
+        <div id="s13-link"><span id="s13-word">yuzu</span></div>
       </div>
       <h1 id="s13-title" class="k-head">Your apps, in every AI.</h1>
       <p id="s13-url" class="k-sub"><span>github.com/MatthewKim323/yuzu</span></p>
@@ -51,7 +53,6 @@
       gsap.set("#s13-link", { opacity: 0, scale: 0.5, x: -60 });
       tl.fromTo("#s13-link", { scale: 0.5, x: -60 }, { scale: 1, x: 0, duration: pop.dur, ease: pop.ease, immediateRender: false }, 1.60);
       tl.fromTo("#s13-link", { opacity: 0 }, { opacity: 1, duration: 0.18, ease: "power2.out", immediateRender: false }, 1.60);
-      KIT.icon(tl, $("#s13-link-ic"), "link", { at: 1.60 });
       // the lockup drifts 2% until the line has landed, then everything holds still
       tl.fromTo("#s13-lock", { scale: 1, transformOrigin: "50% 50%" }, { scale: 1.02, duration: 1.8, ease: "sine.inOut", immediateRender: false }, 1.34);
 
