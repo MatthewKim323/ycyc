@@ -75,6 +75,8 @@ export interface AgentProvider {
   restore?(signal: AbortSignal): Promise<AgentRestore | null>;
   /** In-app only: "New chat" drops the saved thread. */
   resetThread?(): void;
+  /** In-app only: make a past thread the one restore() loads and send() continues. */
+  openThread?(threadId: string): void;
 }
 
 // Registry: a tiny external store so registering or connecting a provider re-renders the tab.
@@ -188,6 +190,9 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
     }
   }, []);
 
+  // Bumped when the person opens a past thread, so restore() runs again for it.
+  const [restoreKey, setRestoreKey] = useState(0);
+
   // Switching assistants starts clean; an in-app plan brings back its last conversation.
   const [shownFor, setShownFor] = useState(providerId);
   if (shownFor !== providerId) {
@@ -202,9 +207,14 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
     if (!p?.restore || !p.isConnected()) return;
     const controller = new AbortController();
     let live = true;
+    const switched = restoreKey > 0;
     p.restore(controller.signal)
       .then(async (saved) => {
-        if (!live || !saved) return;
+        if (!live) return;
+        if (!saved) {
+          if (switched) setMessages([]);
+          return;
+        }
         setMessages(saved.messages);
         const last = saved.messages[saved.messages.length - 1];
         if (saved.resume && last?.role === "assistant") {
@@ -221,7 +231,7 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
     return () => {
       live = false;
     };
-  }, [providerId, pump]);
+  }, [providerId, pump, restoreKey]);
 
   const send = useCallback(
     async (raw: string): Promise<AgentSendResult | null> => {
@@ -254,6 +264,16 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
   );
 
   const stop = useCallback(() => abort.current?.abort(), []);
+  const open = useCallback(
+    (threadId: string) => {
+      if (!provider?.openThread) return;
+      abort.current?.abort();
+      provider.openThread(threadId);
+      setStatus("idle");
+      setRestoreKey((k) => k + 1);
+    },
+    [provider],
+  );
   const reset = useCallback(() => {
     abort.current?.abort();
     provider?.resetThread?.();
@@ -267,6 +287,7 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
     send,
     stop,
     reset,
+    open,
     messages,
     status,
     lastHandoffAt,

@@ -4,6 +4,7 @@ import Animated from "react-native-reanimated";
 import type { AgentProvider } from "@/lib/agent";
 import { colors, fadeIn, fadeOut, space } from "@/theme";
 
+import { Icon } from "../icon";
 import { PressableScale } from "../pressable-scale";
 import { Text } from "../text";
 import { AssistantLogo, assistantLabel } from "./assistant-menu";
@@ -14,19 +15,47 @@ export function AssistantHeader({
   open,
   onPress,
   onNewChat,
+  onMenu,
+  onHistory,
+  historyOpen = false,
   onLayout,
 }: {
   provider: AgentProvider | null;
   open: boolean;
   onPress: () => void;
   onNewChat: (() => void) | null;
+  /** Opens the chats drawer. */
+  onMenu?: () => void;
+  /** Recent chats dropdown; null hides the control. */
+  onHistory?: (() => void) | null;
+  historyOpen?: boolean;
   onLayout?: (e: LayoutChangeEvent) => void;
 }) {
   const plan = provider?.kind === "inapp";
   const label = provider ? assistantLabel(provider) : null;
   return (
     <View style={styles.bar} onLayout={onLayout}>
-      <View style={styles.side} />
+      <View style={[styles.side, styles.left]}>
+        {onMenu ? (
+          <PressableScale onPress={onMenu} haptic="selection" hitSlop={6} accessibilityLabel="Chats" style={styles.iconButton}>
+            <Icon name="chat" size={22} />
+          </PressableScale>
+        ) : null}
+        {onHistory ? (
+          <Animated.View entering={fadeIn} exiting={fadeOut}>
+            <PressableScale
+              onPress={onHistory}
+              haptic="selection"
+              hitSlop={6}
+              accessibilityLabel="Recent chats"
+              accessibilityState={{ expanded: historyOpen }}
+              style={[styles.iconButton, historyOpen && styles.switcherOpen]}
+            >
+              <Icon name="clock" size={20} opacity={0.8} />
+            </PressableScale>
+          </Animated.View>
+        ) : null}
+      </View>
       {label ? (
         <PressableScale
           onPress={onPress}
@@ -81,7 +110,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.gutter,
   },
   side: { width: 80 },
+  left: { flexDirection: "row", alignItems: "center", gap: 2, marginLeft: -space.sm },
   right: { alignItems: "flex-end" },
+  iconButton: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   switcher: {
     minHeight: 40,
     paddingLeft: space.sm,

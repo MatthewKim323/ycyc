@@ -128,8 +128,15 @@ const threads: Partial<Record<PlanId, string | null>> = {};
 // "new" marks a deliberate New chat, so restore doesn't fall back to the latest server thread.
 const NEW = "new";
 
+// The open thread per plan, as an external store so the history drawer can mark it.
+const threadListeners = new Set<() => void>();
+const emitThreads = () => threadListeners.forEach((l) => l());
+
 async function savedThread(plan: PlanId): Promise<string | null> {
-  if (threads[plan] === undefined) threads[plan] = (await store.get(threadKey(plan)).catch(() => null)) || null;
+  if (threads[plan] === undefined) {
+    threads[plan] = (await store.get(threadKey(plan)).catch(() => null)) || null;
+    emitThreads();
+  }
   return threads[plan] ?? null;
 }
 
@@ -140,7 +147,24 @@ async function threadFor(plan: PlanId): Promise<string | null> {
 
 function rememberThread(plan: PlanId, id: string | null) {
   threads[plan] = id;
+  emitThreads();
   store.set(threadKey(plan), id ?? "").catch(() => {});
+}
+
+/** The thread the Agent tab is showing for a plan, or null for a new chat. */
+export function useActiveThread(plan: PlanId | null): string | null {
+  const read = () => {
+    const t = plan ? threads[plan] : null;
+    return t && t !== NEW ? t : null;
+  };
+  return useSyncExternalStore(
+    (l) => {
+      threadListeners.add(l);
+      return () => threadListeners.delete(l);
+    },
+    read,
+    read,
+  );
 }
 
 // ---------- Event mapping ----------
@@ -326,6 +350,7 @@ function plan(id: PlanId): AgentProvider {
     },
     restore: (signal) => restoreThread(id, signal),
     resetThread: () => rememberThread(id, NEW),
+    openThread: (threadId) => rememberThread(id, threadId),
   };
 }
 

@@ -22,6 +22,7 @@ export {
   planStatus,
   selectPlan,
   tokenFrom,
+  useActiveThread,
   useAiPlans,
   useLoginRequest,
   type PlanId,
