@@ -1,85 +1,120 @@
-<!-- s08-chatgpt: out of the s07 screen into ChatGPT on the same link. The Strong read flashes beside the phone, then
-     the camera pushes into the answer (msg-in) and holds; whips left into s09. -->
-<!-- sfx: t=0.80 name=case-pop gain=0.35 -->
-<!-- sfx: t=1.60 name=msg-in gain=0.6 -->
-<!-- sfx: t=4.68 name=whoosh-soft gain=0.35 -->
+<!-- s08-chatgpt (10.445 s): the real ChatGPT demo (desktop, yuzu connected), cut fast on the beats inside one desktop
+     window; the camera crops onto the part that matters. A prompt typing (6x), B the yuzu diary call, C "2,165 calories
+     remaining" + the food table, D the second prompt (6x), E the Strong history call, F "Your last logged workout",
+     G1 "Today's workout: Legs", G2 "But bro, EAT FIRST"; whip left into s09.
+     Beats 0.33 1.01 1.69 2.37 3.05 3.73 4.41 5.09 5.77 6.46 7.14 7.82 8.50 9.18 9.86. VO "Same link in ChatGPT." 0.40-2.08. -->
+<!-- sfx: t=0.15 name=text-tick gain=0.25 -->
+<!-- sfx: t=1.62 name=msg-sent gain=0.55 -->
+<!-- sfx: t=1.95 name=case-pop gain=0.5 -->
+<!-- sfx: t=3.30 name=row-tick gain=0.4 -->
+<!-- sfx: t=3.50 name=row-tick gain=0.4 -->
+<!-- sfx: t=3.70 name=row-tick gain=0.4 -->
+<!-- sfx: t=3.90 name=row-tick gain=0.4 -->
+<!-- sfx: t=4.45 name=text-tick gain=0.25 -->
+<!-- sfx: t=5.71 name=msg-sent gain=0.55 -->
+<!-- sfx: t=5.95 name=case-pop gain=0.5 -->
+<!-- sfx: t=7.20 name=row-tick gain=0.4 -->
+<!-- sfx: t=7.45 name=row-tick gain=0.4 -->
+<!-- sfx: t=8.25 name=row-tick gain=0.35 -->
+<!-- sfx: t=8.45 name=row-tick gain=0.35 -->
+<!-- sfx: t=8.65 name=row-tick gain=0.35 -->
+<!-- sfx: t=8.85 name=row-tick gain=0.35 -->
+<!-- sfx: t=10.09 name=whoosh-soft gain=0.35 -->
 <template>
   <style>
     #root { position: absolute; inset: 0; }
     #s08-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
     #s08-cam { position: absolute; inset: 0; transform-origin: 0 0; }
-    #s08-ph { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
-    #s08-phone { left: 0; top: 0; }
-    #s08-screen { position: relative; background: #141414; }
-    #s08-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
-      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
-    #s08-chip { position: absolute; left: 990px; top: 480px; display: flex; align-items: center; gap: 24px; height: 120px; padding: 0 30px 0 18px;
-      border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap;
-      font: 500 36px "Inter", sans-serif; color: #fff; }
-    #s08-rim { position: absolute; inset: 0; border-radius: 60px; box-shadow: inset 0 0 0 1.5px #fff; pointer-events: none; }
-    .s08-logo { width: 84px; height: 84px; border-radius: 23px; background: #141414; flex: none; display: block; }
-    .s08-app { font-weight: 600; letter-spacing: -0.01em; }
-    .s08-sep { color: #6b6b6b; margin: 0 -8px; }
-    .s08-verb { color: #a1a1a1; }
-    #s08-ok { width: 48px; height: 48px; flex: none; margin-left: 4px; }
+    /* One desktop window holding every cut of the same recording (1920x1152 shown at 1640x984, k = 0.8542). */
+    #s08-win { position: absolute; left: 140px; top: 64px; width: 1640px; height: 984px; border-radius: 32px; overflow: hidden; background: #000; }
+    .s08-v { position: absolute; left: 0; top: 0; width: 1640px; height: 984px; object-fit: cover; display: block; }
+    #s08-rim { position: absolute; left: 140px; top: 64px; width: 1640px; height: 984px; border-radius: 32px; box-shadow: inset 0 0 0 1.5px #1f1f1f; pointer-events: none; }
+    /* Label cluster: which assistant, and an honest speed chip on sped-up cuts. */
+    #s08-tags { position: absolute; left: 96px; top: 960px; display: flex; gap: 14px; font-family: "Inter", sans-serif; }
+    .s08-chip { height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 26px 0 12px; border-radius: 32px; background: #0b0b0b;
+      box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 500 28px/1 "Inter", sans-serif; color: #fff; white-space: nowrap; }
+    .s08-glogo { width: 40px; height: 40px; border-radius: 11px; background: #141414 url(assets/assistants/chatgpt.png) center / cover;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); flex: none; }
+    .s08-sep { color: #6b6b6b; margin: 0 -4px; }
+    .s08-y { color: #a1a1a1; }
+    #s08-speed { position: relative; height: 64px; width: 96px; border-radius: 32px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a;
+      font: 600 28px/64px "Inter", sans-serif; color: #fff; font-variant-numeric: tabular-nums; }
+    #s08-speed span { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
   </style>
   <div id="root" data-composition-id="s08-chatgpt" data-width="1920" data-height="1080">
-    <div id="s08-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0">
+    <div id="s08-wrap" class="k-canvas">
       <canvas id="s08-waves" class="k-waves"></canvas>
       <div id="s08-dim"></div>
       <div id="s08-cam">
-        <div id="s08-ph">
-          <div id="s08-phone" class="k-phone">
-            <!-- footage: assets/footage/r8-chatgpt-bench.mp4 -->
-            <div id="s08-screen" class="k-screen"><div id="s08-label">R8 · ChatGPT: what did I bench last week?</div></div>
-          </div>
+        <div id="s08-win">
+          <!-- footage: assets/footage/_proc/chatgpt-demo.mp4 (real recording, chatgpt.com with yuzu connected) -->
+          <video id="s08-vA" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="0" data-duration="1.69" data-media-start="1.68" data-playback-rate="6" data-track-index="1"></video>
+          <video id="s08-vB" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="1.69" data-duration="0.68" data-media-start="30.0" data-playback-rate="4" data-track-index="1"></video>
+          <video id="s08-vC" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="2.37" data-duration="2.04" data-media-start="33.4" data-playback-rate="3" data-track-index="1"></video>
+          <video id="s08-vD" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="4.41" data-duration="1.36" data-media-start="56.8" data-playback-rate="6" data-track-index="1"></video>
+          <video id="s08-vE" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="5.77" data-duration="0.69" data-media-start="83.9" data-playback-rate="4" data-track-index="1"></video>
+          <video id="s08-vF" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="6.46" data-duration="1.36" data-media-start="153.4" data-playback-rate="3" data-track-index="1"></video>
+          <video id="s08-vG1" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="7.82" data-duration="1.36" data-media-start="159.2" data-playback-rate="3" data-track-index="1"></video>
+          <video id="s08-vG2" class="clip s08-v" src="assets/footage/_proc/chatgpt-demo.mp4" muted playsinline data-start="9.18" data-duration="1.265" data-media-start="165.4" data-playback-rate="2" data-track-index="1"></video>
         </div>
-      </div>
-      <div id="s08-chip">
-        <img id="s08-logo" class="s08-logo" src="assets/apps/strong.png" alt="" />
-        <span class="s08-app">Strong</span><span class="s08-sep">·</span><span class="s08-verb">See your lift history</span>
-        <div id="s08-ok" class="k-icon"></div>
         <div id="s08-rim"></div>
+      </div>
+      <div id="s08-tags">
+        <div id="s08-chip" class="s08-chip"><span class="s08-glogo"></span><span>ChatGPT</span><span class="s08-sep">·</span><span class="s08-y">yuzu</span></div>
+        <div id="s08-speed">
+          <span id="s08-x6a">6x</span><span id="s08-x4b">4x</span><span id="s08-x3c">3x</span><span id="s08-x6d">6x</span>
+          <span id="s08-x4e">4x</span><span id="s08-x3f">3x</span><span id="s08-x3g">3x</span><span id="s08-x2g">2x</span>
+        </div>
       </div>
     </div>
   </div>
   <script>
     (function () {
-      const D = 5.0, S = KIT.springs, $ = (s) => document.querySelector(s);
+      const D = 10.445, $ = (s) => document.querySelector(s);
       const tl = gsap.timeline({ paused: true });
-      const cam = (s, px, py) => ({ scale: s, x: 960 - s * px, y: 540 - s * py });
-      const PX = 700; // phone centre x (phone sits left, the tool call on its right)
+      // Camera: centre a SOURCE pixel (sx, sy) of the 1920x1152 recording at scale s.
+      const K = 1640 / 1920, WX = 140, WY = 64;
+      const at = (s, sx, sy) => { const X = WX + K * sx, Y = WY + K * sy; return { scale: s, x: 960 - s * X, y: 540 - s * Y }; };
 
-      KIT.waves(tl, $("#s08-waves"), { from: 0, to: D, offset: 47.279 });
+      KIT.waves(tl, $("#s08-waves"), { from: 0, to: D, offset: 47.284 });
 
-      // Arrive out of s07's screen: start inside the grey screen (5.2x) and pull back to the phone on a long tail.
-      gsap.set("#s08-ph", { scale: 0.966, x: PX - 960 });
-      tl.fromTo("#s08-cam", cam(5.2, PX, 540), { ...cam(1, 960, 540), duration: 0.55, ease: "expo.out", immediateRender: false }, 0);
-      tl.fromTo("#s08-cam", { filter: "blur(12px)" }, { filter: "blur(0px)", duration: 0.4, ease: "power2.out", immediateRender: false }, 0);
-      tl.fromTo("#s08-label", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 0.3);
+      // Each cut: [start, duration, from framing, to framing, ease]. Hard cuts on the beats; a slow push inside each.
+      const cuts = [
+        [0.0, 1.69, at(2.0, 1177, 560), at(2.08, 1177, 560), "sine.inOut"],      // A prompt typing (6x)
+        [1.69, 0.68, at(2.1, 1176, 300), at(2.18, 1176, 310), "sine.inOut"],     // B "Called diary functions in parallel"
+        [2.37, 2.04, at(2.25, 1100, 480), at(2.0, 1176, 820), "power2.inOut"],   // C 2,165 remaining -> food table
+        [4.41, 1.36, at(2.0, 1177, 950), at(2.06, 1177, 950), "sine.inOut"],   // D second prompt (6x)
+        [5.77, 0.69, at(2.1, 1176, 900), at(2.16, 1176, 900), "sine.inOut"],     // E "Retrieved recent strong workout history"
+        [6.46, 1.36, at(2.1, 1176, 900), at(2.0, 1176, 800), "power2.inOut"],    // F "Your last logged workout"
+        [7.82, 1.36, at(2.0, 1176, 820), at(2.06, 1176, 820), "sine.inOut"],     // G1 "Today's workout: Legs"
+        [9.18, 0.91, at(2.1, 1176, 830), at(2.16, 1176, 830), "sine.inOut"],     // G2 "But bro, EAT FIRST"
+      ];
+      // Entry: out of s07's push-through, the window arrives large and blurred and settles on cut A.
+      gsap.set("#s08-cam", at(3.2, 1177, 560));
+      tl.fromTo("#s08-cam", at(3.2, 1177, 560), { ...cuts[0][2], duration: 0.45, ease: "expo.out", immediateRender: false }, 0);
+      tl.fromTo("#s08-cam", { filter: "blur(10px)" }, { filter: "blur(0px)", duration: 0.35, ease: "power2.out", immediateRender: false }, 0);
+      tl.fromTo("#s08-cam", cuts[0][2], { ...cuts[0][3], duration: cuts[0][1] - 0.45, ease: cuts[0][4], immediateRender: false }, 0.45);
+      cuts.slice(1).forEach(([t0, d, a, b, e]) => {
+        tl.fromTo("#s08-cam", a, { ...b, duration: d, ease: e, immediateRender: false }, t0);
+      });
 
-      // The Strong call lights beside the phone, returns (check), then clears for the push.
-      const chip = $("#s08-chip");
-      gsap.set(chip, { opacity: 0, transformOrigin: "0% 50%" });
-      gsap.set("#s08-ok", { opacity: 0, scale: 0.6 });
-      tl.fromTo(chip, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 0.8);
-      tl.fromTo(chip, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 0.8);
-      KIT.icon(tl, $("#s08-ok"), "check", { at: 1.18 });
-      tl.fromTo("#s08-ok", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 1.18);
-      tl.fromTo("#s08-rim", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.18);
-      tl.to(chip, { opacity: 0, filter: "blur(8px)", x: 90, duration: 0.4, ease: "power2.in" }, 1.3);
+      // Tags: assistant chip + the speed of each cut (all cuts here are sped up; the chip says by how much).
+      gsap.set("#s08-tags", { opacity: 0 });
+      tl.fromTo("#s08-tags", { opacity: 0, filter: "blur(8px)", y: 24 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.3, ease: KIT.ease.enter, immediateRender: false }, 0.3);
+      const speeds = ["#s08-x6a", "#s08-x4b", "#s08-x3c", "#s08-x6d", "#s08-x4e", "#s08-x3f", "#s08-x3g", "#s08-x2g"];
+      gsap.set(speeds.slice(1), { opacity: 0 });
+      speeds.forEach((id, i) => {
+        if (i === 0) return;
+        const t0 = cuts[i][0];
+        tl.fromTo(speeds[i - 1], { opacity: 1 }, { opacity: 0, duration: 0.06, ease: "none", immediateRender: false }, t0);
+        tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.06, ease: "none", immediateRender: false }, t0);
+      });
 
-      // Push into the answer (lands with msg-in at ~1.6) and hold with a drift.
-      const ANS = 648;
-      tl.fromTo("#s08-cam", cam(1, 960, 540), { ...cam(1.75, PX, ANS), duration: 0.42, ease: "power2.inOut", immediateRender: false }, 1.22);
-      tl.fromTo("#s08-cam", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.21, ease: "power2.in", immediateRender: false }, 1.22);
-      tl.to("#s08-cam", { filter: "blur(0px)", duration: 0.21, ease: "power2.out" }, 1.43);
-      tl.fromTo("#s08-cam", cam(1.75, PX, ANS), { ...cam(1.81, PX, ANS), duration: 3.02, ease: "sine.inOut", immediateRender: false }, 1.64);
-
-      // Whip left into s09.
-      const end = cam(1.81, PX, ANS);
-      tl.fromTo("#s08-cam", { x: end.x }, { x: end.x - 1800, duration: 0.32, ease: "power3.in", immediateRender: false }, 4.68);
-      tl.fromTo("#s08-cam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.32, ease: "power3.in", immediateRender: false }, 4.68);
+      // Exit: whip left into s09 (the Grok phone whips in from the right).
+      const G2end = cuts[7][3];
+      tl.fromTo("#s08-cam", { x: G2end.x }, { x: G2end.x - 1800, duration: 0.355, ease: "power3.in", immediateRender: false }, 10.09);
+      tl.fromTo("#s08-cam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.355, ease: "power3.in", immediateRender: false }, 10.09);
+      tl.fromTo("#s08-tags", { opacity: 1, x: 0 }, { opacity: 0, x: -200, duration: 0.3, ease: "power3.in", immediateRender: false }, 10.1);
 
       window.__timelines["s08-chatgpt"] = tl;
     })();
