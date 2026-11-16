@@ -68,3 +68,9 @@ vid/assets/audio/mix.wav
 vid/assets/sfx/
 # temp music bed (not ours to redistribute)
 vid/assets/music/
+# personal screen recordings + their transcodes: local only (public repo)
+vid/assets/footage/raw/
+vid/assets/footage/_proc/
+vid/assets/footage/*.mp4
+vid/assets/footage/*.mov
+vid/assets/footage/*.MOV
