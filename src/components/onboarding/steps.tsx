@@ -1,3 +1,4 @@
+import { useQueries } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
@@ -14,8 +15,17 @@ import { PressableScale } from "@/components/pressable-scale";
 import { Reveal } from "@/components/reveal";
 import { SuccessMark } from "@/components/success-mark";
 import { Text } from "@/components/text";
-import type { CatalogEntry, Id } from "@/hooks/convex";
+import { api, type CatalogEntry, type Id } from "@/hooks/convex";
 import { useAuth } from "@/hooks/user";
+import {
+  openLogin,
+  PLAN_PROVIDER_ID,
+  rememberPick,
+  selectPlan,
+  useAiPlans,
+  type PlanId,
+  type ProviderStatus,
+} from "@/lib/agent";
 import { installedFirst, type InstalledApps } from "@/lib/installed-apps";
 import { colors, enter, fonts, layout, space } from "@/theme";
 
@@ -99,6 +109,109 @@ export function Welcome({ bottomInset, onNext }: { bottomInset: number; onNext: 
           )}
         </Reveal>
       </View>
+    </View>
+  );
+}
+
+const PLANS: { plan: PlanId; title: string }[] = [
+  { plan: "claude", title: "Claude plan" },
+  { plan: "codex", title: "ChatGPT plan" },
+];
+
+function planState(row: ProviderStatus | undefined): { text: string; live: boolean } {
+  if (row?.status === "connected") return { text: "Connected", live: true };
+  if (row?.status === "starting" || row?.status === "authorizing") return { text: "Signing in", live: false };
+  return { text: "Connect", live: false };
+}
+
+/** Pick your AI: sign in a Claude or ChatGPT plan, or keep using an assistant app. Never blocks. */
+export function PickAI({
+  bottomInset,
+  onNext,
+  onOwnAssistant,
+}: {
+  bottomInset: number;
+  onNext: () => void;
+  onOwnAssistant: () => void;
+}) {
+  const { token, status } = useAiPlans();
+  const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  const result = useQueries(queries) as { state?: { step: string; provider: PlanId | null } | Error };
+  const state = result.state instanceof Error ? undefined : result.state;
+  const selected = state?.provider ?? status?.find((s) => s.selected)?.provider ?? null;
+  const connectedCount = status?.filter((s) => s.status === "connected").length ?? 0;
+  const anyConnected = connectedCount > 0;
+
+  const choose = (plan: PlanId, row: ProviderStatus | undefined) => {
+    if (row?.status === "connected") {
+      selectPlan(plan);
+      rememberPick(PLAN_PROVIDER_ID[plan]);
+      return;
+    }
+    openLogin(plan).catch(() => {});
+  };
+
+  return (
+    <View style={[styles.screen, { paddingTop: space.xxl, paddingBottom: bottomInset + space.lg }]}>
+      <View style={styles.top}>
+        <Reveal delay={0}>
+          <Text style={styles.title}>Pick your AI</Text>
+        </Reveal>
+        <Reveal delay={80}>
+          <Text variant="body" color={colors.textSecondary}>
+            Use the plan you already pay for. It answers right inside yuzu.
+          </Text>
+        </Reveal>
+        <Animated.View entering={enter(3)}>
+          <Glass>
+            {PLANS.map((p, i) => {
+              const row = status?.find((s) => s.provider === p.plan);
+              const st = planState(row);
+              const isSelected = selected === p.plan && st.live;
+              return (
+                <View key={p.plan} style={i > 0 && styles.divider}>
+                  <PressableScale
+                    onPress={() => choose(p.plan, row)}
+                    haptic="selection"
+                    scaleTo={0.98}
+                    style={styles.appRow}
+                    accessibilityLabel={`${p.title}, ${st.text}`}
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <View style={styles.flex}>
+                      <Text variant="rowTitle">{p.title}</Text>
+                    </View>
+                    <Animated.View key={st.text} entering={FadeIn.duration(200)} style={styles.onPhone}>
+                      {st.live ? <View style={styles.liveDot} /> : null}
+                      <Text variant="label" color={st.live ? colors.text : colors.textSecondary}>
+                        {isSelected && connectedCount > 1 ? "In use" : st.text}
+                      </Text>
+                    </Animated.View>
+                  </PressableScale>
+                </View>
+              );
+            })}
+          </Glass>
+        </Animated.View>
+      </View>
+
+      <Animated.View entering={FadeIn.delay(320).duration(280)} style={styles.actions}>
+        {anyConnected ? (
+          <Animated.View entering={FadeIn.duration(200)} layout={layout}>
+            <Button label="Continue" onPress={onNext} fullWidth />
+          </Animated.View>
+        ) : null}
+        <PressableScale
+          onPress={onOwnAssistant}
+          haptic="selection"
+          style={styles.textButton}
+          accessibilityLabel="I'll use my own assistant app"
+        >
+          <Text variant="bodyMedium" color={colors.textSecondary}>
+            I&rsquo;ll use my own assistant app
+          </Text>
+        </PressableScale>
+      </Animated.View>
     </View>
   );
 }
@@ -237,10 +350,13 @@ export function Ready({
   app,
   bottomInset,
   onNext,
+  planReady = false,
 }: {
   app: { slug: string; name: string };
   bottomInset: number;
   onNext: () => void;
+  /** A Claude/ChatGPT plan is connected: finish into the Agent tab instead of the link step. */
+  planReady?: boolean;
 }) {
   const example = copyFor(app.slug)?.prompts[0];
   return (
@@ -253,13 +369,13 @@ export function Ready({
         {example ? (
           <Animated.View entering={FadeInDown.delay(340).duration(320)}>
             <Text variant="body" color={colors.textSecondary} style={styles.center}>
-              Soon you can ask: &ldquo;{example}&rdquo;
+              {planReady ? "Try asking" : "Soon you can ask"}: &ldquo;{example}&rdquo;
             </Text>
           </Animated.View>
         ) : null}
       </View>
       <Animated.View entering={FadeIn.delay(480).duration(280)}>
-        <Button label="Add to your assistant" onPress={onNext} fullWidth />
+        <Button label={planReady ? "Done" : "Add to your assistant"} onPress={onNext} fullWidth />
       </Animated.View>
     </View>
   );

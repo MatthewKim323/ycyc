@@ -1,36 +1,34 @@
 import { StyleSheet, TextInput, View, type LayoutChangeEvent } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { colors, fonts, radius, space } from "@/theme";
+import { colors, fadeIn, fadeOut, fonts, space } from "@/theme";
 
-import { PressableScale } from "../pressable-scale";
 import { Text } from "../text";
 import { SendButton } from "./send-button";
 
-/** Rounded composer: multiline input, assistant pill on the left, send on the right. */
+/** Rounded composer: multiline input and send (stop while a reply runs). */
 export function Composer({
   value,
   onChangeText,
   onSend,
-  assistantName,
-  onPickAssistant,
-  pickerOpen,
+  onStop,
+  canSend,
   busy,
-  sendKey,
-  footnote,
+  running,
+  error,
   onLayout,
 }: {
   value: string;
   onChangeText: (t: string) => void;
   onSend: () => void;
-  assistantName: string | null;
-  onPickAssistant: () => void;
-  pickerOpen: boolean;
+  onStop: () => void;
+  canSend: boolean;
   busy: boolean;
-  sendKey: number;
-  footnote: string | null;
+  running: boolean;
+  error: string | null;
   onLayout?: (e: LayoutChangeEvent) => void;
 }) {
-  const ready = value.trim().length > 0 && !busy && !!assistantName;
+  const ready = value.trim().length > 0 && !busy && canSend;
   return (
     <View style={styles.wrap} onLayout={onLayout}>
       <View style={styles.box}>
@@ -46,31 +44,14 @@ export function Composer({
           style={styles.input}
           accessibilityLabel="Message"
         />
-        <View style={styles.row}>
-          {assistantName ? (
-            <PressableScale
-              onPress={onPickAssistant}
-              haptic="selection"
-              scaleTo={0.95}
-              hitSlop={6}
-              accessibilityLabel={`Assistant: ${assistantName}. Change`}
-              accessibilityState={{ expanded: pickerOpen }}
-              style={[styles.pill, pickerOpen && styles.pillOpen]}
-            >
-              <Text variant="label" color={colors.text}>
-                {assistantName}
-              </Text>
-            </PressableScale>
-          ) : (
-            <View />
-          )}
-          <SendButton ready={ready} onPress={onSend} playKey={sendKey} />
-        </View>
+        <SendButton ready={ready} running={running} onPress={onSend} onStop={onStop} />
       </View>
-      {footnote ? (
-        <Text variant="caption" color={colors.textTertiary} style={styles.footnote} numberOfLines={1}>
-          {footnote}
-        </Text>
+      {error ? (
+        <Animated.View entering={fadeIn} exiting={fadeOut}>
+          <Text variant="caption" color={colors.textSecondary} style={styles.error} numberOfLines={2}>
+            {error}
+          </Text>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -79,41 +60,28 @@ export function Composer({
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.sm, backgroundColor: colors.bg },
   box: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: space.sm,
     backgroundColor: colors.surface,
     borderRadius: 26,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingTop: space.md,
-    paddingBottom: space.sm,
-    paddingHorizontal: space.sm,
+    paddingVertical: 7,
+    paddingLeft: space.lg,
+    paddingRight: 7,
   },
   input: {
+    flex: 1,
     fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 22,
     color: colors.text,
-    paddingHorizontal: space.sm,
-    paddingTop: 0,
-    paddingBottom: 0,
-    minHeight: 24,
+    paddingTop: 7,
+    paddingBottom: 7,
+    minHeight: 36,
     maxHeight: 132,
     textAlignVertical: "top",
   },
-  row: {
-    marginTop: space.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  pill: {
-    height: 34,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: "center",
-  },
-  pillOpen: { borderColor: colors.borderStrong },
-  footnote: { textAlign: "center", marginTop: space.sm, fontSize: 12, lineHeight: 16 },
+  error: { textAlign: "center", marginTop: space.sm, fontSize: 12, lineHeight: 16 },
 });

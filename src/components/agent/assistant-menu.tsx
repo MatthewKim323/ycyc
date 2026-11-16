@@ -10,21 +10,26 @@ import { Text } from "../text";
 
 const pop = ZoomIn.springify().damping(springs.pop.damping).stiffness(springs.pop.stiffness).mass(springs.pop.mass);
 
+/** What the header and menu call an assistant: plans by name, handoffs as the app. */
+export function assistantLabel(p: AgentProvider): string {
+  return p.kind === "handoff" ? `${p.name} app` : p.name;
+}
+
 /**
- * Popover above the composer pill. Handoff assistants are always listed. In-app providers appear
- * only once one is registered; until it's signed in its row starts the sign-in instead.
+ * Dropdown under the header. Plans first (connected ones switch, the rest start sign-in), then
+ * the assistant apps that open with the message prefilled.
  */
 export function AssistantMenu({
   providers,
   currentId,
-  bottom,
+  top,
   onPick,
   onConnect,
   onClose,
 }: {
   providers: AgentProvider[];
   currentId: string | null;
-  bottom: number;
+  top: number;
   onPick: (id: string) => void;
   onConnect: (p: AgentProvider) => void;
   onClose: () => void;
@@ -36,24 +41,36 @@ export function AssistantMenu({
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
-      <Animated.View entering={pop} exiting={FadeOut.duration(140)} style={[styles.menu, { bottom }]}>
-        {handoff.map((p) => (
-          <Row key={p.id} label={p.name} selected={p.id === currentId} onPress={() => onPick(p.id)} />
-        ))}
-        {inapp.length > 0 ? <View style={styles.divider} /> : null}
+      <Animated.View entering={pop} exiting={FadeOut.duration(140)} style={[styles.menu, { top }]}>
         {inapp.map((p) =>
           p.isConnected() ? (
-            <Row key={p.id} label={p.name} selected={p.id === currentId} onPress={() => onPick(p.id)} />
+            <Row key={p.id} label={p.name} sub="Your plan" live selected={p.id === currentId} onPress={() => onPick(p.id)} />
           ) : (
             <Row key={p.id} label={`Connect your ${p.name} plan`} selected={false} onPress={() => onConnect(p)} />
           ),
         )}
+        {inapp.length > 0 && handoff.length > 0 ? <View style={styles.divider} /> : null}
+        {handoff.map((p) => (
+          <Row key={p.id} label={assistantLabel(p)} sub="Opens the app" selected={p.id === currentId} onPress={() => onPick(p.id)} />
+        ))}
       </Animated.View>
     </>
   );
 }
 
-function Row({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function Row({
+  label,
+  sub,
+  live,
+  selected,
+  onPress,
+}: {
+  label: string;
+  sub?: string;
+  live?: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <PressableScale
       onPress={onPress}
@@ -61,12 +78,22 @@ function Row({ label, selected, onPress }: { label: string; selected: boolean; o
       scaleTo={0.98}
       accessibilityRole="menuitem"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={sub ? `${label}, ${sub}` : label}
       style={styles.row}
     >
-      <Text variant="bodyMedium" numberOfLines={1} style={styles.label}>
-        {label}
-      </Text>
+      <View style={styles.text}>
+        <Text variant="bodyMedium" numberOfLines={1}>
+          {label}
+        </Text>
+        {sub ? (
+          <View style={styles.subRow}>
+            {live ? <View style={styles.dot} /> : null}
+            <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
+              {sub}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       {selected ? <Icon name="check" size={18} /> : null}
     </PressableScale>
   );
@@ -75,22 +102,25 @@ function Row({ label, selected, onPress }: { label: string; selected: boolean; o
 const styles = StyleSheet.create({
   menu: {
     position: "absolute",
-    left: space.md + space.sm,
-    minWidth: 220,
+    alignSelf: "center",
+    width: 260,
     paddingVertical: 6,
     backgroundColor: colors.surface2,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    transformOrigin: "bottom left",
+    transformOrigin: "top center",
   },
   row: {
-    height: 44,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md,
     paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
-  label: { flex: 1 },
+  text: { flex: 1, gap: 1 },
+  subRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.live },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginVertical: 6 },
 });

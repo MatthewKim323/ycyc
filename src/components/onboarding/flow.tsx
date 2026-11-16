@@ -5,6 +5,7 @@ import { BackHandler, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiLoginSheet } from "@/components/ai-login";
 import { BackButton } from "@/components/back-button";
 import { useScrim } from "@/components/onboarding-chrome";
 import { PressableScale } from "@/components/pressable-scale";
@@ -12,25 +13,28 @@ import { Text } from "@/components/text";
 import { api } from "@/hooks/convex";
 import { useOnboarding } from "@/hooks/onboarding";
 import { useUser } from "@/hooks/user";
+import { useAiPlans } from "@/lib/agent";
 import { useInstalledApps } from "@/lib/installed-apps";
 import { colors, space, stageIn, stageOut } from "@/theme";
 
 import { ConnectStep } from "./connect-step";
 import { ProgressDots } from "./progress-dots";
-import { Assistant, How, Pick, Ready, Welcome } from "./steps";
+import { Assistant, How, Pick, PickAI, Ready, Welcome } from "./steps";
 
-type Step = "welcome" | "how" | "pick" | "connect" | "ready" | "assistant";
+type Step = "welcome" | "ai" | "how" | "pick" | "connect" | "ready" | "assistant";
 type ConnectPhase = "intro" | "loading" | "signin" | "code" | "build" | "error";
 
-const DOTS: Step[] = ["how", "pick", "connect", "ready", "assistant"];
+const DOTS: Step[] = ["ai", "how", "pick", "connect", "ready", "assistant"];
 const BACK: Partial<Record<Step, Step>> = {
-  how: "welcome",
+  ai: "welcome",
+  how: "ai",
   pick: "how",
   connect: "pick",
 };
 // Light scrim only where text sits on the dots. Never black.
 const SCRIM: Record<Step, number> = {
   welcome: 0,
+  ai: 0.3,
   how: 0.3,
   pick: 0.3,
   connect: 0.32,
@@ -49,6 +53,9 @@ export function OnboardingFlow() {
   const { finish } = useOnboarding();
   const apps = useQuery(api.apps.list);
   const installed = useInstalledApps();
+  const { status: plans } = useAiPlans();
+  // Never gates onboarding: a connected plan only changes where "Done" lands.
+  const planReady = !!plans?.some((p) => p.status === "connected");
 
   const [step, setStep] = useState<Step>("welcome");
   const [slug, setSlug] = useState<string | null>(null);
@@ -121,7 +128,10 @@ export function OnboardingFlow() {
 
       <View style={styles.flex}>
         <Animated.View key={step} entering={stageIn} exiting={stageOut} style={StyleSheet.absoluteFill}>
-          {step === "welcome" ? <Welcome bottomInset={bottom} onNext={() => setStep("how")} /> : null}
+          {step === "welcome" ? <Welcome bottomInset={bottom} onNext={() => setStep("ai")} /> : null}
+          {step === "ai" ? (
+            <PickAI bottomInset={bottom} onNext={() => setStep("how")} onOwnAssistant={() => setStep("how")} />
+          ) : null}
           {step === "how" ? <How bottomInset={bottom} onNext={() => setStep("pick")} /> : null}
           {step === "pick" ? (
             <Pick
@@ -146,13 +156,19 @@ export function OnboardingFlow() {
             />
           ) : null}
           {step === "ready" && ready ? (
-            <Ready app={ready} bottomInset={bottom} onNext={() => setStep("assistant")} />
+            <Ready
+              app={ready}
+              bottomInset={bottom}
+              planReady={planReady}
+              onNext={() => (planReady ? leave("/agent") : setStep("assistant"))}
+            />
           ) : null}
           {step === "assistant" ? (
             <Assistant mcpUrl={mcpUrl} bottomInset={bottom} onDone={() => leave("/")} onOthers={() => leave("/link")} />
           ) : null}
         </Animated.View>
       </View>
+      <AiLoginSheet />
     </View>
   );
 }

@@ -22,9 +22,15 @@ export type AgentAction = {
   title: string;
   detail?: string;
   status: ActionStatus;
+  /** Backend tool and start time, so the card can settle from the activity/approval receipt. */
+  tool?: string;
+  at?: number;
 };
 
-export type AgentPart = { type: "text"; text: string } | ({ type: "action" } & AgentAction);
+export type AgentPart =
+  | { type: "text"; text: string }
+  | { type: "error"; text: string }
+  | ({ type: "action" } & AgentAction);
 
 export type AgentMessage = {
   id: string;
@@ -41,6 +47,9 @@ export type AgentChunk =
 export type AgentHandoff = { type: "handoff"; url: string; prompt: string };
 export type AgentStream = { type: "stream"; chunks: AsyncIterable<AgentChunk> };
 export type AgentSendResult = AgentHandoff | AgentStream;
+
+/** A saved in-app conversation, plus the rest of a reply that was still running. */
+export type AgentRestore = { messages: AgentMessage[]; resume?: AsyncIterable<AgentChunk> };
 
 export type AgentContext = {
   userId: string | null;
@@ -62,6 +71,10 @@ export interface AgentProvider {
   /** Start the provider's sign-in (in-app only). Call notifyProvidersChanged() when it resolves. */
   connect(): Promise<void>;
   send(text: string, ctx: AgentContext): Promise<AgentSendResult>;
+  /** In-app only: load the last conversation when the provider becomes active. */
+  restore?(signal: AbortSignal): Promise<AgentRestore | null>;
+  /** In-app only: "New chat" drops the saved thread. */
+  resetThread?(): void;
 }
 
 // Registry: a tiny external store so registering or connecting a provider re-renders the tab.
@@ -107,6 +120,11 @@ export function useProviders(): AgentProvider[] {
 export const PROMPT_PREFIX = "Use my yuzu tools: ";
 const PICK_KEY = "yuzu.agentProvider";
 
+/** Remember the picked assistant across launches (also used by onboarding). */
+export function rememberPick(id: string) {
+  store.set(PICK_KEY, id).catch(() => {});
+}
+
 let seq = 0;
 const nextId = (p: string) => `${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
@@ -121,7 +139,7 @@ function applyChunk(msg: AgentMessage, chunk: AgentChunk): AgentMessage {
     if (i >= 0) parts[i] = chunk;
     else parts.push(chunk);
   } else {
-    parts.push({ type: "text", text: chunk.message });
+    parts.push({ type: "error", text: chunk.message });
   }
   return { ...msg, parts };
 }
@@ -150,13 +168,60 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
   }, []);
 
   // An in-app provider that isn't signed in can't be the active one.
+  // A connected plan beats a handoff when nothing was picked.
   const usable = all.filter((p) => p.kind === "handoff" || p.isConnected());
-  const provider = usable.find((p) => p.id === pickedId) ?? usable[0] ?? null;
+  const provider =
+    usable.find((p) => p.id === pickedId) ?? usable.find((p) => p.kind === "inapp") ?? usable[0] ?? null;
+  const providerId = provider?.id ?? null;
 
   const select = useCallback((id: string) => {
     setPickedId(id);
-    store.set(PICK_KEY, id).catch(() => {});
+    rememberPick(id);
   }, []);
+
+  // Stream chunks into one assistant message until the reply ends or is stopped.
+  const pump = useCallback(async (replyId: string, chunks: AsyncIterable<AgentChunk>, controller: AbortController) => {
+    setStatus("streaming");
+    for await (const chunk of chunks) {
+      if (controller.signal.aborted) break;
+      setMessages((m) => m.map((msg) => (msg.id === replyId ? applyChunk(msg, chunk) : msg)));
+    }
+  }, []);
+
+  // Switching assistants starts clean; an in-app plan brings back its last conversation.
+  const [shownFor, setShownFor] = useState(providerId);
+  if (shownFor !== providerId) {
+    setShownFor(providerId);
+    setMessages([]);
+    setStatus("idle");
+  }
+  useEffect(() => {
+    abort.current?.abort();
+    abort.current = null;
+    const p = providerId ? listProviders().find((x) => x.id === providerId) : undefined;
+    if (!p?.restore || !p.isConnected()) return;
+    const controller = new AbortController();
+    let live = true;
+    p.restore(controller.signal)
+      .then(async (saved) => {
+        if (!live || !saved) return;
+        setMessages(saved.messages);
+        const last = saved.messages[saved.messages.length - 1];
+        if (saved.resume && last?.role === "assistant") {
+          abort.current = controller;
+          try {
+            await pump(last.id, saved.resume, controller);
+          } finally {
+            if (abort.current === controller) abort.current = null;
+            setStatus("idle");
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [providerId, pump]);
 
   const send = useCallback(
     async (raw: string): Promise<AgentSendResult | null> => {
@@ -178,25 +243,22 @@ export function useAgent(ctx: { userId: string | null; apps: { slug: string; nam
         const user: AgentMessage = { id: nextId("u"), role: "user", parts: [{ type: "text", text }] };
         const reply: AgentMessage = { id: nextId("a"), role: "assistant", parts: [] };
         setMessages((m) => [...m, user, reply]);
-        setStatus("streaming");
-        for await (const chunk of result.chunks) {
-          if (controller.signal.aborted) break;
-          setMessages((m) => m.map((msg) => (msg.id === reply.id ? applyChunk(msg, chunk) : msg)));
-        }
+        await pump(reply.id, result.chunks, controller);
         return result;
       } finally {
         if (abort.current === controller) abort.current = null;
         setStatus("idle");
       }
     },
-    [provider, status, userId, apps, messages],
+    [provider, status, userId, apps, messages, pump],
   );
 
   const stop = useCallback(() => abort.current?.abort(), []);
   const reset = useCallback(() => {
     abort.current?.abort();
+    provider?.resetThread?.();
     setMessages([]);
-  }, []);
+  }, [provider]);
 
   return {
     providers: all,

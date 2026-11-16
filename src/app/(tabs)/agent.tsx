@@ -5,6 +5,8 @@ import { AppState, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSh
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiLoginSheet } from "@/components/ai-login";
+import { AssistantHeader } from "@/components/agent/assistant-header";
 import { AssistantMenu } from "@/components/agent/assistant-menu";
 import { Composer } from "@/components/agent/composer";
 import { Conversation } from "@/components/agent/conversation";
@@ -13,16 +15,18 @@ import { Suggestions, type Suggestion } from "@/components/agent/suggestions";
 import { APP_COPY } from "@/components/app-copy";
 import { AppGlyph } from "@/components/app-glyph";
 import { Icon } from "@/components/icon";
-import { SectionHeader, TopBar } from "@/components/layout";
+import { SectionHeader } from "@/components/layout";
 import { PressableScale } from "@/components/pressable-scale";
 import { Text } from "@/components/text";
 import { api, type CatalogEntry, type MyConnection } from "@/hooks/convex";
 import { useNow } from "@/hooks/format";
 import { useUser } from "@/hooks/user";
-import { useAgent, type AgentProvider } from "@/lib/agent";
+import { planForProvider, selectPlan, useAgent, useAiPlans, type AgentProvider } from "@/lib/agent";
 import { colors, enter, fadeIn, fonts, layout, radius, space } from "@/theme";
 
 const RECENT = 4;
+// Enough recent activity to settle the cards of the current reply.
+const RECEIPTS = 20;
 const SUGGESTIONS = 4;
 // Light up the newest activity row when the person comes back within this window of a handoff.
 const RETURN_WINDOW = 10 * 60 * 1000;
@@ -46,7 +50,9 @@ export default function AgentScreen() {
   const now = useNow();
   const apps = useQuery(api.apps.list);
   const connections = useQuery(api.connections.mine, userId ? { userId } : "skip");
-  const feed = useQuery(api.activity.feed, userId ? { userId, limit: RECENT } : "skip");
+  const feed = useQuery(api.activity.feed, userId ? { userId, limit: RECEIPTS } : "skip");
+  const pending = useQuery(api.approvals.pending, userId ? { userId } : "skip");
+  useAiPlans();
 
   const appBySlug = useMemo(() => new Map<string, CatalogEntry>((apps ?? []).map((a) => [a.slug, a])), [apps]);
   const live = useMemo(() => (connections ?? []).filter((c) => c.status === "live"), [connections]);
@@ -58,8 +64,7 @@ export default function AgentScreen() {
 
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [composerH, setComposerH] = useState(0);
-  const [sendKey, setSendKey] = useState(0);
+  const [headerH, setHeaderH] = useState(52);
   const [flash, setFlash] = useState(0);
   const [failed, setFailed] = useState<string | null>(null);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -81,56 +86,54 @@ export default function AgentScreen() {
   }, [topId, lastHandoffAt]);
 
   const inConversation = agent.messages.length > 0;
+  const newChat = () => {
+    agent.reset();
+    setFailed(null);
+  };
   const recent = (feed ?? []).slice(0, RECENT);
 
   const send = async () => {
     if (!provider) return;
-    setSendKey((k) => k + 1);
     setMenuOpen(false);
     setFailed(null);
     Keyboard.dismiss();
     try {
       const res = await agent.send(text);
       if (res) setText("");
-    } catch {
+    } catch (e) {
       setFailed(
         provider.kind === "handoff"
           ? `Couldn't open ${provider.name}. Your message is copied.`
-          : `${provider.name} didn't answer. Try again.`,
+          : sendError(e, provider.name),
       );
     }
   };
 
   const pick = (id: string) => {
     agent.select(id);
+    const plan = planForProvider(agent.providers.find((p) => p.id === id));
+    if (plan) selectPlan(plan);
     setMenuOpen(false);
   };
 
   const connect = (p: AgentProvider) => {
     setMenuOpen(false);
+    // Closing the sheet without finishing isn't a failure; nothing to report.
     p.connect()
       .then(() => agent.select(p.id))
-      .catch(() => setFailed(`Couldn't connect ${p.name}. Try again.`));
+      .catch(() => {});
   };
-
-  const footnote =
-    failed ?? (provider?.kind === "handoff" ? `Opens in ${provider.name} with your apps attached` : null);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.root}>
       <View style={[styles.root, { paddingTop: insets.top }]}>
-        {inConversation ? (
-          <TopBar
-            title={provider?.name}
-            right={
-              <PressableScale onPress={agent.reset} hitSlop={12} scaleTo={0.94} haptic="selection" accessibilityLabel="New chat">
-                <Text variant="bodyMedium" color={colors.textSecondary}>
-                  New chat
-                </Text>
-              </PressableScale>
-            }
-          />
-        ) : null}
+        <AssistantHeader
+          provider={provider}
+          open={menuOpen}
+          onPress={() => setMenuOpen((o) => !o)}
+          onNewChat={inConversation ? newChat : null}
+          onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
+        />
 
         <ScrollView
           ref={scrollRef}
@@ -144,11 +147,17 @@ export default function AgentScreen() {
           }}
         >
           {inConversation ? (
-            <Conversation messages={agent.messages} streaming={agent.status === "streaming"} appBySlug={appBySlug} />
+            <Conversation
+              messages={agent.messages}
+              streaming={agent.status === "streaming"}
+              appBySlug={appBySlug}
+              receipts={{ feed, pending }}
+            />
           ) : (
             <>
               <Animated.View entering={fadeIn} style={styles.hero}>
                 <Text style={styles.prompt}>Ask your apps anything</Text>
+
                 {live.length > 0 ? (
                   <View style={styles.stack} accessibilityLabel={`Attached: ${live.map((c) => c.app.name).join(", ")}`}>
                     {live.slice(0, 5).map((c, i) => (
@@ -219,28 +228,35 @@ export default function AgentScreen() {
             if (failed) setFailed(null);
           }}
           onSend={send}
-          assistantName={provider?.name ?? null}
-          onPickAssistant={() => setMenuOpen((o) => !o)}
-          pickerOpen={menuOpen}
+          onStop={agent.stop}
+          canSend={!!provider}
           busy={agent.status !== "idle"}
-          sendKey={sendKey}
-          footnote={footnote}
-          onLayout={(e) => setComposerH(e.nativeEvent.layout.height)}
+          running={agent.status !== "idle" && provider?.kind === "inapp"}
+          error={failed}
         />
 
         {menuOpen ? (
           <AssistantMenu
             providers={agent.providers}
             currentId={provider?.id ?? null}
-            bottom={composerH}
+            top={insets.top + headerH}
             onPick={pick}
             onConnect={connect}
             onClose={() => setMenuOpen(false)}
           />
         ) : null}
       </View>
+      <AiLoginSheet />
     </KeyboardAvoidingView>
   );
+}
+
+/** Plain words for a send that didn't start. */
+function sendError(e: unknown, name: string): string {
+  const msg = e instanceof Error ? e.message : "";
+  if (/wait for your current reply/i.test(msg)) return "Your last reply is still running. Stop it or wait.";
+  if (/connect and select/i.test(msg)) return `Reconnect your ${name} plan from the menu up top.`;
+  return `${name} didn't answer. Try again.`;
 }
 
 const styles = StyleSheet.create({
