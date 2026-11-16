@@ -1474,7 +1474,7 @@ export const HAND_RECIPES: Recipe[] = [
       {
         "name": "get_recent_workouts",
         "title": "Recent workouts",
-        "description": "Most recent Strong workouts, newest first. Each has name, startDate/endDate and cellSetGroup (one per exercise: measurementId plus cellSets of cells; weight cells are kilograms, REPS are reps). Resolve measurementId to a name with search_exercises.",
+        "description": "Most recent Strong workouts, newest first. Each has name, startDate/endDate and cellSetGroup (one per exercise: measurementId plus cellSets of cells; weight cells are kilograms, REPS are reps). Resolve measurementId to a name with search_exercises. Exercises appear only as cellSetGroup[].measurementId (no name): call search_exercises with query \"\" once to get the whole library and match measurementId to id for the exercise name. Weight cells are kilograms (multiply by 2.20462 for lb).",
         "kind": "read",
         "inputSchema": {
           "type": "object",
@@ -1518,14 +1518,14 @@ export const HAND_RECIPES: Recipe[] = [
       {
         "name": "search_exercises",
         "title": "Find exercises",
-        "description": "Search the user's Strong exercise library (built-in and custom) by name. Returns id, name and cellTypeConfigs (the weight cell type to use when logging, e.g. BARBELL_WEIGHT, DUMBBELL_WEIGHT, OTHER_WEIGHT).",
+        "description": "Search the user's Strong exercise library (built-in and custom) by name. Returns id, name and cellTypeConfigs (the weight cell type to use when logging, e.g. BARBELL_WEIGHT, DUMBBELL_WEIGHT, OTHER_WEIGHT). Pass query \"\" to list the whole library (use it to name measurementIds from workouts).",
         "kind": "read",
         "inputSchema": {
           "type": "object",
           "properties": {
             "query": {
               "type": "string",
-              "description": "Part of the exercise name, e.g. 'bench'"
+              "description": "Part of the exercise name, e.g. 'bench'. Empty string lists every exercise."
             }
           },
           "required": [
