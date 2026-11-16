@@ -21,7 +21,7 @@ The uploader defaults to Matthew's shared `optimistic-newt-247` Convex deploymen
 
 The script uploads only exported bundle/assets; it never publishes `.env` files, source maps, credentials or Expo sessions. It verifies UTF-8 JavaScript, refuses HBC bytecode, publishes immutable manifest records, downloads all assets anonymously, and verifies SHA-256 hashes. Its JSON receipt and matching QR always use the stable URL. The receipt also includes a snapshot URL for diagnostics. New publications advance both already-shared links; retrying an existing older publication does not roll them back. The publisher checks that the stable link serves the newly published manifests before reporting success.
 
-Client configuration is compiled by `expo export`, so ensure `EXPO_PUBLIC_CONVEX_URL` points to the intended backend before export. The current preview uses anonymous device identity with the shared backend. It does not configure Google account linking; Claude/Codex subscription connections use separate backend device/code flows. Installed-app detection is unavailable in Expo Go. Backend secrets never belong in `EXPO_PUBLIC_` variables.
+Client configuration is compiled by `expo export`, so ensure `EXPO_PUBLIC_CONVEX_URL` points to the intended backend before export. Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` to enable account sign-in; without it the UI offers device identity only. Convex's `CLERK_JWT_ISSUER_DOMAIN` must match that Clerk instance, with its Native API and Google social connection enabled. The mobile app uses Clerk's hosted Account Portal; Google is selected there. For a self-hosted Expo Go preview, its callback is the stable manifest URL converted to `exps://`, followed by `/--/hosted-auth-callback`. The SDK retains state, PKCE and callback validation. A real phone must verify session activation and Convex account linking before calling that flow working. Claude/Codex subscription connections use separate backend device/code flows. Installed-app detection is unavailable in Expo Go. Backend secrets never belong in `EXPO_PUBLIC_` variables or exported bundles.
 
 ## Hosting and verification
 
@@ -35,16 +35,10 @@ The existing public development-tunnel browser URL runs the web version only whi
 
 References: [Expo Go ownership and self-hosting policy](https://expo.dev/changelog/expo-go-loading-changes-may-2026), [Updates protocol](https://docs.expo.dev/technical-specs/expo-updates-1/), [official custom-server example](https://github.com/expo/custom-expo-updates-server), [development-server sign-in restriction](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/).
 
-## Verified public preview
+## Verification status
 
-The latest preview includes the onboarding capture lifetime fix from `206cc86`:
+The user confirmed a physical-phone launch through the original shared URL after the EAS preview failed with 403. That confirmation predates the account sign-in configuration. The shared URL now follows newer publications, so historical launch success must not be reported as a successful Google sign-in or MyFitnessPal API check.
 
-https://optimistic-newt-247.convex.site/expo-preview/8450e2ab-f0a2-43be-9c55-25c6916897da
+The capture lifetime fix (`206cc86`), token exchange wait (`cb6426b`), and generic app login confirmation (`b5e589b`) are on shared main. Fresh native onboarding and Google account-linking checks remain pending. Each publication receipt records the exact app source commit, both platform manifest checks, and downloaded asset hashes.
 
-Both platform manifests and all 66 asset hashes passed anonymous checks. A fresh physical-phone onboarding retry is pending; the earlier launch confirmation below applies only to the previous snapshot. The capture fix was mobile UI only. Enabling the stable-link aliases requires deploying the updated `publicPreview` backend.
-
-The user confirmed a physical-phone Expo Go launch from this self-hosted snapshot after the EAS preview had failed with403:
-
-https://optimistic-newt-247.convex.site/expo-preview/1741c4c8-abfc-43b0-bb4f-2cd07791e337
-
-Both platform manifests and all66 public files passed anonymous download and SHA256 checks. Google account linking remains unavailable in this preview.
+Account flow references: [Clerk hosted authentication](https://clerk.com/docs/expo/guides/account-portal/hosted-auth), [Expo Go deep links](https://docs.expo.dev/linking/into-your-app/).

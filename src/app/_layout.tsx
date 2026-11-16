@@ -1,4 +1,4 @@
-import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
+import { useAuth as useClerkAuth } from "@clerk/expo";
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from "@expo-google-fonts/inter";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";

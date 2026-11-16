@@ -1,6 +1,7 @@
-import { ClerkProvider, useAuth, useSSO, useUser as useClerkUser } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import * as AuthSession from "expo-auth-session";
+import { ClerkProvider, useAuth, useUser as useClerkUser } from "@clerk/expo";
+import { useHostedAuth } from "@clerk/expo/hosted-auth";
+import { tokenCache } from "@clerk/expo/token-cache";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, useCallback, useContext, type ReactNode } from "react";
 
@@ -31,30 +32,32 @@ const DISABLED: AccountState = {
 
 const AccountContext = createContext<AccountState>(DISABLED);
 
-// Standalone builds return to yuzu://sso-callback. Allowlist it in Clerk (Native applications).
-const redirectUrl = AuthSession.makeRedirectUri({ scheme: "yuzu", path: "sso-callback" });
-
 function ClerkAccount({ children }: { children: ReactNode }) {
   const { isLoaded, signOut } = useAuth();
   const { user } = useClerkUser();
-  const { startSSOFlow } = useSSO();
+  const { startHostedAuth } = useHostedAuth();
 
   const signInWithGoogle = useCallback(async (): Promise<GoogleResult> => {
     try {
-      const { createdSessionId, setActive, authSessionResult } = await startSSOFlow({
-        strategy: "oauth_google",
-        redirectUrl,
+      // Published Expo Go apps cannot rely on makeRedirectUri(). Use this
+      // preview's real HTTPS manifest URL with Expo Go's registered exps URI.
+      const updateUrl = Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+        ? Constants.expoConfig?.updates?.url : undefined;
+      const redirectUrl = updateUrl?.startsWith("https://") && new URL(updateUrl).pathname.startsWith("/expo-preview/")
+        ? updateUrl.replace(/^https:/, "exps:").replace(/\/$/, "") + "/--/hosted-auth-callback" : undefined;
+      const { createdSessionId, authSessionResult } = await startHostedAuth({
+        mode: "sign-in",
+        ...(redirectUrl ? { redirectUrl } : {}),
       });
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-        return "signed-in";
-      }
+      // Hosted auth activates the session itself. Google is selected on the
+      // Account Portal; callback validation and PKCE remain SDK-owned.
+      if (createdSessionId) return "signed-in";
       const kind = authSessionResult?.type;
       return kind === "cancel" || kind === "dismiss" ? "cancelled" : "failed";
     } catch {
       return "failed";
     }
-  }, [startSSOFlow]);
+  }, [startHostedAuth]);
 
   const profile: Profile | null = user
     ? {

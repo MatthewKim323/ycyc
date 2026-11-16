@@ -125,7 +125,7 @@ for (let i = 0; i < uploaded.length; i += 6) await Promise.all(uploaded.slice(i,
 const openUrl = manifestUrl.replace('https:', 'exps:');
 const report = { sourceCommit, createdAt, snapshot, snapshotUrl, manifestUrl, openUrl, sdk, runtimeVersion, publicFileCount: uploaded.length, totalBytes: uploaded.reduce((sum, a) => sum + a.bytes, 0),
   verification: { nativeManifests: ['ios', 'android'], allAssetHashesVerified: true, plainJavaScript: true, noExpoAccountAuthorization: true, physicalPhoneLaunch: 'awaiting user confirmation' },
-  limitations: ['Google account linking is unavailable in this preview.', 'Installed-app detection is unavailable in Expo Go.'] };
+  limitations: ['Account sign-in needs a successful native callback test for this preview.', 'Installed-app detection is unavailable in Expo Go.'] };
 if (reportPath) {
   await fs.mkdir(path.dirname(reportPath), { recursive: true });
   await fs.writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
