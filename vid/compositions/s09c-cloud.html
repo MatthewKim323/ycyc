@@ -9,6 +9,7 @@
   <!-- sfx: t=5.64 name=row-tick gain=0.38 -->
   <!-- sfx: t=5.98 name=row-tick gain=0.36 -->
   <!-- sfx: t=6.67 name=case-pop gain=0.6 -->
+  <!-- sfx: t=9.39 name=case-pop gain=0.45 -->
   <!-- sfx: t=10.45 name=whoosh-soft gain=0.5 -->
   <style>
     #root { position: absolute; inset: 0; }
@@ -39,11 +40,12 @@
       font: 500 44px "Inter", sans-serif; color: #fff; }
     .s09c-ask { height: 60px; padding: 0 26px; border-radius: 30px; background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a;
       display: flex; align-items: center; font: 500 30px "Inter", sans-serif; color: #a1a1a1; }
-    /* the card becomes an app tile, same build as s10's tiles (4x AppTile) */
-    #s09c-tile { position: absolute; left: 580px; top: 280px; width: 760px; height: 520px; display: flex; flex-direction: column; align-items: center; }
-    #s09c-tile img { width: 352px; height: 352px; border-radius: 95px; display: block; margin-bottom: 16px; background: #141414; }
-    .s09c-tname { margin-top: 24px; font: 600 56px/1.1 "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; white-space: nowrap; }
-    .s09c-tverb { margin-top: 12px; height: 56px; font: 500 44px/1.2 "Inter", sans-serif; color: #a1a1a1; white-space: nowrap; }
+    /* shot D: the real 0.6.1 app screen, an app yuzu has never seen, every result "yuzu learns it as you sign in" */
+    #s09c-p2whip { position: absolute; inset: 0; }
+    #s09c-p2push { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    #s09c-p2pop { position: absolute; inset: 0; }
+    #s09c-phone2 { left: 0; top: 0; }
+    #s09c-phone2 img { object-fit: cover; object-position: 50% 0%; background: #000; }
   </style>
   <div id="root" data-composition-id="s09c-cloud" data-width="1920" data-height="1080">
     <div id="s09c-wrap" class="clip k-canvas" data-start="0" data-duration="10.890" data-track-index="0">
@@ -53,8 +55,8 @@
 
       <div id="s09c-phonebox">
         <div id="s09c-phone" class="k-phone">
-          <!-- footage: assets/ui/revyl/strong-cloud.png -->
-          <div id="s09c-screen" class="k-screen s09c-ph">Revyl cloud phone: Strong</div>
+          <!-- footage: assets/footage/s09c-cloud-phone.png -->
+          <img id="s09c-screen" class="k-screen s09c-ph" src="assets/footage/s09c-cloud-phone.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
         </div>
         <div id="s09c-tap1" class="s09c-tap" style="left:215px;top:560px"></div>
         <div id="s09c-tap2" class="s09c-tap" style="left:300px;top:720px"></div>
@@ -87,10 +89,15 @@
         <div id="s09c-v5" class="s09c-row">Remove an entry<span class="s09c-ask">Asks you first</span></div>
       </div>
 
-      <div id="s09c-tile">
-        <img id="s09c-tile-logo" src="assets/apps/myfitnesspal.png" alt="" style="opacity:1" />
-        <div class="s09c-tname">MyFitnessPal</div>
-        <div class="s09c-tverb">Log a meal</div>
+      <div id="s09c-p2whip">
+        <div id="s09c-p2push">
+          <div id="s09c-p2pop">
+            <div id="s09c-phone2" class="k-phone">
+              <!-- footage: assets/footage/s09c-search.png -->
+              <img id="s09c-screen2" src="assets/footage/s09c-search.png" alt="" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -147,14 +154,19 @@
       });
       tl.fromTo(card, { scale: 1 }, { scale: 1.03, duration: 2.0, ease: "sine.inOut", immediateRender: false }, 7.35);
 
-      // D (downbeat 9.39): the card folds into an app tile, then the camera whips left into s10's track
-      tl.fromTo(card, { scale: 1.03, opacity: 1, filter: "blur(0px)" }, { scale: 0.5, opacity: 0, filter: "blur(8px)", duration: 0.3, ease: "power2.in", immediateRender: false }, 9.39);
-      const tile = $("#s09c-tile");
-      gsap.set(tile, { opacity: 0, scale: 1.15, x: 0, filter: "blur(8px)", transformOrigin: "50% 50%" });
-      tl.fromTo(tile, { opacity: 0, scale: 1.15, filter: "blur(8px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.5, ease: E, immediateRender: false }, 9.47);
-      tl.fromTo(tile, { scale: 1 }, { scale: 0.98, duration: 0.55, ease: "sine.inOut", immediateRender: false }, 9.97);
-      tl.set(tile, { filter: "url(#s09c-hb)" }, 10.5);
-      tl.fromTo(tile, { x: 0 }, { x: -1500, duration: 0.39, ease: "power3.in", immediateRender: false }, 10.5);
+      // D (downbeat 9.39): the card folds away; a phone pops in on the real search screen (an app yuzu has never seen),
+      // the camera pushes in to the "yuzu learns it as you sign in" rows (lands 10.07), then whips left into s10's track
+      tl.fromTo(card, { scale: 1.03, opacity: 1, filter: "blur(0px)" }, { scale: 0.6, opacity: 0, filter: "blur(8px)", duration: 0.22, ease: "power2.in", immediateRender: false }, 9.3);
+      const pushB = $("#s09c-p2push"), popB = $("#s09c-p2pop"), whip = $("#s09c-p2whip");
+      gsap.set(pushB, { scale: 0.966, transformOrigin: "50% 45.5%" });
+      gsap.set(popB, { scale: 0.5, opacity: 0, transformOrigin: "50% 50%" });
+      tl.fromTo(popB, { scale: 0.5 }, { scale: 1, duration: pop.dur, ease: pop.ease, immediateRender: false }, 9.39);
+      tl.fromTo(popB, { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, 9.39);
+      tl.fromTo(pushB, { scale: 0.966 }, { scale: 2.3, duration: 0.45, ease: "power2.inOut", immediateRender: false }, 9.62);
+      tl.fromTo(pushB, { scale: 2.3 }, { scale: 2.34, duration: 0.43, ease: "sine.inOut", immediateRender: false }, 10.07);
+      gsap.set(whip, { x: 0 });
+      tl.set(whip, { filter: "url(#s09c-hb)" }, 10.5);
+      tl.fromTo(whip, { x: 0 }, { x: -1700, duration: 0.39, ease: "power3.in", immediateRender: false }, 10.5);
       tl.fromTo("#s09c-hb-k", { attr: { stdDeviation: "0 0" } }, { attr: { stdDeviation: "10 0" }, duration: 0.39, ease: "power2.in", immediateRender: false }, 10.5);
 
       window.__timelines["s09c-cloud"] = tl;

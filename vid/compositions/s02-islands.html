@@ -52,6 +52,7 @@
     .s02-v { display: flex; align-items: center; gap: 22px; }
     .s02-k { width: 52px; height: 52px; opacity: 0.5; }
     .s02-bar { width: 260px; height: 56px; border-radius: 999px; background: #1f1f1f; }
+    .s02-val { width: auto; min-width: 0; padding: 0 26px; display: inline-flex; align-items: center; justify-content: flex-end; background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 36px "Inter", sans-serif; color: #fff; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
     #s02-dot { position: absolute; left: 953px; top: 438.6px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
   </style>
@@ -78,9 +79,9 @@
             <div id="s02-card-mfp" class="s02-card">
               <div class="s02-head"><div id="s02-cg-mfp" class="s02-cg" style="background-image: url(assets/apps/myfitnesspal.png);"></div><div id="s02-ht-mfp" class="s02-ht"><b>MyFitnessPal</b><span>Food diary, macros</span></div></div>
               <div class="s02-rows">
-                <div id="s02-r-mfp1" class="s02-row"><span class="s02-l">Calories</span><div class="s02-v"><div id="s02-k-mfp1" class="s02-k k-icon"></div><div id="s02-b-mfp1" class="s02-bar"></div></div></div>
-                <div id="s02-r-mfp2" class="s02-row"><span class="s02-l">Protein</span><div class="s02-v"><div id="s02-k-mfp2" class="s02-k k-icon"></div><div id="s02-b-mfp2" class="s02-bar"></div></div></div>
-                <div id="s02-r-mfp3" class="s02-row"><span class="s02-l">Meals logged</span><div class="s02-v"><div id="s02-k-mfp3" class="s02-k k-icon"></div><div id="s02-b-mfp3" class="s02-bar"></div></div></div>
+                <div id="s02-r-mfp1" class="s02-row"><span class="s02-l">Calories</span><div class="s02-v"><div id="s02-k-mfp1" class="s02-k k-icon"></div><div id="s02-b-mfp1" class="s02-bar s02-val">1,480 / 2,300</div></div></div>
+                <div id="s02-r-mfp2" class="s02-row"><span class="s02-l">Protein</span><div class="s02-v"><div id="s02-k-mfp2" class="s02-k k-icon"></div><div id="s02-b-mfp2" class="s02-bar s02-val">62 / 140 g</div></div></div>
+                <div id="s02-r-mfp3" class="s02-row"><span class="s02-l">Meals logged</span><div class="s02-v"><div id="s02-k-mfp3" class="s02-k k-icon"></div><div id="s02-b-mfp3" class="s02-bar s02-val">11 this week</div></div></div>
               </div>
             </div>
           </div>
@@ -88,9 +89,9 @@
             <div id="s02-card-cro" class="s02-card">
               <div class="s02-head"><div id="s02-cg-cro" class="s02-cg" style="background-image: url(assets/apps/cronometer.png);"></div><div id="s02-ht-cro" class="s02-ht"><b>Cronometer</b><span>Nutrients, food log</span></div></div>
               <div class="s02-rows">
-                <div id="s02-r-cro1" class="s02-row"><span class="s02-l">Magnesium</span><div class="s02-v"><div id="s02-k-cro1" class="s02-k k-icon"></div><div id="s02-b-cro1" class="s02-bar"></div></div></div>
-                <div id="s02-r-cro2" class="s02-row"><span class="s02-l">Iron</span><div class="s02-v"><div id="s02-k-cro2" class="s02-k k-icon"></div><div id="s02-b-cro2" class="s02-bar"></div></div></div>
-                <div id="s02-r-cro3" class="s02-row"><span class="s02-l">Vitamin D</span><div class="s02-v"><div id="s02-k-cro3" class="s02-k k-icon"></div><div id="s02-b-cro3" class="s02-bar"></div></div></div>
+                <div id="s02-r-cro1" class="s02-row"><span class="s02-l">Magnesium</span><div class="s02-v"><div id="s02-k-cro1" class="s02-k k-icon"></div><div id="s02-b-cro1" class="s02-bar s02-val">48%</div></div></div>
+                <div id="s02-r-cro2" class="s02-row"><span class="s02-l">Iron</span><div class="s02-v"><div id="s02-k-cro2" class="s02-k k-icon"></div><div id="s02-b-cro2" class="s02-bar s02-val">61%</div></div></div>
+                <div id="s02-r-cro3" class="s02-row"><span class="s02-l">Vitamin D</span><div class="s02-v"><div id="s02-k-cro3" class="s02-k k-icon"></div><div id="s02-b-cro3" class="s02-bar s02-val">35%</div></div></div>
               </div>
             </div>
           </div>
@@ -98,9 +99,9 @@
             <div id="s02-card-str" class="s02-card">
               <div class="s02-head"><div id="s02-cg-str" class="s02-cg" style="background-image: url(assets/apps/strong.png);"></div><div id="s02-ht-str" class="s02-ht"><b>Strong</b><span>Workouts, sets, PRs</span></div></div>
               <div class="s02-rows">
-                <div id="s02-r-str1" class="s02-row"><span class="s02-l">Sets this week</span><div class="s02-v"><div id="s02-k-str1" class="s02-k k-icon"></div><div id="s02-b-str1" class="s02-bar"></div></div></div>
-                <div id="s02-r-str2" class="s02-row"><span class="s02-l">Volume</span><div class="s02-v"><div id="s02-k-str2" class="s02-k k-icon"></div><div id="s02-b-str2" class="s02-bar"></div></div></div>
-                <div id="s02-r-str3" class="s02-row"><span class="s02-l">Bench PR</span><div class="s02-v"><div id="s02-k-str3" class="s02-k k-icon"></div><div id="s02-b-str3" class="s02-bar"></div></div></div>
+                <div id="s02-r-str1" class="s02-row"><span class="s02-l">Sets this week</span><div class="s02-v"><div id="s02-k-str1" class="s02-k k-icon"></div><div id="s02-b-str1" class="s02-bar s02-val">68</div></div></div>
+                <div id="s02-r-str2" class="s02-row"><span class="s02-l">Volume</span><div class="s02-v"><div id="s02-k-str2" class="s02-k k-icon"></div><div id="s02-b-str2" class="s02-bar s02-val">41,200 lb</div></div></div>
+                <div id="s02-r-str3" class="s02-row"><span class="s02-l">Bench PR</span><div class="s02-v"><div id="s02-k-str3" class="s02-k k-icon"></div><div id="s02-b-str3" class="s02-bar s02-val">185 × 5</div></div></div>
               </div>
             </div>
           </div>
