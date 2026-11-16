@@ -16,10 +16,12 @@ export const context = internalQuery({
       .withIndex("by_mcpToken", (q) => q.eq("mcpToken", token))
       .unique();
     if (!user) return null;
-    const conns = await ctx.db
+    const installations = await ctx.db.query("pluginInstallations").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+    const removed = new Set(installations.filter((p) => p.status === "uninstalled").map((p) => p.pluginId));
+    const conns = (await ctx.db
       .query("connections")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+      .collect()).filter((c) => !removed.has(`yuzu:${c.appSlug}`));
     // Recipes travel as JSON strings: their inputSchemas may hold "$" keys Convex values reject.
     const live: { conn: Doc<"connections">; recipeJson: string }[] = [];
     for (const conn of conns) {
@@ -30,6 +32,7 @@ export const context = internalQuery({
     // Apps not connected yet whose recipe has sessionless (public) tools, e.g. ParkMobile zone lookup.
     const publicRecipes: { appSlug: string; recipeJson: string }[] = [];
     for (const app of CATALOG) {
+      if (removed.has(`yuzu:${app.slug}`)) continue;
       if (live.some((l) => l.conn.appSlug === app.slug)) continue;
       const r = stripSource(await bestRecipe(ctx, app.slug));
       if (r && r.tools.some(isPublicTool)) {

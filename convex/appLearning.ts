@@ -7,6 +7,7 @@ import { internalAction, internalMutation, internalQuery, type ActionCtx, type Q
 import { SITE_URL } from "./lib/env";
 import { capturedHeaders, endpointUrl, epoch, parameterizedUrl, querySchema, redactSessionEcho, responseAt, safePath, valueShape } from "./lib/learningPolicy";
 import { publicToolData } from "./lib/publicToolData";
+import { installationFor } from "./marketplace";
 import { capturedWriteSchema, writeArguments, writeEndpointUrl, writeMethod, writePreview } from "./lib/learnedWritePolicy";
 
 const DAY = 86_400_000;
@@ -25,6 +26,7 @@ export const context = internalQuery({
     const toolId = a.toolId ? ctx.db.normalizeId("appLearnedTools", a.toolId) : null;
     const learned = toolId ? await ctx.db.get(toolId) : null;
     if (a.toolId && (!learned || learned.userId !== user._id)) throw new Error("Unknown private tool");
+    if (learned && (await installationFor(ctx, user._id, `learned:${learned._id}`))?.status === "uninstalled") throw new Error("Private tool removed");
     const evidenceId = learned?.evidenceId ?? (a.evidenceId ? ctx.db.normalizeId("appLearningEvidence", a.evidenceId) : null);
     const evidence = evidenceId ? await ctx.db.get(evidenceId) : null;
     if ((a.evidenceId || learned) && (!evidence || evidence.userId !== user._id || (a.app && evidence.appSlug !== a.app))) throw new Error("Unknown private evidence");
@@ -41,6 +43,7 @@ export const list = internalQuery({
     const rows = await ctx.db.query("appLearnedTools").withIndex("by_user", (q) => q.eq("userId", user._id)).order("desc").take(200);
     const result = [];
     for (const row of rows) {
+      if ((await installationFor(ctx, user._id, `learned:${row._id}`))?.status === "uninstalled") continue;
       const e = await ctx.db.get(row.evidenceId);
       if (!e || e.expiresAt <= Date.now()) continue;
       result.push({ toolId: row._id, app: row.appSlug, name: row.name, title: row.title, kind: row.kind ?? "read", status: row.status, inputSchema: row.inputSchemaJson ? JSON.parse(row.inputSchemaJson) : { type: "object", properties: {}, additionalProperties: false } });

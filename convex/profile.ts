@@ -276,6 +276,7 @@ export const deleteSlice = internalMutation({
 
     if (await drop(await db.query("aiTurns").withIndex("by_user_status", (q) => q.eq("userId", userId)).take(BATCH))) return false;
     if (await drop(await db.query("aiProviderSessions").withIndex("by_user", (q) => q.eq("userId", userId)).take(BATCH))) return false;
+    if (await drop(await db.query("pluginInstallations").withIndex("by_user", (q) => q.eq("userId", userId)).take(BATCH))) return false;
     if (await drop(await db.query("appLearnedTools").withIndex("by_user", (q) => q.eq("userId", userId)).take(BATCH))) return false;
     if (await drop(await db.query("appLearnedWrites").withIndex("by_user_request", (q) => q.eq("userId", userId)).take(BATCH))) return false;
     if (await drop(await db.query("appLearningEvidence").withIndex("by_user_app", (q) => q.eq("userId", userId)).take(BATCH))) return false;

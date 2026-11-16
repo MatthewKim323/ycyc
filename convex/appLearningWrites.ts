@@ -7,6 +7,7 @@ import { resolveApp } from "./lib/appResolver";
 import { capturedHeaders, epoch, redactSessionEcho } from "./lib/learningPolicy";
 import { writeArguments, writeEndpointUrl, writeMethod, writePreview } from "./lib/learnedWritePolicy";
 import { publicToolData } from "./lib/publicToolData";
+import { installationFor } from "./marketplace";
 
 const INTENT_TTL = 5 * 60_000;
 const RUN_TTL = 30_000;
@@ -18,6 +19,7 @@ async function authenticated(ctx: QueryCtx, token: string) {
 }
 
 async function definition(ctx: QueryCtx, userId: Doc<"users">["_id"], toolId: string) {
+  if ((await installationFor(ctx, userId, `learned:${toolId}`))?.status === "uninstalled") throw new Error("Private tool removed");
   const id = ctx.db.normalizeId("appLearnedTools", toolId);
   const tool = id ? await ctx.db.get(id) : null;
   const evidence = tool ? await ctx.db.get(tool.evidenceId) : null;

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { BuildStep, CaptureEntry, SessionBundle } from "../src/lib/contract";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { resolveApp } from "./lib/appResolver";
 import { connectionStatus } from "./schema";
 import { recipeAt } from "./lib/recipeStore";
@@ -199,31 +199,34 @@ export const mine = query({
   },
 });
 
+// Shared with marketplace deactivation so revocation and cleanup commit atomically.
+export async function disconnectConnection(ctx: MutationCtx, connectionId: Id<"connections">) {
+  const conn = await ctx.db.get(connectionId);
+  if (!conn) return null;
+  const caps = await ctx.db
+    .query("captures")
+    .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
+    .collect();
+  for (const d of caps) await ctx.db.delete(d._id);
+  const builds = await ctx.db
+    .query("builds")
+    .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
+    .collect();
+  for (const d of builds) await ctx.db.delete(d._id);
+  const pending = await ctx.db
+    .query("approvals")
+    .withIndex("by_user_status", (q) => q.eq("userId", conn.userId).eq("status", "pending"))
+    .collect();
+  for (const a of pending) {
+    if (a.connectionId === connectionId) await ctx.db.patch(a._id, { status: "denied", decidedAt: Date.now() });
+  }
+  await ctx.db.delete(connectionId);
+  return null;
+}
+
 export const disconnect = mutation({
   args: { connectionId: v.id("connections") },
-  handler: async (ctx, { connectionId }) => {
-    const conn = await ctx.db.get(connectionId);
-    if (!conn) return null;
-    const caps = await ctx.db
-      .query("captures")
-      .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
-      .collect();
-    for (const d of caps) await ctx.db.delete(d._id);
-    const builds = await ctx.db
-      .query("builds")
-      .withIndex("by_connection", (q) => q.eq("connectionId", connectionId))
-      .collect();
-    for (const d of builds) await ctx.db.delete(d._id);
-    const pending = await ctx.db
-      .query("approvals")
-      .withIndex("by_user_status", (q) => q.eq("userId", conn.userId).eq("status", "pending"))
-      .collect();
-    for (const a of pending) {
-      if (a.connectionId === connectionId) await ctx.db.patch(a._id, { status: "denied", decidedAt: Date.now() });
-    }
-    await ctx.db.delete(connectionId);
-    return null;
-  },
+  handler: (ctx, { connectionId }) => disconnectConnection(ctx, connectionId),
 });
 
 // ---- internal ----

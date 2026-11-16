@@ -62,6 +62,15 @@ export const aiTurnStatusValidator = v.union(
 export const aiEventTypeValidator = v.union(v.literal("text_delta"), v.literal("tool_start"), v.literal("tool_end"));
 
 export default defineSchema({
+  // Explicit per-user marketplace grants. Uninstalled rows are tombstones so
+  // stale connection completions cannot restore access after removal.
+  pluginInstallations: defineTable({
+    userId: v.id("users"), pluginId: v.string(), epoch: v.string(), version: v.string(),
+    status: v.union(v.literal("installed"), v.literal("needs_connection"), v.literal("connecting"), v.literal("error"), v.literal("uninstalled")),
+    credentialsCipher: v.optional(v.string()), toolsJson: v.optional(v.string()), errorCode: v.optional(v.string()),
+    installedAt: v.number(), updatedAt: v.number(),
+  }).index("by_user", ["userId"]).index("by_user_plugin", ["userId", "pluginId"]),
+
   // Agent learning is private, immutable evidence + versioned tools, never shared recipes.
   appLearningEvidence: defineTable({
     userId: v.id("users"), appSlug: v.string(),
