@@ -40,19 +40,33 @@ export const linkAccount = mutation({
   args: {
     deviceId: v.string(),
     clerkUserId: v.string(),
+    token: v.optional(v.string()),
     email: v.optional(v.string()),
     name: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
   },
-  handler: async (ctx, { deviceId, clerkUserId, email, name, imageUrl }) => {
-    const profile = { email, name, imageUrl };
+  handler: async (ctx, { deviceId, clerkUserId, token }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.subject || identity.subject !== clerkUserId) throw new Error("Sign in to sync this account.");
+    if (!deviceId || deviceId.length > 256) throw new Error("This device identity is unavailable.");
+    // Account ownership and profile claims come from the verified Clerk JWT,
+    // never from the client's account ID or editable profile arguments.
+    const subject = identity.subject;
+    const profile = {
+      ...(identity.email ? { email: identity.email.slice(0, 320) } : {}),
+      ...(identity.name ? { name: identity.name.slice(0, 256) } : {}),
+      ...(identity.pictureUrl ? { imageUrl: identity.pictureUrl.slice(0, 2048) } : {}),
+    };
     const current = await ctx.db
       .query("users")
       .withIndex("by_deviceId", (q) => q.eq("deviceId", deviceId))
       .unique();
+    if (current && (!token || token.length > 256 || current.mcpToken !== token)) {
+      throw new Error("This device identity is unavailable.");
+    }
     const account = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", subject))
       .first();
 
     if (account) {
@@ -65,7 +79,7 @@ export const linkAccount = mutation({
 
     // First sign-in for this account: claim the device user, unless it already belongs to someone else.
     if (current && !current.clerkUserId) {
-      await ctx.db.patch(current._id, { clerkUserId, ...profile });
+      await ctx.db.patch(current._id, { clerkUserId: subject, ...profile });
       return { userId: current._id, mcpUrl: mcpUrlFor(current.mcpToken), plan: current.plan };
     }
     if (current) {
@@ -77,7 +91,7 @@ export const linkAccount = mutation({
       mcpToken,
       plan: "free",
       createdAt: Date.now(),
-      clerkUserId,
+      clerkUserId: subject,
       ...profile,
     });
     return { userId, mcpUrl: mcpUrlFor(mcpToken), plan: "free" as const };
@@ -89,7 +103,7 @@ export const get = query({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user) return null;
-    return { userId: user._id, plan: user.plan, mcpUrl: mcpUrlFor(user.mcpToken) };
+    return { userId: user._id, plan: user.plan };
   },
 });
 

@@ -1,16 +1,18 @@
+import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from "@expo-google-fonts/inter";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { DarkTheme, Stack, ThemeProvider, type Theme } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ApprovalSheet } from "@/components/approval-sheet";
 import { DeviceRelay } from "@/components/device-relay";
-import { AccountProvider } from "@/hooks/account";
+import { AccountProvider, useAccount } from "@/hooks/account";
 import { OnboardingProvider, useOnboarding } from "@/hooks/onboarding";
 import { UserProvider, useUser } from "@/hooks/user";
 import { colors } from "@/theme";
@@ -20,6 +22,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 });
+
+function AppConvexProvider({ children }: { children: ReactNode }) {
+  const { enabled } = useAccount();
+  return enabled ? (
+    <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>{children}</ConvexProviderWithClerk>
+  ) : (
+    <ConvexProvider client={convex}>{children}</ConvexProvider>
+  );
+}
 
 const theme: Theme = {
   ...DarkTheme,
@@ -88,7 +99,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SafeAreaProvider>
         <AccountProvider>
-          <ConvexProvider client={convex}>
+          <AppConvexProvider>
             <UserProvider>
               <OnboardingProvider>
                 <ThemeProvider value={theme}>
@@ -99,7 +110,7 @@ export default function RootLayout() {
                 </ThemeProvider>
               </OnboardingProvider>
             </UserProvider>
-          </ConvexProvider>
+          </AppConvexProvider>
         </AccountProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

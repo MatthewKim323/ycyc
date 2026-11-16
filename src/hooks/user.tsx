@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
 import * as Crypto from "expo-crypto";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -39,6 +39,16 @@ async function deviceId(): Promise<string> {
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { enabled } = useAccount();
+  return enabled ? <ClerkUserProvider>{children}</ClerkUserProvider> : <IdentityProvider>{children}</IdentityProvider>;
+}
+
+function ClerkUserProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useConvexAuth();
+  return <IdentityProvider authenticated={isAuthenticated}>{children}</IdentityProvider>;
+}
+
+function IdentityProvider({ children, authenticated = false }: { children: ReactNode; authenticated?: boolean }) {
   const ensure = useMutation(api.users.ensure);
   const link = useMutation(api.users.linkAccount);
   const { loaded, profile } = useAccount();
@@ -65,9 +75,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const proceed = loaded || clerkTimedOut;
 
   const clerkUserId = profile?.clerkUserId ?? null;
-  const email = profile?.email;
-  const name = profile?.name;
-  const imageUrl = profile?.imageUrl;
 
   // Paint the cached identity immediately, then confirm with the server.
   useEffect(() => {
@@ -102,16 +109,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         try {
           const id = await deviceId();
-          const res = clerkUserId
-            ? await link({ deviceId: id, clerkUserId, email, name, imageUrl })
-            : await ensure({ deviceId: id });
+          // Keep device access while Clerk/Convex auth is loading or unavailable.
+          // A linked account is read only after Convex verifies the Clerk JWT.
+          const device = await ensure({ deviceId: id });
+          let res = device;
+          let linkFailed = false;
+          if (clerkUserId && authenticated) {
+            try {
+              res = await link({ deviceId: id, clerkUserId, token: device.mcpUrl.split("/").pop() });
+            } catch { linkFailed = true; }
+          }
           if (cancelled) return;
-          setState({ userId: res.userId, mcpUrl: res.mcpUrl, ready: true, error: null });
+          setState({ userId: res.userId, mcpUrl: res.mcpUrl, ready: true,
+            error: linkFailed ? "Couldn't sync your Google account. You can keep using this device." : null });
           await store.set(USER_KEY, JSON.stringify({ userId: res.userId, mcpUrl: res.mcpUrl }));
+          if (linkFailed && attempt < 4) {
+            await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+            continue;
+          }
           return;
-        } catch (e) {
+        } catch {
           if (cancelled) return;
-          setState((s) => ({ ...s, ready: true, error: e instanceof Error ? e.message : String(e) }));
+          setState((s) => ({ ...s, ready: true, error: "Couldn't sync your identity. Try again." }));
           await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
         }
       }
@@ -119,7 +138,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ensure, link, proceed, clerkUserId, email, name, imageUrl, epoch]);
+  }, [ensure, link, proceed, clerkUserId, authenticated, epoch]);
 
   return <UserContext.Provider value={{ ...state, resetIdentity }}>{children}</UserContext.Provider>;
 }
