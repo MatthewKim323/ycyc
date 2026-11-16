@@ -6,6 +6,8 @@ Matthew and Stephen are working on the same project. Fetch `origin/main` before 
 
 Stephen's current backend work lands directly on `main`. Rebase onto `origin/main` before pushing, preserve concurrent work, and never force-push `main`.
 
+After a rebase with `--autostash`, inspect `git status`, run `git diff --check`, and check for conflict markers before staging or deploying. Git can finish the rebase with exit code 0 even when restoring the autostash leaves conflicts; resolve those conflicts explicitly before continuing.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
