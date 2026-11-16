@@ -1,5 +1,11 @@
 {
  "r10b-revyl": {
   "fit": "contain"
+ },
+ "r7-mfp-diary": {
+  "start": 2.6,
+  "media_start": 5.9,
+  "duration": 3.4,
+  "rate": 1
  }
 }
