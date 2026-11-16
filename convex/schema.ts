@@ -320,4 +320,18 @@ export default defineSchema({
     protocolVersion: v.string(),
     createdAt: v.number(),
   }).index("by_sessionId", ["sessionId"]),
+
+  // Profile screen (convex/profile.ts). displayName wins over the Google name, which re-link overwrites.
+  profiles: defineTable({
+    userId: v.id("users"),
+    displayName: v.optional(v.string()),
+    avatarSeed: v.optional(v.string()),
+    prefs: v.optional(
+      v.object({
+        approvalsDefault: v.optional(v.union(v.literal("ask"), v.literal("hour"))),
+        weeklyRecap: v.optional(v.boolean()),
+      }),
+    ),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

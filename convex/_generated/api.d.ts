@@ -49,6 +49,7 @@ import type * as lib_turnStream from "../lib/turnStream.js";
 import type * as lib_webhook from "../lib/webhook.js";
 import type * as mcpData from "../mcpData.js";
 import type * as pipeline from "../pipeline.js";
+import type * as profile from "../profile.js";
 import type * as providerActions from "../providerActions.js";
 import type * as providerProbe from "../providerProbe.js";
 import type * as recipes from "../recipes.js";
@@ -105,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   "lib/webhook": typeof lib_webhook;
   mcpData: typeof mcpData;
   pipeline: typeof pipeline;
+  profile: typeof profile;
   providerActions: typeof providerActions;
   providerProbe: typeof providerProbe;
   recipes: typeof recipes;

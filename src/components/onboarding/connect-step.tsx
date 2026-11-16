@@ -307,7 +307,7 @@ export function ConnectStep({
                 </Text>
               ) : null}
               <Text variant="caption" color={colors.textSecondary} style={styles.center}>
-                yuzu never stores your password.
+                yuzu never keeps your password.
               </Text>
             </Animated.View>
           </ScrollView>

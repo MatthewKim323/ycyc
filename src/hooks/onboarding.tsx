@@ -8,11 +8,14 @@ type OnboardingState = {
   /** null while the flag loads. */
   onboarded: boolean | null;
   finish: () => Promise<void>;
+  /** Sends the app back to onboarding (after account deletion). */
+  restart: () => Promise<void>;
 };
 
 const Ctx = createContext<OnboardingState>({
   onboarded: null,
   finish: async () => {},
+  restart: async () => {},
 });
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
@@ -34,7 +37,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     await store.set(KEY, "1").catch(() => {});
   }, []);
 
-  return <Ctx.Provider value={{ onboarded, finish }}>{children}</Ctx.Provider>;
+  const restart = useCallback(async () => {
+    await store.set(KEY, "0").catch(() => {});
+    setOnboarded(false);
+  }, []);
+
+  return <Ctx.Provider value={{ onboarded, finish, restart }}>{children}</Ctx.Provider>;
 }
 
 export function useOnboarding() {

@@ -9,6 +9,7 @@ import { AppGlyph } from "@/components/app-glyph";
 import { Button } from "@/components/button";
 import { Card, Divider, Screen, SectionHeader } from "@/components/layout";
 import { PressableScale } from "@/components/pressable-scale";
+import { ProfileButton } from "@/components/profile/profile-button";
 import { Text } from "@/components/text";
 import { TodayPanel } from "@/components/today-panel";
 import { api, type Activity, type CatalogEntry } from "@/hooks/convex";
@@ -106,10 +107,13 @@ export default function TodayScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text variant="label" color={colors.textTertiary}>
-          {dateLine}
-        </Text>
-        <Text variant="title">Today</Text>
+        <View style={styles.headerText}>
+          <Text variant="label" color={colors.textTertiary}>
+            {dateLine}
+          </Text>
+          <Text variant="title">Today</Text>
+        </View>
+        <ProfileButton />
       </View>
 
       {error && !userId ? (
@@ -148,7 +152,8 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingTop: space.sm, paddingHorizontal: space.xs, gap: 2 },
+  header: { paddingTop: space.sm, paddingHorizontal: space.xs, flexDirection: "row", alignItems: "flex-end", gap: space.md },
+  headerText: { flex: 1, gap: 2 },
   empty: { alignItems: "center", gap: space.md, paddingVertical: space.sm },
   center: { textAlign: "center" },
   row: {

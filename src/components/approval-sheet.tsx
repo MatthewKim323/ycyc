@@ -63,6 +63,9 @@ export function ApprovalSheet() {
   const insets = useSafeAreaInsets();
   const pending = useQuery(api.approvals.pending, userId ? { userId } : "skip");
   const decide = useMutation(api.approvals.decide);
+  // Profile setting "Approvals: Allow for an hour" makes Approve grant the hour.
+  const me = useQuery(api.profile.me, userId ? { userId } : "skip");
+  const approveHour = me?.prefs?.approvalsDefault === "hour";
   const [busy, setBusy] = useState<"approve" | "approve_hour" | "deny" | null>(null);
 
   const current = pending?.[0];
@@ -72,7 +75,8 @@ export function ApprovalSheet() {
     if (!current) return;
     setBusy(decision);
     try {
-      await decide({ approvalId: current._id, decision });
+      const effective = decision === "approve" && approveHour ? "approve_hour" : decision;
+      await decide({ approvalId: current._id, decision: effective });
       if (decision !== "deny") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } finally {

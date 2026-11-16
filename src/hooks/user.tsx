@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import * as Crypto from "expo-crypto";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useAccount } from "./account";
 import { api, type Id } from "./convex";
@@ -17,7 +17,18 @@ type UserState = {
   error: string | null;
 };
 
-const UserContext = createContext<UserState>({ userId: null, mcpUrl: null, ready: false, error: null });
+type UserContextValue = UserState & {
+  /** After account deletion: forget this device's identity and start a fresh user. */
+  resetIdentity: () => Promise<void>;
+};
+
+const UserContext = createContext<UserContextValue>({
+  userId: null,
+  mcpUrl: null,
+  ready: false,
+  error: null,
+  resetIdentity: async () => {},
+});
 
 async function deviceId(): Promise<string> {
   const existing = await store.get(DEVICE_KEY);
@@ -34,6 +45,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<UserState>({ userId: null, mcpUrl: null, ready: false, error: null });
   // Which Clerk user the last identity pass ran for (undefined: none yet).
   const linkedFor = useRef<string | null | undefined>(undefined);
+  // Bumped by resetIdentity to rerun the identity pass with a new device id.
+  const [epoch, setEpoch] = useState(0);
+
+  const resetIdentity = useCallback(async () => {
+    await store.set(DEVICE_KEY, Crypto.randomUUID());
+    await store.set(USER_KEY, "");
+    setState({ userId: null, mcpUrl: null, ready: false, error: null });
+    setEpoch((e) => e + 1);
+  }, []);
 
   // If Clerk can't load (offline), fall back to the device identity instead of waiting forever.
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
@@ -99,9 +119,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ensure, link, proceed, clerkUserId, email, name, imageUrl]);
+  }, [ensure, link, proceed, clerkUserId, email, name, imageUrl, epoch]);
 
-  return <UserContext.Provider value={state}>{children}</UserContext.Provider>;
+  return <UserContext.Provider value={{ ...state, resetIdentity }}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

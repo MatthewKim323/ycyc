@@ -720,7 +720,9 @@ async function strongWriteBack(connectionId: string) {
 async function main() {
   log(`yuzu e2e  ${new Date().toISOString()}  apps: ${APPS.join(", ")}  writes: ${WRITES}`);
   const ts = Date.now();
-  const user = (await convex.mutation(api.users.ensure, { deviceId: `e2e-${ts}` })) as { userId: string; mcpUrl: string };
+  // --device-id <id> seeds an existing yuzu account (e.g. the demo phone) instead of a throwaway user.
+  const deviceId = opt("--device-id", "") || `e2e-${ts}`;
+  const user = (await convex.mutation(api.users.ensure, { deviceId })) as { userId: string; mcpUrl: string };
   secret(user.mcpUrl.split("/mcp/")[1]);
   record("setup", "users.ensure -> fresh user + MCP URL", !!user.userId && /\/mcp\/.+/.test(user.mcpUrl), `user ${user.userId}`);
   const mcp = new Mcp(user.mcpUrl);
