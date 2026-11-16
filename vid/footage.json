@@ -1,6 +1,6 @@
 {
  "r10b-revyl": {
-  "fit": "contain"
+  "fit": "cover"
  },
  "r7-mfp-diary": {
   "start": 2.6,
