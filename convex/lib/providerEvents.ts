@@ -1,4 +1,5 @@
 import type { NativeProvider } from "./nativeProvider";
+import { providerFailure } from "./providerErrors";
 
 export type ProviderEvent = {
   type: "text_delta" | "tool_start" | "tool_end";
@@ -152,9 +153,9 @@ export class ProviderEvents {
     // completed message. Protocol replies and private metadata never reach UI.
     const method = value.method;
     const params = record(value.params) ? value.params : {};
-    if (method === "error") throw new Error("provider_turn_failed");
+    if (method === "error") throw new Error(providerFailure(params));
     if (method === "turn/completed") {
-      if (!record(params.turn) || params.turn.status !== "completed" || params.turn.error) throw new Error("provider_turn_failed");
+      if (!record(params.turn) || params.turn.status !== "completed" || params.turn.error) throw new Error(providerFailure(record(params.turn) ? params.turn.error : null));
       this.succeeded = true;
       return [];
     }

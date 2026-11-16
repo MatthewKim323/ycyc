@@ -42,3 +42,13 @@ The runner uses only public Convex APIs, actually closes/reopens the event WebSo
 Verified: real provider browser authorization, hosted subscription inference, saved credential reuse across turns, real MCP installation/call, live client subscriptions and cursor restoration. Separate regression tests cover state/security and mobile adapter failures.
 
 Not exercised: a fully rendered iOS/Android interaction, protected consumer-app records or writes, forced token expiry/renewal, or provider approval for distributing a hosted commercial service. The live test logins remain encrypted in the private dev test identity for further authorized testing. They can be removed using `aiProviders.disconnect`.
+
+## Shared Codex usage-limit incident
+
+On November 15, 2026, the shared `optimistic-newt-247` deployment recorded a connected Codex session whose first chat failed after 22.1 seconds with zero text. Credential loading and MCP startup succeeded. The original logging collapsed every native failure to `turn_failed`, hiding the upstream reason.
+
+A bounded classifier was added at the native protocol/stderr boundaries. It emits only fixed diagnostic codes; raw provider messages, tokens, prompts and account details remain private. A fresh, minimal no-app-action request on the same connected account reproduced the failure and logged `provider_usage_limit`. This confirmed a provider-reported account usage limit rather than a failed login or Convex transport failure.
+
+The backend now preserves the public `usage_limit` code and mobile shows that the connected plan has reached its limit, with guidance to check its reset time or choose another connected plan. Sessions remain connected; the application does not repeatedly retry, reconnect, buy credits or redeem resets. The account limit itself remains in effect until the account has available allowance. [OpenAI's usage guidance](https://help.openai.com/en/articles/20001625-understanding-chatgpt-and-codex-usage-limits) describes checking usage and waiting for a reset.
+
+Regression coverage checks private-message suppression, native usage-error classification and propagation to client-visible turn state without disconnecting or exposing credentials. The shared provider failure was reproduced with real hosted credentials; native UI rendering was not manually exercised.

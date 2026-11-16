@@ -172,6 +172,7 @@ function actionChunk(e: ChatEvent): AgentChunk | null {
 const ERROR_COPY: Record<string, (name: string) => string> = {
   runtime_unavailable: () => "Your AI couldn't start right now. Try again in a minute.",
   provider_disconnected: (n) => `Your ${n} plan got signed out. Reconnect it from the assistant menu.`,
+  usage_limit: (n) => `Your ${n} plan has reached its usage limit. Check its reset time or choose another connected plan.`,
   turn_expired: () => "That took too long. Try again.",
   output_limit: () => "That reply got too long. Try a shorter ask.",
   provider_error: (n) => `${n} had a problem answering. Try again.`,

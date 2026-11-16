@@ -7,6 +7,7 @@ import { withNativeProvider, type NativeProvider } from "./nativeProvider";
 import { layout, snapshot, type ProviderCredentials } from "./providerCli";
 import { ProviderEvents, type ProviderEvent } from "./providerEvents";
 import { SITE_URL } from "./env";
+import { providerFailure } from "./providerErrors";
 
 export type TurnHooks = {
   active(): Promise<boolean>;
@@ -133,7 +134,8 @@ export async function collectNativeTurn(
   const decoder = new ProviderEvents(provider, codex ? (value) => {
     if (value.id !== undefined && typeof value.method === "string") throw new Error("provider_disallowed_tool");
     if (value.id === undefined) return;
-    if (value.error || value.id !== stage || !value.result || typeof value.result !== "object") throw new Error("provider_protocol_failed");
+    if (value.error) throw new Error(providerFailure(value.error, "provider_protocol_failed"));
+    if (value.id !== stage || !value.result || typeof value.result !== "object") throw new Error("provider_protocol_failed");
     const result = value.result as Record<string, unknown>;
     if (stage === 1) {
       send({ method: "initialized", params: {} });
@@ -162,8 +164,9 @@ export async function collectNativeTurn(
   // Attach rejection handling immediately, even while stdout is still streaming.
   void exit.catch(() => undefined);
   let stderrBytes = 0;
+  let stderrText = "";
   const stderr = (async () => {
-    try { for await (const chunk of child.stderr) { stderrBytes += Buffer.byteLength(chunk); if (stderrBytes > 64_000) stop("provider_output_limit"); } }
+    try { for await (const chunk of child.stderr) { stderrBytes += Buffer.byteLength(chunk); if (stderrText.length < 8192) stderrText += String(chunk).slice(0, 8192 - stderrText.length); if (stderrBytes > 64_000) stop("provider_output_limit"); } }
     catch { stop("provider_stream_failed"); }
   })();
   let polling = false;
@@ -190,7 +193,7 @@ export async function collectNativeTurn(
     const code = await exit;
     await stderr;
     if (failure) throw failure;
-    if (code !== 0) throw new Error("provider_turn_failed");
+    if (code !== 0) throw new Error(providerFailure(stderrText));
     await emit(decoder.finish());
   } catch (error) {
     stop(error instanceof Error && /^provider_[a-z_]+$/.test(error.message) ? error.message : "provider_turn_failed");

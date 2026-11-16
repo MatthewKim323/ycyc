@@ -356,3 +356,15 @@ test("tool stream events reject raw text atomically while accepting normalized m
   assert.equal(page.events.length, 2);
   assert.ok(page.events.every((event: { name: string; id: string; text?: string }) => event.name === metadata && event.id === metadata && event.text === undefined));
 });
+
+test("a subscription usage limit reaches the client without disconnecting or exposing provider details", async () => {
+  const f = fixture();
+  const ids = await f.send();
+  await api.claim._handler(f.ctx, { turnId: ids.turnId });
+  await api.finish._handler(f.ctx, { turnId: ids.turnId, status: "error", error: "usage_limit" });
+  const view = await api.watchMessages._handler(f.ctx, { token, threadId: ids.threadId });
+  assert.equal(view.turns[0].error, "usage_limit");
+  assert.equal(f.row(f.provider).status, "connected");
+  assert.equal(f.row(f.provider).credentialsCipher, "sealed-a");
+  assert.equal(f.row(ids.threadId).activeTurnId, undefined);
+});

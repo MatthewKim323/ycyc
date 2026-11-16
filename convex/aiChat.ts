@@ -14,7 +14,7 @@ type ReadCtx = Pick<QueryCtx, "db">;
 type Turn = Doc<"aiTurns">;
 const bytes = (text: string) => new TextEncoder().encode(text).length;
 const pending = (turn: Turn) => turn.status === "queued" || turn.status === "running";
-const errors = new Set(["runtime_unavailable", "provider_disconnected", "turn_expired", "output_limit", "provider_error", "tool_error", "turn_failed"]);
+const errors = new Set(["runtime_unavailable", "provider_disconnected", "turn_expired", "output_limit", "provider_error", "tool_error", "turn_failed", "usage_limit"]);
 const safeError = (error?: string) => error && errors.has(error) ? error : "provider_error";
 
 async function authenticate(ctx: ReadCtx, token: string) {

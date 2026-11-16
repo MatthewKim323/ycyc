@@ -40,6 +40,7 @@ import type * as lib_learningPolicy from "../lib/learningPolicy.js";
 import type * as lib_mcp from "../lib/mcp.js";
 import type * as lib_nativeProvider from "../lib/nativeProvider.js";
 import type * as lib_providerCli from "../lib/providerCli.js";
+import type * as lib_providerErrors from "../lib/providerErrors.js";
 import type * as lib_providerEvents from "../lib/providerEvents.js";
 import type * as lib_providerTurn from "../lib/providerTurn.js";
 import type * as lib_providerVault from "../lib/providerVault.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   "lib/mcp": typeof lib_mcp;
   "lib/nativeProvider": typeof lib_nativeProvider;
   "lib/providerCli": typeof lib_providerCli;
+  "lib/providerErrors": typeof lib_providerErrors;
   "lib/providerEvents": typeof lib_providerEvents;
   "lib/providerTurn": typeof lib_providerTurn;
   "lib/providerVault": typeof lib_providerVault;

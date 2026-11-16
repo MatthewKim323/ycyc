@@ -8,6 +8,7 @@ import type { ProviderCredentials } from "./lib/providerCli";
 import { nativeTurn } from "./lib/providerTurn";
 import { openProvider, sealProvider } from "./lib/providerVault";
 import { TurnStream, turnPrompt } from "./lib/turnStream";
+import { safeProviderFailure } from "./lib/providerErrors";
 
 export const run = internalAction({
   args: { turnId: v.id("aiTurns") },
@@ -38,6 +39,7 @@ export const run = internalAction({
       });
     } catch (error) {
       // Provider stderr, prompts, credentials and MCP URLs are never logged.
+<<<<<<< Updated upstream
       const message = error instanceof Error ? error.message : "";
       const code = message === "provider_output_limit" ? "output_limit" :
         message === "provider_timeout" ? "turn_expired" :
@@ -45,6 +47,14 @@ export const run = internalAction({
       // Fixed error codes only (never stderr, prompts, credentials or URLs).
       const detail = /^(provider_[a-z_]+|Native provider [a-zA-Z0-9 :]{0,60}|Compressed archive [a-z ]{0,40}|Unsupported native provider)$/.test(message) ? message : "other";
       console.warn("ai_turn", claim.provider, code, detail);
+=======
+      const reason = safeProviderFailure(error);
+      const code = reason === "provider_usage_limit" ? "usage_limit" :
+        reason === "provider_output_limit" ? "output_limit" :
+        reason === "provider_timeout" ? "turn_expired" :
+        reason === "provider_tool_isolation_unavailable" ? "runtime_unavailable" : "turn_failed";
+      console.warn("ai_turn", claim.provider, code, reason);
+>>>>>>> Stashed changes
       await ctx.runMutation(internal.aiChat.finish, { turnId, status: "error", error: code });
     } finally { stream.dispose(); }
   },
