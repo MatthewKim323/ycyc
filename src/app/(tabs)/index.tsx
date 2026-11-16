@@ -29,7 +29,10 @@ function readable(text: string | undefined | null): boolean {
 /** Plain words for an activity row. Backend text is used only when it reads like a person wrote it. */
 function recentSummary(item: Activity, appName: string): string {
   if (item.tool === "connect") return `Connected ${appName}`;
-  if (readable(item.summary)) return item.summary;
+  // "Exercise history: 3" reads worse than the tool's verb, so raw-argument summaries fall back to it.
+  if (readable(item.summary) && !item.summary.includes(":")) return item.summary;
+  const verb = verbForTool(item.appSlug, item.tool);
+  if (verb) return verb;
   const head = item.summary.split(":")[0]?.trim();
   if (head && readable(head)) return head;
   return verbForTool(item.appSlug, item.tool) ?? `Used ${appName}`;
