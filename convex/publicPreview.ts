@@ -6,6 +6,12 @@ const RUNTIME = `exposdk:${SDK}`;
 const MAX_MANIFEST = 256 * 1024;
 const SNAPSHOT = /^(?:[a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+// Keep both already-shared URLs following new publications. Other snapshot
+// URLs remain pinned; the underlying manifest records are always immutable.
+const SHARED_LINKS = new Set([
+  "1741c4c8-abfc-43b0-bb4f-2cd07791e337",
+  "8450e2ab-f0a2-43be-9c55-25c6916897da",
+]);
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const bytes = (value: string) => new TextEncoder().encode(value).length;
 function invalid(): never { throw new Error("invalid_public_preview"); }
@@ -85,7 +91,9 @@ export const get = internalQuery({
   args: { snapshot: v.string(), platform: v.union(v.literal("ios"), v.literal("android")) },
   handler: async (ctx, { snapshot, platform }): Promise<string | null> => {
     if (!SNAPSHOT.test(snapshot)) return null;
-    const preview = await ctx.db.query("publicMobilePreviews").withIndex("by_snapshot", (q) => q.eq("snapshot", snapshot)).unique();
+    const preview = SHARED_LINKS.has(snapshot)
+      ? await ctx.db.query("publicMobilePreviews").order("desc").first()
+      : await ctx.db.query("publicMobilePreviews").withIndex("by_snapshot", (q) => q.eq("snapshot", snapshot)).unique();
     return preview ? platform === "ios" ? preview.iosManifestJson : preview.androidManifestJson : null;
   },
 });
@@ -106,7 +114,7 @@ function quality(accept: string, type: string): number {
 
 export async function previewResponse(req: Request, lookup: (snapshot: string, platform: "ios" | "android") => Promise<string | null>): Promise<Response> {
   const url = new URL(req.url), snapshot = url.pathname.slice("/expo-preview/".length);
-  const headers = { "Cache-Control": "private, max-age=0", Vary: "Accept, Expo-Platform, Expo-Runtime-Version, Expo-SDK-Version", "X-Content-Type-Options": "nosniff" };
+  const headers = { "Cache-Control": "no-store", Vary: "Accept, Expo-Platform, Expo-Runtime-Version, Expo-SDK-Version", "X-Content-Type-Options": "nosniff" };
   const error = (status: number, message: string) => new Response(message, { status, headers });
   if (!SNAPSHOT.test(snapshot)) return error(404, "preview not found");
   const platform = req.headers.get("expo-platform") ?? url.searchParams.get("platform");

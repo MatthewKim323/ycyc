@@ -17,6 +17,8 @@ const reportPath = reportArg && path.resolve(reportArg);
 const deployment = process.env.CONVEX_PREVIEW_DEPLOYMENT || 'optimistic-newt-247';
 const site = `https://${deployment}.convex.site`;
 if (!/^[a-z0-9-]+$/.test(deployment)) throw new Error('Invalid deployment');
+// This is the original shared phone link. Keep it stable across publications.
+const manifestUrl = `${site}/expo-preview/1741c4c8-abfc-43b0-bb4f-2cd07791e337`;
 const sdk = '58.0.0';
 const runtimeVersion = `exposdk:${sdk}`;
 let snapshot = crypto.randomUUID();
@@ -84,7 +86,6 @@ if (resume) {
     }
     console.log(`Uploaded ${Math.min(offset + 6, entries.length)}/${entries.length} public files`);
   }
-  const manifestUrl = `${site}/expo-preview/${snapshot}`;
   const asset = (file, launch = false) => ({ key: file.key, hash: file.hash, contentType: file.contentType, url: file.url, ...(!launch ? { fileExtension: `.${file.ext}` } : {}) });
   const expoClient = { ...app, sdkVersion: sdk, owner: 'stephenhung', extra: {}, updates: { url: manifestUrl }, runtimeVersion };
   delete expoClient.plugins;
@@ -100,16 +101,19 @@ if (resume) {
 }
 admin('publish', publication);
 const manifests = { ios: JSON.parse(publication.iosManifestJson), android: JSON.parse(publication.androidManifestJson) };
-const manifestUrl = `${site}/expo-preview/${snapshot}`;
+const snapshotUrl = `${site}/expo-preview/${snapshot}`;
 const unique = new Map();
 for (const m of Object.values(manifests)) for (const a of [m.launchAsset, ...m.assets]) unique.set(a.url, a);
 const uploaded = [...unique.values()];
 
 for (const platform of ['ios', 'android']) {
-  const r = await fetch(manifestUrl, { headers: { Accept: 'application/expo+json', 'expo-platform': platform, 'expo-runtime-version': runtimeVersion, 'expo-expect-signature': 'sig, keyid="expo-root", alg="rsa-v1_5-sha256"' } });
+  const headers = { Accept: 'application/expo+json', 'expo-platform': platform, 'expo-runtime-version': runtimeVersion, 'expo-expect-signature': 'sig, keyid="expo-root", alg="rsa-v1_5-sha256"' };
+  const r = await fetch(snapshotUrl, { headers });
   if (!r.ok) throw new Error(`Preview manifest failed: HTTP ${r.status}`);
   const published = await r.json();
   if (published.id !== manifests[platform].id) throw new Error('Published manifest mismatch');
+  const shared = await fetch(manifestUrl, { headers });
+  if (!shared.ok || (await shared.json()).id !== published.id) throw new Error('Shared preview link does not serve this publication');
 }
 for (let i = 0; i < uploaded.length; i += 6) await Promise.all(uploaded.slice(i, i + 6).map(async (entry) => {
   const r = await fetch(entry.url, { signal: AbortSignal.timeout(60000) });
@@ -119,7 +123,7 @@ for (let i = 0; i < uploaded.length; i += 6) await Promise.all(uploaded.slice(i,
   entry.bytes = data.length;
 }));
 const openUrl = manifestUrl.replace('https:', 'exps:');
-const report = { sourceCommit, createdAt, snapshot, manifestUrl, openUrl, sdk, runtimeVersion, publicFileCount: uploaded.length, totalBytes: uploaded.reduce((sum, a) => sum + a.bytes, 0),
+const report = { sourceCommit, createdAt, snapshot, snapshotUrl, manifestUrl, openUrl, sdk, runtimeVersion, publicFileCount: uploaded.length, totalBytes: uploaded.reduce((sum, a) => sum + a.bytes, 0),
   verification: { nativeManifests: ['ios', 'android'], allAssetHashesVerified: true, plainJavaScript: true, noExpoAccountAuthorization: true, physicalPhoneLaunch: 'awaiting user confirmation' },
   limitations: ['Google account linking is unavailable in this preview.', 'Installed-app detection is unavailable in Expo Go.'] };
 if (reportPath) {

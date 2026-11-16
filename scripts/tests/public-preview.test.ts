@@ -22,7 +22,7 @@ function fixture() {
       insert: async (table: string, fields: Record<string, unknown>) => { rows.push({ table, ...fields }); return "preview-1"; },
       query: (table: string) => {
         let expected: unknown;
-        return { withIndex: (_index: string, filter: (q: unknown) => unknown) => {
+        return { order: () => ({ first: async () => rows.filter((row) => row.table === table).at(-1) ?? null }), withIndex: (_index: string, filter: (q: unknown) => unknown) => {
           const q = { eq: (_key: string, value: unknown) => { expected = value; return q; } }; filter(q);
           return { unique: async () => rows.find((row) => row.table === table && row.snapshot === expected) ?? null };
         } };
@@ -61,6 +61,33 @@ test("publish verifies deployment-owned storage URLs, deduplicates exact snapsho
   assert.equal(await get("ios", "../private"), null);
   assert.equal(await get("ios", "b".repeat(40)), null);
   for (const ids of [[], Array(201).fill("asset-1"), ["missing-opaque-id"]]) await assert.rejects(f.publish(manifest(), manifest(), snapshot, ids), /invalid_public_preview/);
+});
+
+test("already-shared phone links advance while other snapshot links stay pinned", async () => {
+  const f = fixture();
+  const shared = ["1741c4c8-abfc-43b0-bb4f-2cd07791e337", "8450e2ab-f0a2-43be-9c55-25c6916897da"];
+  for (const id of shared) assert.equal(await functions.get._handler(f.ctx, { snapshot: id, platform: "ios" }), null);
+  await f.publish();
+  const next = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  const ios = manifest({ id: next }), android = manifest({ id: next, metadata: { platform: "android" } });
+  await f.publish(ios, android, next);
+  for (const id of shared) {
+    for (const platform of ["ios", "android"]) {
+      const response = await preview.previewResponse(new Request(`https://deployment.convex.site/expo-preview/${id}`, {
+        headers: { "expo-platform": platform, accept: "application/expo+json" },
+      }), (snapshot, platform) => functions.get._handler(f.ctx, { snapshot, platform }));
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.deepEqual(await response.json(), platform === "ios" ? ios : android);
+    }
+    const browser = await preview.previewResponse(new Request(`https://deployment.convex.site/expo-preview/${id}`),
+      (snapshot, platform) => functions.get._handler(f.ctx, { snapshot, platform }));
+    assert.ok((await browser.text()).includes(`exps://deployment.convex.site/expo-preview/${id}?platform=ios`));
+  }
+  assert.equal(JSON.parse(await functions.get._handler(f.ctx, { snapshot, platform: "ios" })).id, snapshot);
+  // Retrying an older publication must not roll the shared link back.
+  await f.publish();
+  assert.equal(JSON.parse(await functions.get._handler(f.ctx, { snapshot: shared[0], platform: "ios" })).id, next);
 });
 
 test("manifest validation rejects foreign assets, bytecode, missing Expo Go fields and unsupported runtime", async () => {
