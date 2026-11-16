@@ -100,7 +100,7 @@
       // Open on s06's last framing (1.86x on the answer) and pull back to the phone.
       gsap.set("#s07-ph", { scale: 1, y: 0 });
       gsap.set("#s07-ph2", { scale: 0.966, y: -1300 });
-      tl.fromTo("#s07-cam", cam(1.86, 960, 648), { ...cam(1, 960, 540), duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);
+      tl.fromTo("#s07-cam", cam(1.86, 960, 616), { ...cam(1, 960, 540), duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);
       tl.fromTo("#s07-cam", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.25, ease: "power2.in", immediateRender: false }, 0);
       tl.to("#s07-cam", { filter: "blur(0px)", duration: 0.25, ease: "power2.out" }, 0.25);
       tl.fromTo("#s07-ph", { scale: 1 }, { scale: 0.966, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);

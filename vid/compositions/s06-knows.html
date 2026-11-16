@@ -16,9 +16,18 @@
     #s06-cam { position: absolute; inset: 0; transform-origin: 0 0; }
     #s06-ph { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
     #s06-phone { left: 0; top: 0; }
-    .s06-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
-      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
-    #s06-screen { position: relative; background: #141414; }
+    /* Rebuilt assistant chat (yuzu monochrome, not a brand copy): sizes chosen so the answer reads >= 28px at the 1.8x push. */
+    .s06-chat { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #fff; }
+    .s06-head { position: absolute; left: 0; right: 0; top: 56px; text-align: center; font: 600 18px/24px "Inter", sans-serif; }
+    .s06-thread { position: absolute; left: 20px; right: 20px; top: 236px; display: flex; flex-direction: column; gap: 22px; }
+    .s06-bubble { align-self: flex-end; max-width: 82%; padding: 11px 18px; border-radius: 24px; background: #141414; font: 400 19px/26px "Inter", sans-serif; }
+    .s06-tools { display: flex; flex-direction: column; gap: 6px; }
+    .s06-tl { display: flex; align-items: center; gap: 10px; font: 400 16px/24px "Inter", sans-serif; color: #a1a1a1; white-space: nowrap; }
+    .s06-tdot { width: 6px; height: 6px; border-radius: 3px; background: #fff; flex: none; }
+    #s06-ans { font: 400 19px/29px "Inter", sans-serif; color: #fff; }
+    .s06-comp { position: absolute; left: 16px; right: 16px; bottom: 22px; height: 56px; border-radius: 28px; background: #0b0b0b;
+      box-shadow: inset 0 0 0 1px #1f1f1f; display: flex; align-items: center; padding: 0 20px; font: 400 17px/22px "Inter", sans-serif; color: #6b6b6b; }
+    #s06-screen { position: relative; background: #000; }
     .s06-chip { position: absolute; left: 920px; display: flex; align-items: center; gap: 24px; height: 120px; padding: 0 30px 0 18px;
       border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap;
       font: 500 36px "Inter", sans-serif; color: #fff; }
@@ -43,8 +52,21 @@
       <div id="s06-cam">
         <div id="s06-ph">
           <div id="s06-phone" class="k-phone">
-            <!-- footage: assets/footage/r5-claude-knows.mp4 -->
-            <div id="s06-screen" class="k-screen"><div id="s06-label" class="s06-label">R5 · Claude: same question, tool calls + answer</div></div>
+            <div id="s06-screen" class="k-screen">
+              <div class="s06-chat" data-layout-allow-overflow>
+                <div class="s06-head">Claude</div>
+                <div class="s06-thread">
+                  <div class="s06-bubble">why am I so tired this week?</div>
+                  <div class="s06-tools">
+                    <div id="s06-t1" class="s06-tl"><span id="s06-t1-d" class="s06-tdot"></span>Read your diary · MyFitnessPal</div>
+                    <div id="s06-t2" class="s06-tl"><span id="s06-t2-d" class="s06-tdot"></span>Check your nutrients · Cronometer</div>
+                    <div id="s06-t3" class="s06-tl"><span id="s06-t3-d" class="s06-tdot"></span>Read your workouts · Strong</div>
+                  </div>
+                  <div id="s06-ans">Three things stand out this week. You've averaged 1,480 of 2,300 calories and 62 g of protein a day. Magnesium is at 48% of your target. And you lifted 68 sets, your most this month. Low fuel plus a heavy training week is the likely reason. Want me to log a magnesium-rich lunch?</div>
+                </div>
+                <div class="s06-comp">Ask anything</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -122,7 +144,7 @@
       tl.fromTo("#s06-ph", { x: SIDE }, { x: 0, duration: 0.5, ease: S.layout.ease, immediateRender: false }, 4.3);
 
       // The answer lands at 4.80: slam, camera pushes into the answer area (1.8x) and holds with a 3% drift.
-      const ANS = 648; // stage y of the answer block (62% down the phone)
+      const ANS = 616; // stage y that centres the finished answer at 1.86x (s07 opens on the same framing)
       tl.fromTo("#s06-cam", cam(1, 960, 540), { ...cam(1.8, 960, ANS), duration: 0.42, ease: "power2.inOut", immediateRender: false }, 4.78);
       tl.fromTo("#s06-cam", { filter: "blur(0px)" }, { filter: "blur(6px)", duration: 0.21, ease: "power2.in", immediateRender: false }, 4.78);
       tl.to("#s06-cam", { filter: "blur(0px)", duration: 0.21, ease: "power2.out" }, 4.99);
@@ -135,6 +157,30 @@
         tl.fromTo("#" + id, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power2.out", immediateRender: false }, at);
       });
       tl.fromTo(".s06-src", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", x: 24, duration: 0.3, ease: "power2.in", stagger: 0.04, immediateRender: false }, 9.45);
+      // Chat: each quiet tool line appears as its chip lights (dot at 50% while working, white when the call returns).
+      [["#s06-t1", 1.4, 2.4], ["#s06-t2", 2.4, 3.4], ["#s06-t3", 3.4, 3.95]].forEach(([id, at, done]) => {
+        gsap.set(id, { opacity: 0 });
+        tl.fromTo(id, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.28, ease: KIT.ease.enter, immediateRender: false }, at + 0.04);
+        tl.fromTo(id + "-d", { opacity: 0.5 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, done);
+      });
+      // The answer streams in chunks from the 4.80 slam, each chunk fading 0.15 -> 1 over 320ms (the app's StreamingText).
+      const ans = $("#s06-ans");
+      const words = ans.textContent.trim().split(/\s+/);
+      ans.innerHTML = words.map((w) => "<span>" + w + "</span>").join(" ");
+      const spans = [...ans.querySelectorAll("span")];
+      gsap.set(spans, { opacity: 0 });
+      let seed = 7;
+      const rnd = () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      let i = 0, t = 4.8;
+      while (i < spans.length) {
+        const n = 1 + Math.floor(rnd() * 3);
+        const chunk = spans.slice(i, i + n);
+        tl.fromTo(chunk, { opacity: 0.15 }, { opacity: 1, duration: 0.32, ease: "none", immediateRender: false }, t);
+        tl.set(chunk, { opacity: 0.15 }, t - 0.001);
+        i += n;
+        t += 0.08 + rnd() * 0.1;
+      }
+
       window.__timelines["s06-knows"] = tl;
     })();
   </script>

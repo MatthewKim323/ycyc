@@ -1,8 +1,8 @@
 <!-- s09b-any: yuzu runs no model of its own.
      A (0-2.6): onboarding "Pick your AI" (steps.tsx PickAI) and the plan login sheet (ai-login/login-sheet.tsx) at 3x:
      tap Claude plan, sign-in sheet, "Claude is connected", row goes live, zoom through Continue.
-     B (2.6-5.3): the handoff lands in Grok (capture R11), the Grok + Duolingo chip, push in on the answer.
-     C (5.3-8.1): the Link tab rows at speed, one check every half beat, the card drifting up as it grows; exits clean. -->
+     B (2.6-5.3): yuzu's own in-app chat on the Claude plan (agent/conversation.tsx + assistant-header.tsx) at 3x.
+     C (5.3-8.1): the Link tab rows at speed (7 rows, checks spread evenly 5.30 to 7.69), the card drifting up; exits clean. -->
 <!-- sfx: t=0.54 name=ui-open gain=0.35 -->
 <!-- sfx: t=0.70 name=card-morph gain=0.3 -->
 <!-- sfx: t=1.22 name=ding-success gain=0.5 -->
@@ -10,15 +10,14 @@
 <!-- sfx: t=1.90 name=row-tick gain=0.45 -->
 <!-- sfx: t=2.32 name=whoosh-soft gain=0.3 -->
 <!-- sfx: t=3.26 name=case-pop gain=0.45 -->
-<!-- sfx: t=3.94 name=msg-in gain=0.5 -->
+<!-- sfx: t=4.00 name=msg-in gain=0.45 -->
 <!-- sfx: t=5.00 name=whoosh-soft gain=0.3 -->
 <!-- sfx: t=5.30 name=row-tick gain=0.45 -->
-<!-- sfx: t=5.64 name=row-tick gain=0.45 -->
-<!-- sfx: t=5.98 name=row-tick gain=0.45 -->
-<!-- sfx: t=6.32 name=row-tick gain=0.45 -->
-<!-- sfx: t=6.66 name=row-tick gain=0.45 -->
-<!-- sfx: t=7.00 name=row-tick gain=0.45 -->
-<!-- sfx: t=7.35 name=row-tick gain=0.45 -->
+<!-- sfx: t=5.70 name=row-tick gain=0.45 -->
+<!-- sfx: t=6.10 name=row-tick gain=0.45 -->
+<!-- sfx: t=6.50 name=row-tick gain=0.45 -->
+<!-- sfx: t=6.89 name=row-tick gain=0.45 -->
+<!-- sfx: t=7.29 name=row-tick gain=0.45 -->
 <!-- sfx: t=7.69 name=row-tick gain=0.45 -->
 <!-- sfx: t=7.80 name=whoosh-soft gain=0.3 -->
 <template>
@@ -59,19 +58,27 @@
     .s9-done { display: flex; flex-direction: column; align-items: center; gap: 36px; padding: 36px 0; }
     .s9-mark { width: 192px; height: 192px; border-radius: 96px; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 36px; }
     .s9-mark .k-icon { width: 106px; height: 106px; }
-    /* B: phone with the R11 capture placeholder + the Grok, Duolingo chip. */
-    #s09b-ph11 { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
-    #s09b-phone { left: 0; top: 0; }
-    #s09b-scr { position: relative; background: #141414; }
-    #s09b-lab { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
-      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
-    #s09b-chip { position: absolute; left: 1100px; top: 480px; display: flex; align-items: center; gap: 24px; height: 120px; padding: 0 36px 0 18px;
-      border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #fff; }
-    #s09b-chip img { width: 84px; height: 84px; border-radius: 23px; display: block; flex: none; }
-    .s9-ca { font-weight: 600; letter-spacing: -0.01em; }
-    .s9-cs { color: #6b6b6b; margin: 0 -8px; }
-    .s9-cb { color: #a1a1a1; }
-
+    /* B: the Agent tab conversation at 3x (content 361pt -> 1083). */
+    #s09b-chat { position: absolute; left: 418px; top: 118px; width: 1083px; font-family: "Inter", sans-serif; color: #fff; }
+    .s9-bar { height: 156px; display: flex; align-items: center; justify-content: space-between; }
+    .s9-side { width: 240px; }
+    .s9-switch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .s9-swname { font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; }
+    .s9-swsub { display: flex; align-items: center; gap: 15px; font: 500 33px/42px "Inter", sans-serif; letter-spacing: 0.3px; color: #a1a1a1; }
+    .s9-swdot { width: 15px; height: 15px; border-radius: 8px; background: #fff; }
+    .s9-new { width: 240px; text-align: right; font: 500 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-thread { display: flex; flex-direction: column; gap: 72px; padding-top: 48px; }
+    #s09b-ub { align-self: flex-end; max-width: 888px; padding: 30px 48px; border-radius: 66px; background: #141414; font: 400 48px/66px "Inter", sans-serif; }
+    .s9-asst { display: flex; flex-direction: column; gap: 36px; }
+    #s09b-card2 { display: flex; align-items: center; gap: 36px; padding: 36px; border-radius: 48px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; }
+    #s09b-card2 img { width: 96px; height: 96px; border-radius: 26px; display: block; flex: none; }
+    .s9-ctext { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .s9-ctitle { font: 500 45px/63px "Inter", sans-serif; }
+    .s9-ccap { font: 400 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-cst { display: grid; justify-items: end; align-items: center; flex: none; }
+    .s9-cst > * { grid-area: 1 / 1; display: flex; align-items: center; gap: 18px; font: 400 39px/54px "Inter", sans-serif; color: #6b6b6b; white-space: nowrap; }
+    .s9-sdot { width: 18px; height: 18px; border-radius: 9px; background: #fff; }
+    #s09b-a2 { font: 400 48px/72px "Inter", sans-serif; }
     /* C: the Link tab column at 3x, shown at 0.8 (2.4x). Fixed row heights so the growth is exact. */
     #s09b-cpos { position: absolute; left: 536px; top: 0; width: 1059px; }
     #s09b-col { width: 1059px; transform-origin: 0 0; display: flex; flex-direction: column; gap: 78px; }
@@ -135,17 +142,30 @@
           </div>
         </div>
       </div>
-      <!-- B: the handoff lands in Grok -->
+      <!-- B: yuzu's in-app chat on the Claude plan -->
       <div id="s09b-bcam" class="s9-cam">
-        <div id="s09b-ph11">
-          <div id="s09b-phone" class="k-phone">
-            <!-- footage: assets/footage/r11-grok-duolingo.mp4 -->
-            <div id="s09b-scr" class="k-screen"><div id="s09b-lab">R11 · Grok: am I about to lose my Duolingo streak?</div></div>
+        <div id="s09b-chat">
+          <div class="s9-bar">
+            <div class="s9-side"></div>
+            <div class="s9-switch"><div class="s9-swname">Claude</div><div class="s9-swsub"><span class="s9-swdot"></span>Your plan</div></div>
+            <div class="s9-new">New chat</div>
+          </div>
+          <div class="s9-thread">
+            <div id="s09b-ub">How much protein do I have left today?</div>
+            <div class="s9-asst">
+              <div id="s09b-card2">
+                <img src="assets/apps/myfitnesspal.png" alt="" />
+                <div class="s9-ctext"><div class="s9-ctitle">Read today's diary</div><div class="s9-ccap">MyFitnessPal · 1,480 of 2,300 cal</div></div>
+                <div class="s9-cst">
+                  <div id="s09b-cs-run"><span class="s9-sdot" style="opacity:0.5"></span>Working</div>
+                  <div id="s09b-cs-ok"><span class="s9-sdot"></span>Done</div>
+                </div>
+              </div>
+              <div id="s09b-a2">You've had 62 g of protein today. That's 78 g left to hit 140 g.</div>
+            </div>
           </div>
         </div>
       </div>
-      <div id="s09b-chip" class="s9-f"><img src="assets/apps/duolingo.png" alt="" /><span class="s9-ca">Grok</span><span class="s9-cs">·</span><span class="s9-cb">Duolingo</span></div>
-
       <!-- C: Link tab rows -->
       <div id="s09b-cpos">
         <div id="s09b-col" class="s9-f">
@@ -177,7 +197,6 @@
               <div id="s09b-d1" class="s9-dev"><div class="s9-devlabel">Claude Code</div><div id="s09b-d1-b" class="s9-copy"><span id="s09b-d1-c">Copy</span><span id="s09b-d1-k">Copied</span></div></div>
               <div id="s09b-d2" class="s9-dev"><div class="s9-devlabel">Codex</div><div id="s09b-d2-b" class="s9-copy"><span id="s09b-d2-c">Copy</span><span id="s09b-d2-k">Copied</span></div></div>
               <div id="s09b-d3" class="s9-dev"><div class="s9-devlabel">Cursor</div><div id="s09b-d3-b" class="s9-copy"><span id="s09b-d3-c">Copy link</span><span id="s09b-d3-k">Copied</span></div></div>
-              <div id="s09b-d4" class="s9-dev"><div class="s9-devlabel">iMessage</div><div id="s09b-d4-b" class="s9-copy"><span id="s09b-d4-c">Copy link</span><span id="s09b-d4-k">Copied</span></div></div>
             </div>
           </div>
         </div>
@@ -253,31 +272,43 @@
       tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
       tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.44);
 
-      // ---------------- B: the handoff in Grok (2.42 - 5.36) ----------------
-      const PX = 700, ANS = 648;
-      gsap.set("#s09b-ph11", { scale: 0.966, x: PX - 960 });
-      gsap.set("#s09b-bcam", { ...cam(1.45, PX, 600), opacity: 0 });
-      tl.fromTo("#s09b-bcam", cam(1.45, PX, 600), { ...cam(1, 960, 540), duration: 0.5, ease: "expo.out", immediateRender: false }, 2.42);
+      // ---------------- B: yuzu's in-app chat (2.42 - 5.34) ----------------
+      gsap.set("#s09b-bcam", { ...cam(1.25, 960, 540), opacity: 0 });
+      tl.fromTo("#s09b-bcam", cam(1.25, 960, 540), { ...cam(1, 960, 540), duration: 0.5, ease: "expo.out", immediateRender: false }, 2.42);
       tl.fromTo("#s09b-bcam", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.42);
-      // Chip lands on 3.26.
-      gsap.set("#s09b-chip", { opacity: 0, transformOrigin: "0% 50%" });
-      tl.fromTo("#s09b-chip", { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 3.26);
-      tl.fromTo("#s09b-chip", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 3.26);
-      // Push in on the answer (3.94), the phone shifting left of the chip; hold with a drift.
-      const P1 = cam(1.55, PX, ANS, 720), P2 = cam(1.6, PX, ANS, 720);
-      tl.fromTo("#s09b-bcam", cam(1, 960, 540), { ...P1, duration: 0.42, ease: "power2.inOut", immediateRender: false }, 3.94);
-      blurPulse("#s09b-ph11", 3.94, 0.42, 6);
-      tl.fromTo("#s09b-bcam", P1, { ...P2, duration: 0.64, ease: "sine.inOut", immediateRender: false }, 4.36);
-      // Whip up into C.
-      // One page push up into C: B and the chip leave the top as the Link rows arrive from below (same distance and ease).
-      tl.fromTo("#s09b-bcam", { y: P2.y }, { y: P2.y - 1080, duration: 0.34, ease: "power3.inOut", immediateRender: false }, 5.0);
-      tl.to("#s09b-ph11", { filter: "blur(6px)", duration: 0.34, ease: "power2.in" }, 5.0);
-      tl.to("#s09b-chip", { y: -1080, filter: "blur(6px)", duration: 0.34, ease: "power3.inOut" }, 5.0);
-
+      tl.fromTo("#s09b-bcam", cam(1, 960, 540), { ...cam(1.04, 960, 540), duration: 2.08, ease: "sine.inOut", immediateRender: false }, 2.92);
+      // 2.58: the question lands; 3.26: the MyFitnessPal card (Working); 3.94: Done.
+      [["#s09b-ub", 2.58], ["#s09b-card2", 3.26]].forEach(([el, at]) => {
+        gsap.set(el, { opacity: 0 });
+        tl.fromTo(el, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, at);
+        tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, at);
+      });
+      gsap.set("#s09b-cs-ok", { opacity: 0 });
+      swap($("#s09b-cs-run"), $("#s09b-cs-ok"), 3.94);
+      // 4.00: the answer streams in chunks, each fading 0.15 -> 1 over 320ms (StreamingText).
+      const a2 = $("#s09b-a2");
+      const w2 = a2.textContent.trim().split(/\s+/);
+      a2.innerHTML = w2.map((w) => "<span>" + w + "</span>").join(" ");
+      const sp2 = [...a2.querySelectorAll("span")];
+      gsap.set(sp2, { opacity: 0 });
+      const chunks = [2, 1, 2, 2, 1, 2, 2, 1, 2];
+      let k = 0, ct = 4.0;
+      chunks.forEach((n, ci) => {
+        const ch = sp2.slice(k, k + n);
+        if (!ch.length) return;
+        tl.set(ch, { opacity: 0.15 }, ct - 0.001);
+        tl.fromTo(ch, { opacity: 0.15 }, { opacity: 1, duration: 0.32, ease: "none", immediateRender: false }, ct);
+        k += n;
+        ct += [0.1, 0.08, 0.12, 0.09, 0.11, 0.08, 0.1, 0.12, 0.09][ci];
+      });
+      // One page push up into C (same distance and ease as C's arrival).
+      const BE = cam(1.04, 960, 540);
+      tl.fromTo("#s09b-bcam", { y: BE.y }, { y: BE.y - 1080, duration: 0.34, ease: "power3.inOut", immediateRender: false }, 5.0);
+      tl.to("#s09b-chat", { filter: "blur(6px)", duration: 0.34, ease: "power2.in" }, 5.0);
       // ---------------- C: Link tab rows at speed (5.14 - 8.10) ----------------
       // Bottoms (3x px, column space) after each step; the column shows at 0.8 and keeps the newest row in frame.
-      const CS = 0.8, beats = [5.3, 5.64, 5.98, 6.32, 6.66, 7.0, 7.35, 7.69];
-      const bottoms = [210, 420, 630, 840, 1185, 1341, 1497, 1653];
+      const CS = 0.8, beats = [5.3, 5.698, 6.097, 6.495, 6.893, 7.292, 7.69]; // 7 rows spread evenly over 5.30 - 7.69
+      const bottoms = [210, 420, 630, 840, 1185, 1341, 1497];
       const topFor = (b) => { const h = CS * b; return h < 840 ? 540 - h / 2 : 960 - h; };
       gsap.set("#s09b-col", { scale: CS });
       gsap.set("#s09b-cpos", { y: topFor(210) + 1080 });
@@ -286,8 +317,8 @@
       // Cards grow by clipping to the newest row (round 54 keeps the corners).
       const clip = (b) => "inset(0px 0px " + b + "px 0px round 54px)";
       gsap.set("#s09b-card", { clipPath: clip(840 - 210) });
-      gsap.set("#s09b-dev", { clipPath: clip(783), opacity: 0 });
-      const rows = ["#s09b-r1", "#s09b-r2", "#s09b-r3", "#s09b-r4", "#s09b-d1", "#s09b-d2", "#s09b-d3", "#s09b-d4"];
+      gsap.set("#s09b-dev", { clipPath: clip(627), opacity: 0 });
+      const rows = ["#s09b-r1", "#s09b-r2", "#s09b-r3", "#s09b-r4", "#s09b-d1", "#s09b-d2", "#s09b-d3"];
       gsap.set(rows.slice(1), { opacity: 0 });
       gsap.set("#s09b-dh", { opacity: 0 });
       beats.forEach((at, i) => {
@@ -302,7 +333,7 @@
               tl.fromTo("#s09b-dev", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, land);
               tl.fromTo("#s09b-dh", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: KIT.ease.enter, immediateRender: false }, land);
             }
-            tl.fromTo("#s09b-dev", { clipPath: clip(783 - prev) }, { clipPath: clip(783 - next), duration: 0.32, ease: S.layout.ease, immediateRender: false }, land);
+            tl.fromTo("#s09b-dev", { clipPath: clip(627 - prev) }, { clipPath: clip(627 - next), duration: 0.32, ease: S.layout.ease, immediateRender: false }, land);
           }
         }
         if (i < 4) {
