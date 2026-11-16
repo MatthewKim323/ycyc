@@ -132,7 +132,7 @@ test("approveTool authenticates owner before invoking the existing decision muta
   assert.deepEqual(f.calls, [
     { name: "users:byToken", args: { token } },
     { name: "approvals:get", args: { approvalId } },
-    { name: "approvals:decide", args: { approvalId, decision: "approve" } },
+    { name: "approvals:decide", args: { approvalId, decision: "approve", token } },
   ]);
   assert.deepEqual(f.scheduled, [{ name: "approvalRunner:run", args: { approvalId } }]);
   assert.deepEqual(await approve._handler(f.actionCtx, args), { status: "approved" });

@@ -2,17 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import type { ClientRequest, IncomingMessage } from "node:http";
-import { extractResearchCandidates, isPublicIp, MAX_SOURCE_BYTES, pinnedLookup, resolvePublicAddress, safeResearchFetch, validateResearchUrl, type ResearchTransport, type ResearchRequestOptions } from "../../convex/lib/learningHttp";
+import { extractResearchCandidates, isPublicIp, MAX_SOURCE_BYTES, pinnedLookup, resolvePublicAddress, safeResearchFetch, safeAppRequest, MAX_WRITE_BYTES, validateResearchUrl, type ResearchTransport, type ResearchRequestOptions, type AppWriteMethod } from "../../convex/lib/learningHttp";
 
 const origin = "https://app.example.com";
-function fixture(options: { status?: number; headers?: Record<string, string>; chunks?: Buffer[]; error?: boolean; stall?: boolean; stallBody?: boolean; abort?: boolean } = {}) {
+type FixtureOptions = { status?: number; headers?: Record<string, string>; chunks?: Buffer[]; error?: boolean; stall?: boolean; stallBody?: boolean; abort?: boolean };
+function fixture(options: FixtureOptions = {}) {
   let requests = 0, lookups = 0;
   let sent: ResearchRequestOptions | undefined;
+  let body = "";
   const io: ResearchTransport = {
     resolve: async () => { lookups++; return [{ address: "8.8.8.8", family: 4 }]; },
     request: (_url, config, callback) => {
       requests++; sent = config;
       const request = new PassThrough();
+      request.on("data", (chunk: Buffer) => { body += chunk.toString("utf8"); });
       request.on("finish", () => {
         if (options.error) { request.emit("error", new Error("private backend detail")); return; }
         if (options.stall) return;
@@ -25,7 +28,7 @@ function fixture(options: { status?: number; headers?: Record<string, string>; c
       return request as unknown as ClientRequest;
     },
   };
-  return { io, get requests() { return requests; }, get lookups() { return lookups; }, get sent() { return sent; } };
+  return { io, get requests() { return requests; }, get lookups() { return lookups; }, get sent() { return sent; }, get body() { return body; } };
 }
 
 function lookupResult(lookup: ReturnType<typeof pinnedLookup>, all: boolean): Promise<unknown[]> {
@@ -131,4 +134,93 @@ test("extractor discovers same-origin documentation anchors and literal JSON API
     sources: [origin + "/docs/start", origin + "/developer/reference", origin + "/api/reference", origin + "/reference", origin + "/openapi.json"],
     endpoints: [origin + "/api/reference", origin + "/openapi.json", origin + "/search.json?q=books", origin + "/data/status.json"],
   });
+});
+
+
+test("writes send each approved JSON method once with exact bytes and server-computed headers", async () => {
+  const body = '{"name":"héllo"}';
+  for (const method of ["POST", "PUT", "PATCH", "DELETE"] as const) {
+    const f = fixture();
+    const result = await safeAppRequest(origin + "/api/items", origin, { method, headers: { Authorization: "Bearer server-built", "Content-Type": "text/plain", Accept: "text/html" }, body }, f.io);
+    assert.equal(result.status, 200);
+    assert.equal(f.requests, 1); assert.equal(f.lookups, 1);
+    assert.equal(f.sent?.method, method); assert.equal(f.sent?.agent, false);
+    assert.equal(f.sent?.autoSelectFamily, false);
+    assert.deepEqual(await lookupResult(f.sent!.lookup!, false), ["8.8.8.8", 4]);
+    assert.equal(f.body, body);
+    const headers = f.sent?.headers as Record<string, string>;
+    assert.equal(headers.authorization, "Bearer server-built");
+    assert.equal(headers.accept, "application/json"); assert.equal(headers["content-type"], "application/json");
+    assert.equal(headers["content-length"], String(Buffer.byteLength(body)));
+    assert.equal(headers["accept-encoding"], "identity");
+  }
+});
+
+test("write validation refuses unsafe methods, bodies, origins and header overrides before DNS or HTTP", async () => {
+  const f = fixture();
+  for (const method of ["GET", "HEAD", "CONNECT", "post"]) await assert.rejects(safeAppRequest(origin, origin, { method: method as AppWriteMethod, headers: {} }, f.io), /invalid_method/);
+  for (const body of ["not JSON private-secret", JSON.stringify("é".repeat(MAX_WRITE_BYTES / 2))]) await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body }, f.io), /^Error: learning_invalid_body$/);
+  await assert.rejects(safeAppRequest("https://evil.example.com/api", origin, { method: "POST", headers: {}, body: "{}" }, f.io), /origin_mismatch/);
+  const badHeaders: Record<string, string>[] = [{ "Content-Length": "2" }, { "Transfer-Encoding": "chunked" }, { Host: "evil.example" }, { "Proxy-Authorization": "private" }, { "Proxy-Connection": "keep-alive" }, { "X-HTTP-Method-Override": "GET" }, { "X-Method-Override": "GET" }, { "X-Original-URL": "/admin" }, { "X-Forwarded-Host": "evil.example" }, { Authorization: "private\r\nHost:evil.example" }];
+  for (const headers of badHeaders) await assert.rejects(safeAppRequest(origin, origin, { method: "PATCH", headers, body: "{}" }, f.io), /invalid_headers/);
+  assert.equal(f.requests, 0); assert.equal(f.lookups, 0);
+});
+
+test("writes preserve network guards and reject private/mapped DNS answers before sending", async () => {
+  for (const address of [{ address: "10.0.0.1", family: 4 }, { address: "::ffff:7f00:1", family: 6 }]) {
+    const f = fixture();
+    await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body: "{}" }, { ...f.io, resolve: async () => [address] }), /learning_private_address/);
+    assert.equal(f.requests, 0);
+  }
+});
+
+test("write response loss, redirects and rejected responses have uncertain outcomes and are never retried", async () => {
+  const failures: FixtureOptions[] = [
+    { error: true }, { abort: true }, { stall: true }, { stallBody: true },
+    { status: 307, headers: { location: origin + "/next" } },
+    { headers: { "content-type": "text/html" }, chunks: [Buffer.from("private response")] },
+    { chunks: [Buffer.from("not JSON private response")] },
+    { headers: { "content-encoding": "gzip" } },
+    { headers: { "content-length": String(MAX_SOURCE_BYTES + 1) } },
+    { chunks: [Buffer.alloc(MAX_SOURCE_BYTES + 1)] },
+    { chunks: [Buffer.from([0xff])] },
+  ];
+  for (const options of failures) {
+    const f = fixture(options);
+    await assert.rejects(safeAppRequest(origin, origin, { method: "PUT", headers: {}, body: "{}" }, { ...f.io, timeoutMs: 5 }), /^Error: learning_write_outcome_uncertain$/);
+    assert.equal(f.requests, 1); assert.equal(f.lookups, 1);
+  }
+});
+
+test("write deadlines include DNS without a late request, and request construction failures never retry", async () => {
+  const f = fixture();
+  await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body: "{}" }, { ...f.io, timeoutMs: 5, resolve: async () => { await new Promise((resolve) => setTimeout(resolve, 20)); return [{ address: "8.8.8.8", family: 4 }]; } }), /learning_write_outcome_uncertain/);
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.equal(f.requests, 0);
+  let attempts = 0;
+  await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body: "{}" }, { ...f.io, request: () => { attempts++; throw new Error("private transport detail"); } }), /^Error: learning_write_outcome_uncertain$/);
+  assert.equal(attempts, 1);
+});
+
+test("writes accept empty/204 replies and return explicit JSON error statuses without retrying", async () => {
+  for (const status of [200, 204]) {
+    const f = fixture({ status, headers: { "content-type": "" }, chunks: [] });
+    assert.deepEqual(await safeAppRequest(origin, origin, { method: "DELETE", headers: {} }, f.io), { url: origin + "/", status, contentType: "", text: "" });
+    assert.equal((f.sent?.headers as Record<string, string>)["content-length"], "0");
+    assert.equal(f.body, ""); assert.equal(f.requests, 1);
+  }
+  const f = fixture({ status: 422, headers: { "content-type": "application/problem+json" }, chunks: [Buffer.from('{"error":"rejected"}')] });
+  const result = await safeAppRequest(origin, origin, { method: "POST", headers: {}, body: "{}" }, f.io);
+  assert.equal(result.status, 422); assert.equal(f.requests, 1);
+});
+
+
+test("write request byte limit accepts the exact boundary and never coerces malformed JSON", async () => {
+  const body = JSON.stringify({ x: "a".repeat(MAX_WRITE_BYTES - JSON.stringify({ x: "" }).length) });
+  assert.equal(Buffer.byteLength(body), MAX_WRITE_BYTES);
+  const f = fixture();
+  await safeAppRequest(origin, origin, { method: "POST", headers: {}, body }, f.io);
+  assert.equal(f.body, body); assert.equal(f.requests, 1);
+  await assert.rejects(safeAppRequest(origin, origin, { method: "POST", headers: {}, body: body + " " }, f.io), /learning_invalid_body/);
+  assert.equal(f.requests, 1);
 });

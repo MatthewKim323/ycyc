@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getFunctionName } from "convex/server";
 import { handleMcpPost } from "../../convex/lib/mcp";
-import { claudeTurnArguments } from "../../convex/lib/providerTurn";
+import { claudeTurnArguments, codexModelCatalog } from "../../convex/lib/providerTurn";
 import { SITE_URL } from "../../convex/lib/env";
 
 const token = "private-learning-capability-a";
@@ -17,6 +17,8 @@ function fixture() {
     discovered: [{ slug: "app_123", name: "Test Notes", blurb: "Private notes" }],
   };
   const learned = [{ toolId: "learned-a", app: "app_123", name: "read_notes", title: "Read notes", status: "published" }];
+  let learningResult: unknown = { ok: true, evidenceId: "evidence-a" };
+  let approval: Record<string, unknown> = { status: "pending", expiresAt: Date.now() + 60_000 };
   const ctx = {
     runQuery: async (ref: Parameters<typeof getFunctionName>[0], args: Record<string, any>) => {
       const name = getFunctionName(ref);
@@ -26,11 +28,12 @@ function fixture() {
       if (name === "mcpData:names") return {};
       if (name === "approvals:activeGrant") return null;
       if (name === "approvals:get") return { status: "denied" };
+      if (name === "approvals:forUser") { assert.equal(args.userId, "user-a"); return approval; }
       throw new Error(`Unexpected query ${name}`);
     },
     runAction: async (ref: Parameters<typeof getFunctionName>[0], args: Record<string, any>) => {
       actions.push({ name: getFunctionName(ref), args });
-      return JSON.stringify({ ok: true, evidenceId: "evidence-a" });
+      return JSON.stringify(learningResult);
     },
     runMutation: async (ref: Parameters<typeof getFunctionName>[0], args: Record<string, any>) => {
       const name = getFunctionName(ref);
@@ -53,7 +56,10 @@ function fixture() {
       request: { method: "POST", urlTemplate: "https://notes.example.test/private", headers: { authorization: "private-authorization-marker" } },
     }] }),
   });
-  return { raw, learned, actions, mutations, queries, send, call, addLive };
+  return { raw, learned, actions, mutations, queries, send, call, addLive,
+    setLearningResult: (result: unknown) => { learningResult = result; },
+    setApproval: (result: Record<string, unknown>) => { approval = result; },
+  };
 }
 
 test("MCP registers the bounded private learning workflow and stable generic callers", async () => {
@@ -68,9 +74,67 @@ test("MCP registers the bounded private learning workflow and stable generic cal
   assert.ok(built.inputSchema.required.includes("evidenceId"));
   assert.equal(built.annotations.readOnlyHint, false);
   assert.match(built.description, /read-only/);
+  assert.deepEqual(built.inputSchema.properties.kind.enum, ["read", "write"]);
+  assert.equal(built.inputSchema.properties.kind.default, "read");
+  assert.ok(!built.inputSchema.required.includes("kind"));
   const initialized = await f.send("initialize", { protocolVersion: "2025-03-26" });
   assert.match(initialized.message.result.instructions, /verify_app_tool and publish_app_tool/);
   assert.match(initialized.message.result.instructions, /pause until they do/);
+});
+
+test("learned writes advertise structural-only checks and conditional idempotency without changing read arguments", async () => {
+  const f = fixture();
+  const { message } = await f.send("tools/list");
+  const verify = message.result.tools.find((tool: any) => tool.name === "verify_app_tool");
+  const call = message.result.tools.find((tool: any) => tool.name === "call_learned_tool");
+  assert.match(verify.description, /local structural dry run/);
+  assert.match(verify.description, /no network call or replay/);
+  assert.equal(call.annotations.readOnlyHint, false);
+  assert.equal(call.annotations.destructiveHint, true);
+  assert.deepEqual(call.inputSchema.required, ["toolId"]);
+  assert.match(call.inputSchema.properties.requestId.description, /Required for writes/);
+  for (const tool of [verify, call]) {
+    assert.deepEqual(tool.inputSchema.properties.args.additionalProperties.type, ["string", "number", "boolean", "object", "array", "null"]);
+  }
+  const args = { toolId: "read-a", args: { query: "notes", limit: 5, active: true } };
+  await f.call("call_learned_tool", args);
+  assert.deepEqual(f.actions.at(-1)?.args, { token, operation: "call_learned_tool", argsJson: JSON.stringify(args) });
+});
+
+test("captured write builds and dry runs keep their evidence and exact arguments on the private dispatch", async () => {
+  const f = fixture();
+  const build = { app: "app_123", evidenceId: "write-evidence-a", name: "create_note", title: "Create note", kind: "write" };
+  await f.call("build_app_tool", build);
+  assert.deepEqual(f.actions.at(-1)?.args, { token, operation: "build_app_tool", argsJson: JSON.stringify(build) });
+  const verify = { toolId: "write-a", args: { note: "hello" } };
+  f.setLearningResult({ ok: true, status: "shape_validated", executionProven: false });
+  const checked = await f.call("verify_app_tool", verify);
+  assert.deepEqual(f.actions.at(-1)?.args, { token, operation: "verify_app_tool", argsJson: JSON.stringify(verify) });
+  assert.equal(JSON.parse(checked.message.result.content[0].text).executionProven, false);
+  assert.equal(f.mutations.length, 0, "a dry-run request must not enter the existing write-execution route");
+});
+
+test("learned write approval replies remain pending until the existing owned receipt confirms execution", async () => {
+  const f = fixture();
+  const pending = { status: "approval_required", approvalId: "learned-approval-a", preview: { title: "Create note" } };
+  f.setLearningResult(pending);
+  const args = { toolId: "write-a", requestId: "learned-write-request-1", args: { note: "hello" } };
+  const reply = await f.call("call_learned_tool", args);
+  assert.deepEqual(JSON.parse(reply.message.result.content[0].text), pending);
+  assert.deepEqual(f.actions[0], { name: "appLearning:tool", args: { token, operation: "call_learned_tool", argsJson: JSON.stringify(args) } });
+  const waiting = await f.call("check_approval", { id: pending.approvalId });
+  assert.match(waiting.message.result.content[0].text, /Waiting for approval/);
+  f.setApproval({ status: "approved", runState: "running", expiresAt: Date.now() + 60_000 });
+  const running = await f.call("check_approval", { id: pending.approvalId });
+  assert.match(running.message.result.content[0].text, /Approved and running/);
+  f.setApproval({ status: "approved", runState: "done", resultJson: JSON.stringify({ ok: true, text: "Created note" }) });
+  const completed = await f.call("check_approval", { id: pending.approvalId });
+  assert.match(completed.message.result.content[0].text, /Approved and done/);
+  assert.equal(f.actions.length, 1, "checking receipts must not resubmit the write");
+  assert.equal(f.mutations.length, 0);
+  assert.deepEqual(f.queries.filter((query) => query.name === "approvals:forUser").map((query) => query.args),
+    Array.from({ length: 3 }, () => ({ id: pending.approvalId, userId: "user-a" })));
+  assert.ok(!f.queries.some((query) => query.name === "approvals:activeGrant"), "learned writes must not use the legacy hour-grant path");
 });
 
 test("every learning operation forwards the URL capability and fixed operation without trusting argument overrides", async () => {
@@ -148,4 +212,11 @@ test("Claude allows a complete learning chain while keeping native tools disable
   assert.equal(args[args.indexOf("--tools") + 1], "");
   assert.equal(args[args.indexOf("--allowedTools") + 1], "mcp__yuzu__*");
   assert.ok(args.includes("--strict-mcp-config"));
+  const instructions = args[args.indexOf("--system-prompt") + 1];
+  assert.equal(codexModelCatalog().models[0].base_instructions, instructions);
+  assert.match(instructions, /local structural dry run, never a network request or replay/);
+  assert.match(instructions, /use check_approval with approvalId/);
+  assert.match(instructions, /one-time exact-action approval/);
+  assert.match(instructions, /Only claim success after the execution receipt/);
+  assert.match(instructions, /Never replay or automatically retry a write/);
 });

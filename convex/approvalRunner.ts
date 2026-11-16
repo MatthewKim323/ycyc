@@ -13,6 +13,10 @@ export const run = internalAction({
     if (!(await ctx.runMutation(internal.approvals.claimRun, { approvalId }))) return;
     const finish = (ok: boolean, text: string) => ctx.runMutation(internal.approvals.storeResult, { approvalId, ok, text });
     const a = await ctx.runQuery(internal.approvals.get, { approvalId });
+    if (a?.learnedWriteId) {
+      await ctx.runAction(internal.appLearningWrites.runApproved, { approvalId });
+      return;
+    }
     if (!a?.connectionId) return void (await finish(false, "The connection is gone. Nothing was changed."));
     const conn = await ctx.runQuery(internal.connections.get, { connectionId: a.connectionId });
     if (!conn || conn.status !== "live") return void (await finish(false, "The app is no longer connected. Nothing was changed."));

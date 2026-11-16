@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { catalogApp } from "./catalog";
 import { publicToolData } from "./lib/publicToolData";
+import { previewForApproval } from "./approvals";
 
 // Subscribe separately to approvalResult after deciding, for the eventual receipt.
 export const pendingApprovals = query({
@@ -12,12 +13,19 @@ export const pendingApprovals = query({
     if (!user) throw new Error("Your yuzu session is unavailable. Reopen the app.");
     const rows = await ctx.db.query("approvals").withIndex("by_user_status", (q) => q.eq("userId", user._id).eq("status", "pending"))
       .order("desc").take(10);
-    return rows.map((row) => publicToolData({
+    return Promise.all(rows.map(async (row) => {
+      const requestPreview = await previewForApproval(ctx, row);
+      const metadata = publicToolData({
       approvalId: row._id, appSlug: row.appSlug, appName: catalogApp(row.appSlug)?.name ?? row.appSlug,
       tool: row.tool, title: row.title, summary: row.summary, warning: row.warning,
-      args: JSON.parse(row.argsJson) as Record<string, unknown>,
+      ...(row.learnedWriteId ? {} : { args: JSON.parse(row.argsJson) as Record<string, unknown> }),
+      oneTimeOnly: !!row.learnedWriteId,
       status: row.status, createdAt: row.createdAt, expiresAt: row.expiresAt,
-    }, token));
+      }, token);
+      // The preview has already passed exact bounded sanitization. Do not spend
+      // one redaction budget twice on its args or silently truncate the approval.
+      return { ...metadata, ...(row.learnedWriteId ? { args: requestPreview?.args ?? {} } : {}), requestPreview };
+    }));
   },
 });
 

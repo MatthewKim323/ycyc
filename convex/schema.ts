@@ -65,8 +65,9 @@ export default defineSchema({
   // Agent learning is private, immutable evidence + versioned tools, never shared recipes.
   appLearningEvidence: defineTable({
     userId: v.id("users"), appSlug: v.string(),
-    kind: v.union(v.literal("source"), v.literal("endpoint")),
+    kind: v.union(v.literal("source"), v.literal("endpoint"), v.literal("write_endpoint")),
     origin: v.string(), url: v.string(),
+    method: v.optional(v.string()), requestSchemaJson: v.optional(v.string()), bodyPresent: v.optional(v.boolean()),
     connectionId: v.optional(v.id("connections")), sessionEpoch: v.optional(v.string()),
     headerNames: v.array(v.string()), shapeJson: v.string(),
     createdAt: v.number(), expiresAt: v.number(),
@@ -75,10 +76,22 @@ export default defineSchema({
   appLearnedTools: defineTable({
     userId: v.id("users"), appSlug: v.string(), evidenceId: v.id("appLearningEvidence"),
     name: v.string(), title: v.string(), responsePath: v.string(), inputSchemaJson: v.optional(v.string()),
+    kind: v.optional(v.union(v.literal("read"), v.literal("write"))),
     status: v.union(v.literal("draft"), v.literal("verified"), v.literal("published")),
     verifiedAt: v.optional(v.number()), verificationJson: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Exact user-approved learned requests. No copied session headers or original
+  // capture values: requestJson holds only fixed destination/method + new args.
+  appLearnedWrites: defineTable({
+    userId: v.id("users"), toolId: v.id("appLearnedTools"), evidenceId: v.id("appLearningEvidence"),
+    connectionId: v.id("connections"), sessionEpoch: v.string(),
+    requestId: v.string(), requestHash: v.string(), argsJson: v.string(),
+    requestJson: v.string(), previewJson: v.string(), approvalId: v.optional(v.id("approvals")),
+    createdAt: v.number(), expiresAt: v.number(), dispatchedAt: v.optional(v.number()),
+  }).index("by_user_request", ["userId", "requestId"])
+    .index("by_user_hash", ["userId", "requestHash"]),
 
   users: defineTable({
     deviceId: v.string(),
@@ -213,6 +226,7 @@ export default defineSchema({
 
   approvals: defineTable({
     userId: v.id("users"),
+    learnedWriteId: v.optional(v.id("appLearnedWrites")),
     connectionId: v.optional(v.id("connections")),
     appSlug: v.string(),
     tool: v.string(),

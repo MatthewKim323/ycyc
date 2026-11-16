@@ -58,6 +58,6 @@ export const approveTool = action({
     if (!user) throw new Error("Your yuzu session is unavailable. Reopen the app.");
     const approval = await ctx.runQuery(internal.approvals.get, { approvalId });
     if (!approval || approval.userId !== user._id) throw new Error("This approval is unavailable.");
-    return ctx.runMutation(api.approvals.decide, { approvalId, decision });
+    return ctx.runMutation(api.approvals.decide, { approvalId, decision, token });
   },
 });

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -59,26 +59,31 @@ function describe(a: PendingApproval) {
 
 /** Bottom sheet for anything an assistant wants to change. Approve or Not now, from any screen. */
 export function ApprovalSheet() {
-  const { userId } = useUser();
+  const { userId, mcpUrl } = useUser();
+  const token = mcpUrl?.split("?")[0]?.split("/").filter(Boolean).pop();
   const insets = useSafeAreaInsets();
-  const pending = useQuery(api.approvals.pending, userId ? { userId } : "skip");
+  const pending = useQuery(api.approvals.pending, userId ? { userId, token } : "skip");
   const decide = useMutation(api.approvals.decide);
   // Profile setting "Approvals: Allow for an hour" makes Approve grant the hour.
   const me = useQuery(api.profile.me, userId ? { userId } : "skip");
   const approveHour = me?.prefs?.approvalsDefault === "hour";
   const [busy, setBusy] = useState<"approve" | "approve_hour" | "deny" | null>(null);
+  const [failedFor, setFailedFor] = useState<string | null>(null);
 
   const current = pending?.[0];
   const visible = !!current;
 
   const act = async (decision: "approve" | "approve_hour" | "deny") => {
-    if (!current) return;
+    if (!current || busy || (current.oneTimeOnly && decision === "approve_hour")) return;
+    setFailedFor(null);
     setBusy(decision);
     try {
-      const effective = decision === "approve" && approveHour ? "approve_hour" : decision;
-      await decide({ approvalId: current._id, decision: effective });
+      const effective = decision === "approve" && approveHour && !current.oneTimeOnly ? "approve_hour" : decision;
+      await decide({ approvalId: current._id, decision: effective, token });
       if (decision !== "deny") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch {
+      setFailedFor(current._id);
     } finally {
       setBusy(null);
     }
@@ -132,15 +137,31 @@ export function ApprovalSheet() {
                 </View>
               ) : null}
             </View>
+            {current.oneTimeOnly && current.requestPreview ? (
+              <ScrollView style={styles.preview} contentContainerStyle={styles.previewContent}>
+                <Text variant="caption" color={colors.textSecondary}>
+                  One-time change · {current.requestPreview.method} {current.requestPreview.path}
+                </Text>
+                {Object.entries(current.requestPreview.args).map(([key, value]) => (
+                  <View key={key} style={styles.previewField}>
+                    <Text variant="caption" color={colors.textSecondary}>{cap(key.replace(/[_-]+/g, " "))}</Text>
+                    <Text variant="body">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
             {warning ? (
               <Text variant="caption" color={colors.textSecondary} style={styles.warning}>
                 {warning}
               </Text>
             ) : null}
+            {failedFor === current._id ? (
+              <Text variant="caption" color={colors.error}>Couldn&rsquo;t save your decision. Try again.</Text>
+            ) : null}
 
             <View style={styles.actions}>
-              <Button label="Approve" onPress={() => act("approve")} haptic="none" loading={busy === "approve"} disabled={!!busy} fullWidth />
-              <PressableScale
+              <Button label="Approve" onPress={() => act("approve")} haptic="none" loading={busy === "approve"} disabled={!!busy || (current.oneTimeOnly && !current.requestPreview)} fullWidth />
+              {!current.oneTimeOnly ? <PressableScale
                 onPress={() => act("approve_hour")}
                 disabled={!!busy}
                 haptic="none"
@@ -151,7 +172,7 @@ export function ApprovalSheet() {
                 <Text variant="bodyMedium" color={busy === "approve_hour" ? colors.textTertiary : colors.textSecondary}>
                   Allow for 1 hour
                 </Text>
-              </PressableScale>
+              </PressableScale> : null}
               <Button label="Not now" kind="secondary" onPress={() => act("deny")} haptic="none" loading={busy === "deny"} disabled={!!busy} fullWidth />
             </View>
           </Animated.View>
@@ -186,6 +207,9 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   detailTop: { flexDirection: "row", alignItems: "baseline", gap: space.md },
+  preview: { maxHeight: 220 },
+  previewContent: { gap: space.md },
+  previewField: { gap: space.xs },
   flex: { flex: 1 },
   facts: { flexDirection: "row", flexWrap: "wrap", gap: space.lg },
   tabular: { fontVariant: ["tabular-nums"] },

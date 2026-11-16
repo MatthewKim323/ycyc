@@ -7,6 +7,7 @@ import { internalAction, internalMutation, internalQuery, type ActionCtx, type Q
 import { SITE_URL } from "./lib/env";
 import { capturedHeaders, endpointUrl, epoch, parameterizedUrl, querySchema, redactSessionEcho, responseAt, safePath, valueShape } from "./lib/learningPolicy";
 import { publicToolData } from "./lib/publicToolData";
+import { capturedWriteSchema, writeArguments, writeEndpointUrl, writeMethod, writePreview } from "./lib/learnedWritePolicy";
 
 const DAY = 86_400_000;
 const safeName = (s: unknown) => typeof s === "string" && /^[a-z][a-z0-9_]{1,47}$/.test(s);
@@ -42,7 +43,7 @@ export const list = internalQuery({
     for (const row of rows) {
       const e = await ctx.db.get(row.evidenceId);
       if (!e || e.expiresAt <= Date.now()) continue;
-      result.push({ toolId: row._id, app: row.appSlug, name: row.name, title: row.title, status: row.status, inputSchema: row.inputSchemaJson ? JSON.parse(row.inputSchemaJson) : { type: "object", properties: {}, additionalProperties: false } });
+      result.push({ toolId: row._id, app: row.appSlug, name: row.name, title: row.title, kind: row.kind ?? "read", status: row.status, inputSchema: row.inputSchemaJson ? JSON.parse(row.inputSchemaJson) : { type: "object", properties: {}, additionalProperties: false } });
     }
     return result;
   },
@@ -51,7 +52,7 @@ export const list = internalQuery({
 export const saveEvidence = internalMutation({
   args: {
     token: v.string(), app: v.string(), origin: v.string(),
-    observations: v.array(v.object({ kind: v.union(v.literal("source"), v.literal("endpoint")), url: v.string(), shapeJson: v.string(), headerNames: v.array(v.string()) })),
+    observations: v.array(v.object({ kind: v.union(v.literal("source"), v.literal("endpoint"), v.literal("write_endpoint")), url: v.string(), shapeJson: v.string(), headerNames: v.array(v.string()), method: v.optional(v.string()), requestSchemaJson: v.optional(v.string()), bodyPresent: v.optional(v.boolean()) })),
     connectionId: v.optional(v.id("connections")), sessionEpoch: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
@@ -64,33 +65,38 @@ export const saveEvidence = internalMutation({
     const allPrior = await ctx.db.query("appLearningEvidence").withIndex("by_user_app", (q) => q.eq("userId", user._id).eq("appSlug", a.app)).order("desc").take(200);
     const prior = allPrior.filter((p) => p.expiresAt > Date.now());
     for (const p of allPrior) if (p.expiresAt <= Date.now()) await ctx.db.delete(p._id);
-    const keys = new Map(prior.map((p) => [`${p.kind}|${p.url}|${p.sessionEpoch ?? ""}`, p._id]));
+    const keys = new Map(prior.map((p) => [`${p.kind}|${p.method ?? ""}|${p.url}|${p.sessionEpoch ?? ""}|${p.requestSchemaJson ?? ""}|${p.bodyPresent ?? ""}`, p._id]));
     const out = [];
     for (const e of a.observations) {
       if (e.shapeJson.length > 12000 || e.headerNames.length > 40) throw new Error("Observation limit");
       const u = new URL(e.url);
       if (u.origin !== a.origin || u.protocol !== "https:" || u.username || Boolean(u.password) || u.port) throw new Error("Invalid observation origin");
       if (e.kind === "endpoint") endpointUrl(e.url, a.origin);
-      const key = `${e.kind}|${e.url}|${a.sessionEpoch ?? ""}`;
+      if (e.kind === "write_endpoint") {
+        if (!a.connectionId || !a.sessionEpoch || !e.requestSchemaJson || e.requestSchemaJson.length > 16384) throw new Error("Write evidence needs an owned capture and request schema");
+        writeEndpointUrl(e.url, a.origin); writeMethod(e.method);
+      }
+      const key = `${e.kind}|${e.method ?? ""}|${e.url}|${a.sessionEpoch ?? ""}|${e.requestSchemaJson ?? ""}|${e.bodyPresent ?? ""}`;
       let id = keys.get(key);
       if (!id) {
         if (keys.size >= 200) throw new Error("Learning limit reached for this app");
         id = await ctx.db.insert("appLearningEvidence", {
           userId: user._id, appSlug: a.app, kind: e.kind, origin: a.origin, url: e.url,
           shapeJson: e.shapeJson, headerNames: e.headerNames,
+          ...(e.kind === "write_endpoint" ? { method: e.method, requestSchemaJson: e.requestSchemaJson, bodyPresent: e.bodyPresent } : {}),
           ...(a.connectionId ? { connectionId: a.connectionId, sessionEpoch: a.sessionEpoch } : {}),
           createdAt: Date.now(), expiresAt: Date.now() + (e.kind === "source" ? DAY : 7 * DAY),
         });
         keys.set(key, id);
       }
-      out.push({ evidenceId: id, kind: e.kind, path: safePath(e.url), responseShape: JSON.parse(e.shapeJson), ...(e.kind === "endpoint" ? { inputSchema: querySchema(e.url) } : {}) });
+      out.push({ evidenceId: id, kind: e.kind, path: safePath(e.url), responseShape: JSON.parse(e.shapeJson), ...(e.kind === "endpoint" ? { inputSchema: querySchema(e.url) } : {}), ...(e.kind === "write_endpoint" ? { method: e.method, requestSchema: JSON.parse(e.requestSchemaJson!) } : {}) });
     }
     return out;
   },
 });
 
 export const build = internalMutation({
-  args: { token: v.string(), app: v.string(), evidenceId: v.string(), name: v.string(), title: v.string(), responsePath: v.string() },
+  args: { token: v.string(), app: v.string(), evidenceId: v.string(), name: v.string(), title: v.string(), responsePath: v.string(), kind: v.optional(v.union(v.literal("read"), v.literal("write"))) },
   handler: async (ctx, a) => {
     const user = await owner(ctx, a.token);
     if (!safeName(a.name) || !/^[\p{L}\p{N} ,:()'_-]{2,80}$/u.test(a.title)) throw new Error("Use a short tool name and title");
@@ -99,8 +105,12 @@ export const build = internalMutation({
     if (!/^(?:[A-Za-z_][A-Za-z0-9_]{0,47}(?:\.[A-Za-z_][A-Za-z0-9_]{0,47}){0,5})?$/.test(path) || /token|secret|password|credential|cookie|authorization|__proto__|constructor|prototype/i.test(path)) throw new Error("Invalid response path");
     const id = ctx.db.normalizeId("appLearningEvidence", a.evidenceId);
     const e = id ? await ctx.db.get(id) : null;
-    if (!e || e.userId !== user._id || e.appSlug !== a.app || e.kind !== "endpoint" || e.expiresAt <= Date.now()) throw new Error("Choose current endpoint evidence from this app");
-    endpointUrl(e.url, e.origin);
+    const kind = a.kind ?? "read";
+    if (!e || e.userId !== user._id || e.appSlug !== a.app || e.kind !== (kind === "write" ? "write_endpoint" : "endpoint") || e.expiresAt <= Date.now()) throw new Error("Choose current endpoint evidence from this app");
+    if (kind === "write") {
+      if (!e.connectionId || !e.sessionEpoch || !e.requestSchemaJson || a.responsePath) throw new Error("Writes need an owned captured schema and no responsePath");
+      writeEndpointUrl(e.url, e.origin); writeMethod(e.method);
+    } else endpointUrl(e.url, e.origin);
     const allPrior = await ctx.db.query("appLearnedTools").withIndex("by_user", (q) => q.eq("userId", user._id)).take(200);
     const prior = [];
     for (const tool of allPrior) {
@@ -111,7 +121,7 @@ export const build = internalMutation({
     const duplicate = prior.find((p) => p.evidenceId === e._id && p.name === a.name && p.title === a.title && p.responsePath === path);
     if (duplicate) return { toolId: duplicate._id, status: duplicate.status };
     if (prior.length >= 200) throw new Error("Private tool limit reached");
-    const toolId = await ctx.db.insert("appLearnedTools", { userId: user._id, appSlug: a.app, evidenceId: e._id, name: a.name, title: a.title, responsePath: path, inputSchemaJson: JSON.stringify(querySchema(e.url)), status: "draft", createdAt: Date.now() });
+    const toolId = await ctx.db.insert("appLearnedTools", { userId: user._id, appSlug: a.app, evidenceId: e._id, name: a.name, title: a.title, responsePath: path, kind, inputSchemaJson: kind === "write" ? e.requestSchemaJson : JSON.stringify(querySchema(e.url)), status: "draft", createdAt: Date.now() });
     return { toolId, status: "draft" };
   },
 });
@@ -146,11 +156,11 @@ export const publish = internalMutation({
       if (!c || !sessionUsable(c) || c.userId !== user._id || !c.sessionJson || await epoch(c.sessionJson) !== e.sessionEpoch) throw new Error("App session changed; inspect again");
     }
     await ctx.db.patch(t._id, { status: "published" });
-    return { toolId: t._id, status: "published", kind: "read", private: true };
+    return { toolId: t._id, status: "published", kind: t.kind ?? "read", private: true, ...(t.kind === "write" ? { requiresApproval: true } : {}) };
   },
 });
 
-type Observation = { kind: "source" | "endpoint"; url: string; shapeJson: string; headerNames: string[] };
+type Observation = { kind: "source" | "endpoint" | "write_endpoint"; url: string; shapeJson: string; headerNames: string[]; method?: string; requestSchemaJson?: string; bodyPresent?: boolean };
 async function inspectCapture(ctx: ActionCtx, token: string, app: string) {
   const state = await ctx.runQuery(internal.appLearning.context, { token, app });
   const resolved = await ctx.runQuery(internal.apps.resolve, { slug: app });
@@ -160,23 +170,32 @@ async function inspectCapture(ctx: ActionCtx, token: string, app: string) {
   const observations: Observation[] = [];
   for (const e of entries.slice(-300)) {
     if (observations.length >= 40) break;
-    if (e.method !== "GET" || !e.status || e.status < 200 || e.status >= 300 || !e.resBody) continue;
+    if (!e.status || e.status < 200 || e.status >= 300) continue;
     try {
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(e.method)) {
+        const mime = Object.entries(e.reqHeaders ?? {}).find(([name]) => name.toLowerCase() === "content-type")?.[1];
+        if (e.reqBody && !/^application\/(?:json|[a-z0-9!#$&^_.+-]+\+json)(?:\s*;|$)/i.test(mime ?? "")) continue;
+        observations.push({ kind: "write_endpoint", url: writeEndpointUrl(e.url, resolved.webOrigin), method: writeMethod(e.method), requestSchemaJson: capturedWriteSchema(e.reqBody), bodyPresent: !!e.reqBody?.trim(),
+          shapeJson: e.resBody ? JSON.stringify(valueShape(JSON.parse(e.resBody))) : '"empty response"', headerNames: Object.keys(e.reqHeaders ?? {}).slice(0, 40) });
+        continue;
+      }
+      if (e.method !== "GET" || !e.resBody) continue;
       const url = endpointUrl(e.url, resolved.webOrigin);
       const body: unknown = JSON.parse(e.resBody);
       if (!body || typeof body !== "object") continue;
       observations.push({ kind: "endpoint", url, shapeJson: JSON.stringify(valueShape(body)), headerNames: Object.keys(e.reqHeaders ?? {}).slice(0, 40) });
-    } catch { /* Unsupported/foreign/write endpoint is never replayed. */ }
+    } catch { /* Unsupported/foreign/security/financial operations are omitted. */ }
   }
   const evidence = await ctx.runMutation(internal.appLearning.saveEvidence, { token, app, origin: resolved.webOrigin, connectionId: conn._id, sessionEpoch: await epoch(conn.sessionJson), observations });
-  return { app, status: evidence.length ? "evidence_ready" : "needs_capture", evidence, detail: evidence.length ? "Only schemas and endpoint identifiers are shown. Build a read tool from an evidenceId." : "No supported same-origin JSON GET reads observed. Browse the relevant screen and capture again. Cross-origin APIs, writes and login exchanges need a reviewed connector." };
+  return { app, status: evidence.length ? "evidence_ready" : "needs_capture", evidence, detail: evidence.length ? "Only schemas and endpoint identifiers are shown. Build a matching read or write tool from an evidenceId. Write verification is a local structural dry run; every actual write needs exact-action approval." : "No supported same-origin JSON reads/writes observed. Browse the relevant screen and capture again. Cross-origin APIs, payments and login exchanges need a reviewed connector." };
 }
 
 async function readTool(ctx: ActionCtx, token: string, toolId: string, verify: boolean, args: Record<string, unknown> = {}) {
   const state = await ctx.runQuery(internal.appLearning.context, { token, toolId });
   const t = state.learned!;
   const e = state.evidence!;
-  if (e.kind !== "endpoint" || e.expiresAt <= Date.now()) throw new Error("Evidence expired; investigate again");
+  const write = t.kind === "write";
+  if (e.kind !== (write ? "write_endpoint" : "endpoint") || e.expiresAt <= Date.now()) throw new Error("Evidence expired; investigate again");
   if (!verify && t.status !== "published") throw new Error("Verify and publish this tool before use");
   let headers: Record<string, string> = { accept: "application/json" };
   let session: SessionBundle | undefined;
@@ -184,6 +203,15 @@ async function readTool(ctx: ActionCtx, token: string, toolId: string, verify: b
     if (!state.conn || !sessionUsable(state.conn) || state.conn._id !== e.connectionId || !state.conn.sessionJson || await epoch(state.conn.sessionJson) !== e.sessionEpoch) throw new Error("App session changed; inspect the capture again");
     session = JSON.parse(state.conn.sessionJson) as SessionBundle;
     headers = capturedHeaders(e.headerNames, session);
+  }
+  if (write) {
+    if (!verify || !e.requestSchemaJson || !e.connectionId) throw new Error("Writes must enter the approval path");
+    const validated = writeArguments(e.requestSchemaJson, args);
+    if (JSON.stringify(redactSessionEcho(validated, session)) !== JSON.stringify(validated)) throw new Error("Session material cannot be an action argument");
+    const preview = writePreview(writeMethod(e.method), writeEndpointUrl(e.url, e.origin), validated);
+    const receipt = { ok: true, kind: "write", validation: "structural_only", executed: false, toolId: t._id, checkedAt: Date.now() };
+    await ctx.runMutation(internal.appLearning.recordVerification, { token, toolId: t._id, epoch: e.sessionEpoch, receiptJson: JSON.stringify(receipt) });
+    return { ...receipt, preview, detail: "Dry run only: method, captured schema and new arguments are valid. No app request was sent and live success is unproven. Publishing enables approval requests, never automatic execution." };
   }
   const res: { status: number; text: string } = await ctx.runAction(internal.learningResearch.readEndpoint, { url: parameterizedUrl(e.url, e.origin, args), origin: e.origin, headersJson: JSON.stringify(headers) });
   if (res.status < 200 || res.status >= 300) return { ok: false, status: res.status, detail: res.status === 401 || res.status === 403 ? "Sign in to the app again." : "Read endpoint did not pass verification." };
@@ -236,7 +264,7 @@ export const tool = internalAction({
     // Authenticate even operations that fetch only public App Store metadata.
     await ctx.runQuery(internal.appLearning.context, { token });
     try {
-      if (argsJson.length > 4096) throw new Error("Learning arguments too large");
+      if (argsJson.length > 16 * 1024) throw new Error("Learning arguments too large");
       const a = JSON.parse(argsJson) as Record<string, unknown>;
       if (!a || typeof a !== "object" || Array.isArray(a)) throw new Error("Expected an argument object");
       const app = typeof a.app === "string" && a.app.length <= 512 ? a.app : "";
@@ -248,10 +276,14 @@ export const tool = internalAction({
         case "search_apps": result = await ctx.runAction(internal.apps.searchForLearning, { query: String(a.query ?? "").slice(0, 80) }); break;
         case "investigate_app": result = await investigate(ctx, token, app, typeof a.sourceId === "string" ? a.sourceId : undefined); break;
         case "inspect_app_capture": result = await inspectCapture(ctx, token, app); break;
-        case "build_app_tool": result = await ctx.runMutation(internal.appLearning.build, { token, app, evidenceId: String(a.evidenceId ?? ""), name: String(a.name ?? ""), title: String(a.title ?? ""), responsePath: String(a.responsePath ?? "") }); break;
+        case "build_app_tool": result = await ctx.runMutation(internal.appLearning.build, { token, app, evidenceId: String(a.evidenceId ?? ""), name: String(a.name ?? ""), title: String(a.title ?? ""), responsePath: String(a.responsePath ?? ""), ...(a.kind === "write" ? { kind: "write" as const } : {}) }); break;
         case "verify_app_tool": result = await readTool(ctx, token, toolId, true, readArgs as Record<string, unknown>); break;
         case "publish_app_tool": result = await ctx.runMutation(internal.appLearning.publish, { token, toolId }); break;
-        case "call_learned_tool": result = await readTool(ctx, token, toolId, false, readArgs as Record<string, unknown>); break;
+        case "call_learned_tool": {
+          const state = await ctx.runQuery(internal.appLearning.context, { token, toolId });
+          result = state.learned?.kind === "write" ? await ctx.runMutation(internal.appLearningWrites.request, { token, toolId, argsJson: JSON.stringify(readArgs), requestId: String(a.requestId ?? "") }) : await readTool(ctx, token, toolId, false, readArgs as Record<string, unknown>);
+          break;
+        }
         default: throw new Error("Unknown learning operation");
       }
       // Inspection results are constructed metadata, never raw captures/source

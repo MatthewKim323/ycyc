@@ -6,6 +6,9 @@ import type { ClientRequest, IncomingMessage } from "node:http";
 import { isIP } from "node:net";
 
 export const MAX_SOURCE_BYTES = 256 * 1024;
+export const MAX_WRITE_BYTES = 16 * 1024;
+export type AppWriteMethod = "POST" | "PUT" | "PATCH" | "DELETE";
+type AppWrite = { method: AppWriteMethod; headers: Record<string, string>; body?: string };
 const DEADLINE_MS = 10_000;
 type Address = { address: string; family: number };
 // Supported by Node 24 net.connect; the installed HTTPS type omits this forwarded option.
@@ -107,15 +110,40 @@ function allowedContentType(value: string): boolean {
   return ["text/html", "text/plain", "text/javascript", "text/ecmascript", "application/javascript", "application/ecmascript", "application/x-javascript", "application/xhtml+xml", "application/json"].includes(value) || /^application\/[a-z0-9!#$&^_.+-]+\+json$/.test(value);
 }
 
-// GET only. The action never accepts custom headers for public source research;
-// the optional headers are exclusively for server-built, owner-scoped app reads.
+// Public research remains GET-only. Headers can be supplied only by internal
+// owner-scoped callers; they are never accepted by public research actions.
+export async function safeResearchFetch(raw: string, origin: string, headers?: Record<string, string>, io: ResearchTransport = transport): Promise<ResearchResponse> {
+  return pinnedRequest(validateResearchUrl(raw, origin), requestHeaders(headers), { method: "GET" }, io);
+}
+
+// This is only a transport, not an authorization boundary. The caller must first
+// claim an exact, owner-scoped approval bound to immutable evidence and args.
+// Preserve the approved JSON bytes, and never follow redirects or retry writes.
+export async function safeAppRequest(raw: string, origin: string, input: AppWrite, io: ResearchTransport = transport): Promise<ResearchResponse> {
+  const url = validateResearchUrl(raw, origin);
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(input.method)) throw new Error("learning_invalid_method");
+  if (input.body !== undefined) {
+    if (typeof input.body !== "string" || Buffer.byteLength(input.body) > MAX_WRITE_BYTES) throw new Error("learning_invalid_body");
+    try { JSON.parse(input.body); } catch { throw new Error("learning_invalid_body"); }
+  }
+  const outgoing = requestHeaders(input.headers);
+  outgoing.accept = "application/json";
+  outgoing["content-type"] = "application/json";
+  outgoing["content-length"] = String(Buffer.byteLength(input.body ?? ""));
+  return pinnedRequest(url, outgoing, { method: input.method, body: input.body }, io);
+}
+
+function jsonContentType(value: string): boolean {
+  return value === "application/json" || /^application\/[a-z0-9!#$&^_.+-]+\+json$/.test(value);
+}
+
 // DNS is resolved once, all answers are checked, and the connection uses a
 // pinned lookup with a fresh agent. TLS still checks the original hostname.
-export async function safeResearchFetch(raw: string, origin: string, headers?: Record<string, string>, io: ResearchTransport = transport): Promise<ResearchResponse> {
-  const url = validateResearchUrl(raw, origin);
-  const outgoing = requestHeaders(headers);
+function pinnedRequest(url: URL, outgoing: Record<string, string>, input: { method: "GET" | AppWriteMethod; body?: string }, io: ResearchTransport): Promise<ResearchResponse> {
+  const write = input.method !== "GET";
   return new Promise((resolve, reject) => {
     let settled = false;
+    let dispatched = false;
     let request: ClientRequest | undefined;
     let response: IncomingMessage | undefined;
     const fail = (code: string) => {
@@ -123,18 +151,22 @@ export async function safeResearchFetch(raw: string, origin: string, headers?: R
       settled = true;
       clearTimeout(timer);
       response?.destroy(); request?.destroy();
-      reject(new Error(code));
+      // A write may already have committed when the reply is lost, malformed,
+      // redirected or too large. Never claim that nothing changed or retry it.
+      const uncertain = write && (dispatched || code === "learning_fetch_timeout" || code === "learning_fetch_failed");
+      reject(new Error(uncertain ? "learning_write_outcome_uncertain" : code));
     };
     const timer = setTimeout(() => fail("learning_fetch_timeout"), Math.min(io.timeoutMs ?? DEADLINE_MS, DEADLINE_MS));
     resolvePublicAddress(url.hostname, io.resolve).then((pin) => {
       if (settled) return;
-      request = io.request(url, { method: "GET", agent: false, maxHeaderSize: 16_384, family: pin.family, autoSelectFamily: false, lookup: pinnedLookup(pin), headers: outgoing }, (incoming) => {
+      dispatched = true;
+      request = io.request(url, { method: input.method, agent: false, maxHeaderSize: 16_384, family: pin.family, autoSelectFamily: false, lookup: pinnedLookup(pin), headers: outgoing }, (incoming) => {
         response = incoming;
         if (settled) { incoming.destroy(); return; }
         const status = incoming.statusCode ?? 0;
         if (status >= 300 && status < 400) { fail("learning_redirect_rejected"); return; }
         const contentType = String(incoming.headers["content-type"] ?? "").split(";", 1)[0]!.trim().toLowerCase();
-        if (!allowedContentType(contentType)) { fail("learning_unsupported_content"); return; }
+        if (!write && !allowedContentType(contentType)) { fail("learning_unsupported_content"); return; }
         // Request identity to avoid decompression bombs and ambiguous byte caps.
         if (incoming.headers["content-encoding"] && incoming.headers["content-encoding"] !== "identity") { fail("learning_unsupported_encoding"); return; }
         const length = incoming.headers["content-length"];
@@ -144,6 +176,7 @@ export async function safeResearchFetch(raw: string, origin: string, headers?: R
         incoming.on("data", (chunk: Buffer) => {
           if (settled) return;
           size += chunk.length;
+          if (write && chunk.length && (status === 204 || !jsonContentType(contentType))) { fail("learning_expected_json"); return; }
           if (size > MAX_SOURCE_BYTES) { fail("learning_source_too_large"); return; }
           chunks.push(chunk);
         });
@@ -152,6 +185,9 @@ export async function safeResearchFetch(raw: string, origin: string, headers?: R
           let text: string;
           try { text = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, size)); }
           catch { fail("learning_invalid_text"); return; }
+          if (write && text) {
+            try { JSON.parse(text); } catch { fail("learning_expected_json"); return; }
+          }
           settled = true; clearTimeout(timer);
           resolve({ url: url.href, status, contentType, text });
         });
@@ -159,8 +195,8 @@ export async function safeResearchFetch(raw: string, origin: string, headers?: R
         incoming.on("aborted", () => fail("learning_fetch_failed"));
       });
       request.on("error", () => fail("learning_fetch_failed"));
-      request.end();
-    }).catch(() => fail("learning_fetch_failed"));
+      request.end(input.body);
+    }).catch((error) => fail(error instanceof Error && error.message === "learning_private_address" && write ? "learning_private_address" : "learning_fetch_failed"));
   });
 }
 
