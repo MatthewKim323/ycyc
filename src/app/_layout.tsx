@@ -85,7 +85,6 @@ function RootStack({ fontsReady }: { fontsReady: boolean }) {
       />
       <Stack.Screen name="build/[connectionId]" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
       <Stack.Screen name="app/[slug]" options={{ animation: "slide_from_right" }} />
-      <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
       <Stack.Screen name="add" options={{ presentation: "modal" }} />
       <Stack.Screen name="profile/index" options={{ presentation: "modal", contentStyle: { backgroundColor: colors.bg } }} />
     </Stack>

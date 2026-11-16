@@ -160,7 +160,6 @@ export default function ProfileScreen() {
             name={me.name}
             email={me.email}
             imageUrl={me.imageUrl}
-            plan={me.plan}
             onRename={async (name) => {
               if (userId) await rename({ userId, name });
             }}
@@ -224,16 +223,6 @@ export default function ProfileScreen() {
                 onPress={() => router.dismissTo("/link")}
                 navigates
               />
-            </Group>
-          </Animated.View>
-
-          <Animated.View entering={enter(7)}>
-            <Group title="Plan">
-              {me.plan === "pro" ? (
-                <Row icon="star" title="yuzu Pro" />
-              ) : (
-                <Row icon="star" title="Upgrade to Pro" value="Free" onPress={() => router.push("/paywall")} navigates />
-              )}
             </Group>
           </Animated.View>
 

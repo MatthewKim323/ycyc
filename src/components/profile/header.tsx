@@ -36,13 +36,11 @@ export function ProfileHeader({
   name,
   email,
   imageUrl,
-  plan,
   onRename,
 }: {
   name?: string;
   email?: string;
   imageUrl?: string;
-  plan: "free" | "pro";
   onRename: (next: string) => Promise<void>;
 }) {
   const reduced = useReducedMotion();
@@ -125,11 +123,6 @@ export function ProfileHeader({
         <Text variant="body" color={colors.textSecondary} numberOfLines={1} style={styles.email}>
           {email ?? "Not signed in"}
         </Text>
-        <View style={[styles.pill, plan === "pro" && styles.pillPro]}>
-          <Text variant="micro" color={plan === "pro" ? colors.onAccent : colors.textSecondary}>
-            {plan === "pro" ? "Pro" : "Free"}
-          </Text>
-        </View>
       </Animated.View>
     </View>
   );
@@ -158,12 +151,4 @@ const styles = StyleSheet.create({
   },
   meta: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: -space.xs },
   email: { maxWidth: 240 },
-  pill: {
-    paddingHorizontal: space.sm,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-  },
-  pillPro: { backgroundColor: colors.accent, borderColor: colors.accent },
 });

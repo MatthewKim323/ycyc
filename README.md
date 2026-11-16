@@ -31,7 +31,7 @@ Each one was verified end to end with a live client, including a write that was 
 - **Convex**: the whole backend. Per-user MCP endpoint (`convex/http.ts`, Streamable HTTP, JSON-RPC), the live build pipeline (sign in, capture, map, generate, verify, publish) streamed to the phone, the recipe registry, the executor (cloud, on-device relay, or cloud phone), approvals, the Today summary and crons.
 - **Revyl**: cloud iPhones run and test the app (remote iOS builds from `.revyl/config.yaml`), and `convex/revyl.ts` drives cloud phones as the last-resort executor for phone-only apps.
 - **Capy**: built the Whop Pro paywall ([PR #1](https://github.com/MatthewKim323/yuzu/pull/1)) and an agent integration ([PR #2](https://github.com/MatthewKim323/yuzu/pull/2)) in parallel cloud threads.
-- **Whop** (sandbox): Pro unlocks unlimited apps; checkout in `convex/whop.ts`, webhook at `/whop`.
+- **Whop** (sandbox, retired): new checkouts are disabled. App connections have no paid-plan limit; existing plan records and the `/whop` webhook remain for historical billing compatibility.
 
 ## Run it
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
-import { type Href, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, {
@@ -16,7 +16,6 @@ import { copyFor, type Capability } from "@/components/app-copy";
 import { AppGlyph } from "@/components/app-glyph";
 import { Button } from "@/components/button";
 import { Icon } from "@/components/icon";
-import { usePlan } from "@/components/paywall/use-plan";
 import { Text } from "@/components/text";
 import { api } from "@/hooks/convex";
 import { useUser } from "@/hooks/user";
@@ -75,19 +74,11 @@ export default function ConnectSheet() {
   const { userId } = useUser();
   const app = useQuery(api.apps.get, slug ? { slug } : "skip");
   const start = useMutation(api.connections.start);
-  const { isPro } = usePlan();
-  const mine = useQuery(api.connections.mine, userId ? { userId } : "skip");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const begin = async () => {
     if (!userId || !app) return;
-    const otherLive = (mine ?? []).filter((c) => c.status === "live" && c.appSlug !== app.slug).length;
-    if (!isPro && otherLive >= 1) {
-      router.back();
-      router.push("/paywall" as Href);
-      return;
-    }
     setError(null);
     setStarting(true);
     try {
