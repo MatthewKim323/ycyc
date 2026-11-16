@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import type { Recipe } from "../src/lib/contract";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { CATALOG, CATALOG_TRACK_IDS } from "./catalog";
 import { fromDiscovered, resolveApp, type ResolvedApp } from "./lib/appResolver";
 import { bestRecipe } from "./lib/recipeStore";
@@ -279,6 +279,16 @@ export const addCustom = action({
     });
     return { slug, discovered: true };
   },
+});
+
+// Internal learning entrypoints reuse the same fixed Apple search/lookup flow.
+export const searchForLearning = internalAction({
+  args: { query: v.string() },
+  handler: async (ctx, args): Promise<SearchItem[]> => ctx.runAction(api.apps.search, args),
+});
+export const addCustomForLearning = internalAction({
+  args: { trackId: v.number() },
+  handler: async (ctx, args): Promise<{ slug: string; discovered: boolean }> => ctx.runAction(api.apps.addCustom, args),
 });
 
 // "Ask for it" on phone-only apps. One request per user per app.

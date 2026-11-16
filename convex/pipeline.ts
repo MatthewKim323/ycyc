@@ -1,12 +1,10 @@
 import { v } from "convex/values";
-import type { CaptureEntry, CatalogApp, Recipe, SessionBundle } from "../src/lib/contract";
+import type { CatalogApp, Recipe, SessionBundle } from "../src/lib/contract";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { executeRequest, executeTool, isAuthFailure, isPhoneOffline, recordHealth } from "./executor";
-import { compileCapture, HAS_COMPILER } from "./lib/compilerShim";
-import { fallbackCompile } from "./lib/fallbackCompiler";
-import { handRecipeFor, normalizeRecipe } from "./lib/recipeStore";
+import { handRecipeFor } from "./lib/recipeStore";
 import { deriveSession } from "./lib/sessionDerive";
 
 // Short pauses so each step is visible on the phone. Real work happens between them.
@@ -20,15 +18,6 @@ class BuildError extends Error {}
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
-async function compile(app: CatalogApp, entries: CaptureEntry[], session: SessionBundle): Promise<Recipe> {
-  if (HAS_COMPILER && compileCapture) {
-    const out = (await compileCapture(app, entries, session)) as Recipe | { recipe: Recipe };
-    const recipe = "tools" in out ? out : out.recipe;
-    return recipe;
-  }
-  return fallbackCompile(app, entries, session);
 }
 
 type Step = (key: StepKey, status: StepStatus, detail?: string) => Promise<unknown>;
@@ -244,8 +233,6 @@ async function afterSignin(b: BuildCtx, connectionId: Id<"connections">, app: Ca
   // Reload: sign-in may have stored tokens and stripped credentials.
   const conn = await ctx.runQuery(internal.connections.get, { connectionId });
   if (!conn) throw new BuildError("Connection was removed");
-  const session: SessionBundle = conn.sessionJson ? JSON.parse(conn.sessionJson) : { capturedAt: 0 };
-
   // 2. capture: what the recorder saw.
   await begin("capture");
   const entries = await ctx.runQuery(internal.connections.captureEntries, { connectionId: conn._id });
@@ -290,29 +277,16 @@ async function afterSignin(b: BuildCtx, connectionId: Id<"connections">, app: Ca
     await sleep(BEAT_MS);
     await step("generate", "done", `${plural(recipe.tools.length, "tool")}: ${recipe.tools.map((t) => t.name).join(", ")}`.slice(0, 140));
   } else if (app.route === "web") {
-    await begin("map");
-    if (apiEntries.length === 0) {
-      throw new BuildError(
-        best?.status === "broken"
-          ? `${app.name} changed and yuzu needs to relearn it. Browse a few pages, then finish again.`
-          : "No API calls recorded. Open your diary in the browser, then finish again.",
-      );
-    }
-    const compiled = normalizeRecipe(await compile(app, entries, session));
-    const endpoints = new Set(compiled.tools.map((t) => `${t.request?.method} ${t.request?.urlTemplate.split("?")[0]}`));
-    await step("map", "done", `${plural(endpoints.size, "endpoint")} found`);
-    await begin("generate");
-    await sleep(BEAT_MS);
-    if (compiled.tools.length === 0) {
-      throw new BuildError("No usable endpoints in this capture. Browse a few pages and retry.");
-    }
-    const latest = await ctx.runQuery(internal.recipes.latestVersion, { slug: app.slug });
-    compiled.version = latest + 1;
-    compiled.status = "draft";
-    compiled.appSlug = app.slug;
-    await ctx.runMutation(internal.recipes.save, { json: JSON.stringify(compiled) });
-    recipe = compiled;
-    await step("generate", "done", `${plural(recipe.tools.length, "tool")} in draft v${recipe.version}`);
+    // Captures and sessions belong to this connection. The agent can inspect
+    // their sanitized shapes and build privately scoped tools; never turn this
+    // user's traffic into a shared recipe or claim it is already verified.
+    await step("map", "skipped", "Your assistant will inspect the private capture");
+    await step("generate", "skipped", "Your assistant will build evidence-backed read tools");
+    await step("verify", "skipped", "Tools must pass a private read check before publication");
+    await step("publish", "skipped", "Agent learning pending; no tools published yet");
+    await ctx.runMutation(internal.connections.setStatus, { connectionId: conn._id, status: "capturing" });
+    await ctx.runMutation(internal.builds.finish, { buildId, status: "done" });
+    return;
   } else if (best) {
     // A broken recipe on an app with no capture to relearn from (cloud phone): try it again;
     // a passing check marks it healthy.

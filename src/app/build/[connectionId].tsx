@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQueries, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
@@ -34,6 +34,7 @@ import { useOnboarding } from "@/hooks/onboarding";
 import { useUser } from "@/hooks/user";
 import { captureConfigFor, magicLinkFor } from "@/lib/capture/apps";
 import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
+import { useAiPlans } from "@/lib/agent";
 import { copyFor, plainError, type Capability } from "@/components/app-copy";
 import { colors, enter, layout, radius, space, springs, stageIn, stageOut } from "@/theme";
 
@@ -43,7 +44,7 @@ const submitCodeRef = makeFunctionReference<"mutation", { connectionId: Id<"conn
 );
 
 
-type Stage = "loading" | "missing" | "signin" | "code" | "build" | "live" | "error";
+type Stage = "loading" | "missing" | "signin" | "code" | "build" | "learn" | "live" | "error";
 type GlyphApp = Pick<CatalogApp, "slug" | "category">;
 
 function BreathingGlyph({ app }: { app: GlyphApp }) {
@@ -229,7 +230,13 @@ export default function ConnectFlow() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userId, mcpUrl } = useUser();
-  const { finish } = useOnboarding();
+  const { finish, onboarded } = useOnboarding();
+  const { token } = useAiPlans();
+  const planQueries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  const planResult = useQueries(planQueries);
+  const planState = planResult.state instanceof Error ? undefined : planResult.state;
+  const planReady = !!planState?.provider && (planState.step === "connect_apps" || planState.step === "ready");
+  const checkingPlan = !!token && planResult.state === undefined;
 
   const conns = useQuery(api.connections.mine, userId ? { userId } : "skip");
   const conn = conns?.find((c) => c._id === connectionId);
@@ -265,13 +272,15 @@ export default function ConnectFlow() {
     if (web.loggedIn) Haptics.selectionAsync().catch(() => {});
   }, [web.loggedIn]);
 
-  const preSubmit = status === "needs_login" || status === "capturing";
+  const captureReady = status === "capturing" && build?.status === "done";
+  const preSubmit = status === "needs_login" || (status === "capturing" && !captureReady);
   const isWeb = app?.route === "web";
 
   let stage: Stage;
   if (!conns || app === undefined) stage = "loading";
   else if (!conn || !app) stage = "missing";
   else if (status === "needs_code") stage = "code";
+  else if (captureReady) stage = "learn";
   else if (preSubmit) stage = isWeb && web.loggedIn ? "build" : "signin";
   else if (status === "building") stage = "build";
   else if (status === "live") stage = settled || openedLive ? "live" : "build";
@@ -299,10 +308,12 @@ export default function ConnectFlow() {
           ? [1, Math.max(0.06, shownSteps / 4), 0]
           : stage === "live"
             ? [1, 1, 1]
+            : stage === "learn"
+              ? [1, 0, 0]
             : stage === "error"
               ? [1, shownSteps / 4, 0]
               : [0, 0, 0];
-  const active: 0 | 1 | 2 = stage === "live" ? 2 : stage === "build" || stage === "error" ? 1 : 0;
+  const active: 0 | 1 | 2 = stage === "live" ? 2 : stage === "build" || stage === "learn" || stage === "error" ? 1 : 0;
 
   const onSettled = useCallback(() => setSettled(true), []);
 
@@ -311,8 +322,13 @@ export default function ConnectFlow() {
     else router.replace("/");
   };
 
-  const leave = async (to: "/" | "/link") => {
-    if (onboarding) {
+  const leave = async (to: "/" | "/link" | "/agent") => {
+    if (to === "/agent" && !planReady) {
+      router.dismissAll();
+      router.replace("/onboarding");
+      return;
+    }
+    if (onboarding || (to === "/agent" && onboarded === false)) {
       await finish();
       router.dismissAll();
       router.replace(to);
@@ -494,6 +510,21 @@ export default function ConnectFlow() {
               onDone={() => leave("/")}
               onShowMe={() => leave("/link")}
             />
+          </Animated.View>
+        ) : null}
+
+        {stage === "learn" && app ? (
+          <Animated.View key="learn" entering={stageIn} style={[styles.stage, styles.opaque]}>
+            <View style={styles.errorContent}>
+              <AppGlyph app={app} size={64} />
+              <Text variant="title" style={styles.center}>Capture ready</Text>
+              <Text variant="body" color={colors.textSecondary} style={styles.center}>
+                Your assistant can now inspect the captured requests and test tools for this app.
+              </Text>
+            </View>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + space.md }]}>
+              <Button label="Continue in agent" onPress={() => leave("/agent")} disabled={checkingPlan} fullWidth />
+            </View>
           </Animated.View>
         ) : null}
 

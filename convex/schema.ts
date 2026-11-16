@@ -62,6 +62,24 @@ export const aiTurnStatusValidator = v.union(
 export const aiEventTypeValidator = v.union(v.literal("text_delta"), v.literal("tool_start"), v.literal("tool_end"));
 
 export default defineSchema({
+  // Agent learning is private, immutable evidence + versioned tools, never shared recipes.
+  appLearningEvidence: defineTable({
+    userId: v.id("users"), appSlug: v.string(),
+    kind: v.union(v.literal("source"), v.literal("endpoint")),
+    origin: v.string(), url: v.string(),
+    connectionId: v.optional(v.id("connections")), sessionEpoch: v.optional(v.string()),
+    headerNames: v.array(v.string()), shapeJson: v.string(),
+    createdAt: v.number(), expiresAt: v.number(),
+  }).index("by_user_app", ["userId", "appSlug"]),
+
+  appLearnedTools: defineTable({
+    userId: v.id("users"), appSlug: v.string(), evidenceId: v.id("appLearningEvidence"),
+    name: v.string(), title: v.string(), responsePath: v.string(), inputSchemaJson: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("verified"), v.literal("published")),
+    verifiedAt: v.optional(v.number()), verificationJson: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   users: defineTable({
     deviceId: v.string(),
     mcpToken: v.string(),
