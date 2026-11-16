@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, {
@@ -31,6 +32,7 @@ import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
 import { colors, enter, fonts, layout, radius, space, stageIn, stageOut } from "@/theme";
 
 import { AppIcon } from "./app-search";
+import { connectionPhase } from "./connection-phase";
 
 const submitCodeRef = makeFunctionReference<"mutation", { connectionId: Id<"connections">; code: string }, unknown>(
   "connections:submitCode",
@@ -130,6 +132,7 @@ export function ConnectStep({
   onPickAnother: () => void;
 }) {
   const { userId } = useUser();
+  const router = useRouter();
   const app = useQuery(api.apps.get, { slug });
   const start = useMutation(api.connections.start);
   const submitLogin = useMutation(api.connections.submitLogin);
@@ -156,22 +159,27 @@ export function ConnectStep({
 
   const status = conn?.status as string | undefined;
   const isWeb = app?.route === "web";
-  const preSubmit = status === "needs_login" || status === "capturing";
+  const presentation = connectionPhase({ status, isWeb, loggedIn: web.loggedIn, buildStatus: build?.status, failed: !!error });
+  const { preSubmit, captureReady } = presentation;
+  const keepCaptureMounted = !!conn && !!app && presentation.keepCaptureMounted;
 
   let phase: Phase;
   if (!connectionId) phase = "intro";
   else if (!conn || !app) phase = "loading";
-  else if (status === "needs_code") phase = "code";
-  else if (preSubmit) phase = isWeb && web.loggedIn ? "build" : "signin";
-  else if (status === "building" || status === "live") phase = "build";
-  else phase = "error";
+  else phase = presentation.phase;
+
+  useEffect(() => {
+    if (captureReady && connectionId && !error) {
+      router.replace({ pathname: "/build/[connectionId]", params: { connectionId, onboarding: "1" } });
+    }
+  }, [captureReady, connectionId, error, router]);
 
   useEffect(() => onPhase?.(phase), [phase, onPhase]);
   useEffect(() => {
     if (web.loggedIn) Haptics.selectionAsync().catch(() => {});
   }, [web.loggedIn]);
 
-  const onSettled = useCallback(() => setSettled(true), []);
+  const onSettled = useCallback(() => setSettled(true), [setSettled]);
   useEffect(() => {
     if (settled && status === "live" && app) onReady({ slug: app.slug, name: app.name });
   }, [settled, status, app, onReady]);
@@ -328,9 +336,10 @@ export function ConnectStep({
         </Animated.View>
       ) : null}
 
-      {phase === "signin" && isWeb ? (
+      {keepCaptureMounted ? (
         <Animated.View
           key={`web-${attempt}`}
+          pointerEvents={phase === "signin" ? "auto" : "none"}
           entering={stageIn}
           exiting={stageOut}
           style={[styles.stage, { paddingBottom: bottomInset + space.sm }]}
@@ -447,7 +456,7 @@ export function ConnectStep({
       ) : null}
 
       {phase === "build" ? (
-        <Animated.View key={`build-${attempt}`} entering={stageIn} exiting={stageOut} style={styles.stage}>
+        <Animated.View key={`build-${attempt}`} entering={stageIn} exiting={stageOut} style={[styles.stage, keepCaptureMounted ? styles.buildOverlay : null]}>
           <Build app={iconApp} steps={steps} onSettled={onSettled} />
         </Animated.View>
       ) : null}
@@ -463,7 +472,7 @@ export function ConnectStep({
             <AppIcon app={iconApp} size={64} />
             <Text style={[styles.title, styles.center]}>Couldn&apos;t connect {app.name}</Text>
             <Text variant="body" color={colors.textSecondary} style={styles.center}>
-              {plainError(build?.error ?? conn?.error, "Something went wrong while setting it up.")}
+              {plainError(error ?? build?.error ?? conn?.error, "Something went wrong while setting it up.")}
             </Text>
           </View>
           <View style={styles.errorActions}>
@@ -481,6 +490,7 @@ const styles = StyleSheet.create({
   center: { textAlign: "center" },
   gap: { gap: space.lg },
   stage: { ...StyleSheet.absoluteFill, paddingHorizontal: space.gutter },
+  buildOverlay: { backgroundColor: colors.bg },
   centerFill: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
