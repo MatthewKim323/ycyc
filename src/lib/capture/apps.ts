@@ -27,6 +27,7 @@ export interface AppCaptureConfig {
   webOrigin: string;
   // Signed-in detection. Any positive signal wins, a URL in loggedOutPaths always means signed out.
   loggedIn: {
+    manual?: boolean; // No app-specific success signal: ask the user before capturing.
     probe?: { path: string; truthyPath: string }; // e.g. NextAuth /api/auth/session -> "user"
     loggedOutPaths: string[]; // path prefixes that mean "still on the login flow"
     loggedInPaths?: string[]; // path prefixes that only render when signed in
@@ -350,8 +351,10 @@ export function captureConfigFor(slug: AppSlug, loginUrl?: string, webOrigin?: s
     slug,
     loginUrl: loginUrl || origin,
     webOrigin: origin,
-    loggedIn: { loggedOutPaths: ["/login", "/signin", "/sign-in", "/account/login", "/auth"] },
-    playbook: [{ kind: "visit", path: "/", label: "Home", dwellMs: 4000 }],
+    loggedIn: { manual: true, loggedOutPaths: ["/login", "/signin", "/sign-in", "/account/login", "/auth"] },
+    // Preserve the signed-in page. The seller homepage may be a marketing site
+    // on a different subdomain, not the app the person just logged in to.
+    playbook: [],
     sessionProbes: [],
     sessionHeaders: ["authorization", "x-csrf-token", "x-xsrf-token", "x-api-key", "cookie"],
     storageKeys: ["/token/i", "/auth/i", "/session/i", "/user/i"],

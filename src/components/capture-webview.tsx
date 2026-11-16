@@ -6,13 +6,17 @@
 // (shared with DeviceRelay) and we capture the bearer tokens and headers the site's JS can see.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+
+import { Button } from "@/components/button";
+import { Text } from "@/components/text";
 
 import type { CaptureEntry, CatalogApp, SessionBundle } from "@/lib/contract";
 import { captureConfigFor, originOf, type PlaybookStep } from "@/lib/capture/apps";
 import { buildRecorderScript, parseRecorderMessage } from "@/lib/capture/recorder";
 import { todayIn } from "@/lib/compiler/render";
 import { NativeWebView, type WebViewHandle, type WebViewMessageEvent, type WebViewNavigation } from "@/lib/capture/native-webview";
+import { colors, space } from "@/theme";
 
 type Phase = "login" | "capturing";
 
@@ -74,6 +78,13 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
     webRef.current?.injectJavaScript(js);
   }, []);
 
+  const beginCapture = useCallback(() => {
+    if (loggedIn.current) return;
+    loggedIn.current = true;
+    setPhase("capturing");
+    report("capturing");
+  }, [report]);
+
   const onMessage = useCallback(
     (e: WebViewMessageEvent) => {
       const m = parseRecorderMessage(e.nativeEvent.data);
@@ -94,11 +105,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
           break;
         }
         case "page": {
-          if (m.loggedIn === true && !loggedIn.current) {
-            loggedIn.current = true;
-            setPhase("capturing");
-            report("capturing");
-          }
+          if (m.loggedIn === true) beginCapture();
           break;
         }
         case "probe": {
@@ -113,7 +120,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
           break;
       }
     },
-    [report],
+    [report, beginCapture],
   );
 
   const onNavChange = useCallback(
@@ -226,7 +233,8 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
   }, [phase, cfg, origin, inject, report]);
 
   return (
-    <NativeWebView
+    <View style={styles.web}>
+      <NativeWebView
       ref={webRef}
       style={styles.web}
       source={{ uri }}
@@ -247,12 +255,20 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
       webviewDebuggingEnabled={__DEV__}
       automaticallyAdjustContentInsets={false}
       contentInsetAdjustmentBehavior="never"
-    />
+      />
+      {cfg.loggedIn.manual && phase === "login" ? (
+        <View style={styles.confirm}>
+          <Text variant="caption" color={colors.textSecondary}>Sign in on the website, then continue.</Text>
+          <Button label="I'm signed in — continue" onPress={beginCapture} fullWidth />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   web: { flex: 1, backgroundColor: "#000000" },
+  confirm: { padding: space.md, gap: space.sm, backgroundColor: colors.bg },
 });
 
 export default CaptureWebView;
