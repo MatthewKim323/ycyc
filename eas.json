@@ -21,7 +21,11 @@
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-newt-247.convex.cloud",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YW1wbGUtbGxhbWEtODc2Mi5jbGVyay5hY2NvdW50cy5kZXYk"
-      }
+      },
+      "autoIncrement": true
     }
+  },
+  "submit": {
+    "production": {}
   }
 }
