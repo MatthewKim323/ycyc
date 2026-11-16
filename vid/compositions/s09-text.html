@@ -1,56 +1,133 @@
-<!-- s09-text: the whip from s08 lands on iMessage via Keiki. Push onto the thread as the message goes out, hold
-     through the reply, then the phone shrinks out onto the dim wave for s10's tiles. -->
-<!-- sfx: t=0.50 name=msg-sent gain=0.6 -->
-<!-- sfx: t=2.00 name=msg-in gain=0.6 -->
+<!-- s09-text (5.0 s): the same link in Grok. s08 whips left, the phone whips in from the right on the dim wave; the question is typed
+     and sent, the Duolingo read runs (chip beside the phone on the 2.14 beat), the answer streams under a push, then the phone shrinks
+     out onto the dim wave alone for s09b. Beats 0.09 0.77 1.46 2.14 2.82 3.50 4.18 4.86. VO "Same link in Grok." about 0.6 to 1.8. -->
+<!-- sfx: t=0.00 name=whoosh-soft gain=0.35 -->
+<!-- sfx: t=0.60 name=text-tick gain=0.16 -->
+<!-- sfx: t=0.90 name=text-tick gain=0.15 -->
+<!-- sfx: t=1.20 name=text-tick gain=0.14 -->
+<!-- sfx: t=1.50 name=text-tick gain=0.13 -->
+<!-- sfx: t=1.80 name=ui-confirm gain=0.5 -->
+<!-- sfx: t=2.14 name=row-tick gain=0.5 -->
+<!-- sfx: t=2.82 name=msg-in gain=0.6 -->
 <!-- sfx: t=4.60 name=whoosh-soft gain=0.3 -->
 <template>
   <style>
     #root { position: absolute; inset: 0; }
     #s09-dim { position: absolute; inset: 0; background: #000; opacity: 0.55; }
-    #s09-cam { position: absolute; inset: 0; transform-origin: 0 0; }
-    #s09-ph { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
+    #s09-out { position: absolute; inset: 0; }
+    #s09-cam { position: absolute; inset: 0; }
+    /* phone at 932 px (86% of frame), centre x 700; screen-local (u, v) sits at world (499 + u, 88 + v) */
+    #s09-ph { position: absolute; left: 485px; top: 74px; width: 430px; height: 932px; }
     #s09-phone { left: 0; top: 0; }
-    #s09-screen { position: relative; background: #141414; }
-    #s09-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 40px;
-      text-align: center; font: 500 32px/1.3 "Inter", sans-serif; color: #a1a1a1; }
+    #s09-screen { position: relative; background: #000; font-family: "Inter", sans-serif; }
+
+    /* the rebuilt chat, monochrome, at device points */
+    #s09-head { position: absolute; left: 0; top: 50px; width: 100%; height: 54px; display: flex; align-items: center; justify-content: center;
+      font: 600 17px/1 "Inter", sans-serif; color: #fff; box-shadow: inset 0 -1px 0 #1f1f1f; }
+    #s09-bub { position: absolute; right: 16px; top: 130px; max-width: 262px; padding: 12px 16px; border-radius: 22px; background: #1f1f1f;
+      font: 500 17px/23px "Inter", sans-serif; color: #fff; }
+    #s09-tool { position: absolute; left: 16px; top: 224px; display: flex; align-items: center; gap: 10px; font: 500 16px/28px "Inter", sans-serif; color: #a1a1a1; white-space: nowrap; }
+    #s09-tlogo { width: 26px; height: 26px; border-radius: 7px; background: #141414 url(assets/apps/duolingo.png) center / cover; flex: none; }
+    #s09-tool .sep { color: #6b6b6b; }
+    #s09-ans { position: absolute; left: 16px; top: 270px; width: 368px; margin: 0; font: 400 17px/25px "Inter", sans-serif; color: #fff; }
+    #s09-comp { position: absolute; left: 12px; top: 802px; width: 378px; height: 76px; box-sizing: border-box; border-radius: 26px;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1px #1f1f1f; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; }
+    #s09-q { flex: 1; font: 500 17px/23px "Inter", sans-serif; color: #fff; }
+    #s09-send { width: 40px; height: 40px; border-radius: 50%; background: #fff; flex: none; display: flex; align-items: center; justify-content: center; align-self: flex-end; margin-bottom: 10px; }
+    #s09-send .k-icon { width: 24px; height: 24px; }
+
+    /* the chip beside the phone (screen space, like s08's) */
+    #s09-chip { position: absolute; left: 1170px; top: 470px; display: flex; align-items: center; gap: 22px; height: 120px; padding: 0 36px 0 36px;
+      border-radius: 60px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #fff; }
+    .s09-app { font-weight: 600; letter-spacing: -0.01em; }
+    .s09-sep { color: #6b6b6b; margin: 0 -6px; }
+    .s09-logo { width: 72px; height: 72px; border-radius: 19px; background: #141414; flex: none; display: block; margin-left: 4px; }
+    .s09-verb { color: #a1a1a1; }
   </style>
   <div id="root" data-composition-id="s09-text" data-width="1920" data-height="1080">
-    <div id="s09-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0">
+    <div id="s09-wrap" class="clip k-canvas" data-start="0" data-duration="5.000" data-track-index="0" data-layout-allow-overflow>
       <canvas id="s09-waves" class="k-waves"></canvas>
       <div id="s09-dim"></div>
-      <div id="s09-cam">
-        <div id="s09-ph">
-          <div id="s09-phone" class="k-phone">
-            <!-- footage: assets/footage/r9-keiki-text.mp4 -->
-            <div id="s09-screen" class="k-screen"><div id="s09-label">R9 · iMessage via Keiki: log push day, bench 185 5x5</div></div>
+      <div id="s09-out">
+        <div id="s09-cam">
+          <div id="s09-ph">
+            <div id="s09-phone" class="k-phone">
+              <div id="s09-screen" class="k-screen">
+                <div id="s09-head">Grok</div>
+                <div id="s09-bub">am I about to lose my Duolingo streak?</div>
+                <div id="s09-tool"><div id="s09-tlogo"></div><span>Check your streak</span><span class="sep">·</span><span>Duolingo</span></div>
+                <p id="s09-ans">Not yet. You're on a 47-day streak and today's lesson isn't done. You have until midnight. Want a 5-minute review of the words you keep missing?</p>
+                <div id="s09-comp">
+                  <div id="s09-q">am I about to lose my Duolingo streak?</div>
+                  <div id="s09-send"><div id="s09-send-i" class="k-icon"></div></div>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+        <div id="s09-chip">
+          <span class="s09-app">Grok</span><span class="s09-sep">·</span>
+          <img id="s09-logo" class="s09-logo" src="assets/apps/duolingo.png" alt="" />
+          <span class="s09-verb">Duolingo</span>
         </div>
       </div>
     </div>
   </div>
   <script>
     (function () {
-      const D = 5.0, $ = (s) => document.querySelector(s);
+      const ID = "s09-text", D = 5.0, $ = (s) => document.querySelector(s);
+      const S = KIT.springs;
       const tl = gsap.timeline({ paused: true });
-      const cam = (s, px, py) => ({ scale: s, x: 960 - s * px, y: 540 - s * py });
+      // camera: world point (wx, wy) shown at screen point (sx, sy) at scale s (origin 0 0)
+      const cam = (s, wx, wy, sx, sy) => ({ scale: s, x: sx - s * wx, y: sy - s * wy });
+      const W = (u, v) => [499 + u, 88 + v];
 
-      KIT.waves(tl, $("#s09-waves"), { from: 0, to: D, offset: 52.279 });
+      KIT.waves(tl, $("#s09-waves"), { from: 0, to: D, offset: 52.284 });
 
-      // Land the whip: the phone comes in from the right, blurred, sharpening on the enter curve.
-      gsap.set("#s09-cam", cam(1, 960, 540));
-      tl.fromTo("#s09-ph", { x: 1700, scale: 0.966 }, { x: 0, scale: 0.966, duration: 0.45, ease: KIT.ease.enter, immediateRender: false }, 0);
+      // ---- whip in from the right (s08 left mid-whip), sharpening on the enter curve
+      const K0 = cam(1, 0, 0, 0, 0);
+      gsap.set("#s09-cam", { transformOrigin: "0px 0px", ...K0 });
+      gsap.set("#s09-ph", { x: 1700, filter: "blur(10px)" });
+      tl.fromTo("#s09-ph", { x: 1700 }, { x: 0, duration: 0.42, ease: KIT.ease.enter, immediateRender: false }, 0);
       tl.fromTo("#s09-ph", { filter: "blur(10px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 0);
 
-      // msg-sent at 0.50: push onto the thread, then drift through the yes and the "done" reply (msg-in 2.00).
-      const THREAD = 684;
-      tl.fromTo("#s09-cam", cam(1, 960, 540), { ...cam(1.32, 960, THREAD), duration: 0.45, ease: "power2.inOut", immediateRender: false }, 0.5);
-      tl.fromTo("#s09-cam", cam(1.32, 960, THREAD), { ...cam(1.38, 960, THREAD), duration: 3.65, ease: "sine.inOut", immediateRender: false }, 0.95);
+      // ---- push onto the composer as the question types (30 cps), send on 1.80
+      const [cx, cy] = W(201, 840);
+      const K1 = cam(1.8, cx, cy, 760, 600);
+      tl.fromTo("#s09-cam", K0, { ...K1, duration: 0.42, ease: "power2.inOut", immediateRender: false }, 0.4);
+      KIT.icon(tl, $("#s09-send-i"), "arrows-right", { tint: "#000" });
+      KIT.smear(tl, $("#s09-q"), 0.5);
+      KIT.press(tl, $("#s09-send"), 1.8);
+      tl.set("#s09-q", { opacity: 0 }, 1.86);
 
-      // Hand off to s10: the phone shrinks out (12 frames, 8px blur, power2.in), leaving the dim wave.
-      tl.fromTo("#s09-ph", { scale: 0.966, opacity: 1, filter: "blur(0px)" },
-        { scale: 0.58, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power2.in", immediateRender: false }, 4.6);
+      // ---- the question flies up into the thread, the camera follows it
+      const [tx, ty] = W(201, 230);
+      const K2 = cam(1.8, tx, ty, 720, 500);
+      const FLY = S.layout.dur * 1.2;
+      gsap.set("#s09-bub", { opacity: 0, y: 690, scale: 0.94, transformOrigin: "100% 50%" });
+      tl.fromTo("#s09-bub", { y: 690, scale: 0.94 }, { y: 0, scale: 1, duration: FLY, ease: S.layout.ease, immediateRender: false }, 1.86);
+      tl.fromTo("#s09-bub", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false }, 1.86);
+      tl.fromTo("#s09-cam", K1, { ...K2, duration: FLY, ease: S.layout.ease, immediateRender: false }, 1.86);
 
-      window.__timelines["s09-text"] = tl;
+      // ---- the Duolingo read on the beat (2.14): quiet line in the thread, chip lands beside the phone
+      gsap.set("#s09-tool", { opacity: 0, x: -10 });
+      tl.fromTo("#s09-tool", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.35, ease: KIT.ease.enter, immediateRender: false }, 2.14);
+      const chip = $("#s09-chip");
+      gsap.set(chip, { opacity: 0, transformOrigin: "0% 50%" });
+      tl.fromTo(chip, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: 0.6, ease: S.pop.ease, immediateRender: false }, 2.14);
+      tl.fromTo(chip, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out", immediateRender: false }, 2.14);
+
+      // ---- the answer streams from 2.82 (msg-in) as the camera pushes in on it
+      const [ax, ay] = W(201, 300);
+      const K3 = cam(1.92, ax, ay, 720, 520);
+      tl.fromTo("#s09-cam", K2, { ...K3, duration: 4.6 - 2.36, ease: "sine.inOut", immediateRender: false }, 2.36);
+      KIT.words(tl, $("#s09-ans"), 2.82, { span: 1.45, dur: 0.16 });
+
+      // ---- out: the phone shrinks away (12 frames, 8 px blur, power2.in), leaving the dim wave alone
+      gsap.set("#s09-out", { transformOrigin: "720px 520px", scale: 1, opacity: 1, filter: "blur(0px)" });
+      tl.fromTo("#s09-out", { scale: 1, opacity: 1, filter: "blur(0px)" }, { scale: 0.58, opacity: 0, filter: "blur(8px)", duration: 0.4, ease: "power2.in", immediateRender: false }, 4.6);
+
+      window.__timelines[ID] = tl;
     })();
   </script>
 </template>
