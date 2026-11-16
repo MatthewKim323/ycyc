@@ -63,6 +63,7 @@ import type * as pipeline from "../pipeline.js";
 import type * as profile from "../profile.js";
 import type * as providerActions from "../providerActions.js";
 import type * as providerProbe from "../providerProbe.js";
+import type * as publicPreview from "../publicPreview.js";
 import type * as recipes from "../recipes.js";
 import type * as revyl from "../revyl.js";
 import type * as today from "../today.js";
@@ -131,6 +132,7 @@ declare const fullApi: ApiFromModules<{
   profile: typeof profile;
   providerActions: typeof providerActions;
   providerProbe: typeof providerProbe;
+  publicPreview: typeof publicPreview;
   recipes: typeof recipes;
   revyl: typeof revyl;
   today: typeof today;

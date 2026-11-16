@@ -8,6 +8,10 @@ Stephen's current backend work lands directly on `main`. Rebase onto `origin/mai
 
 After a rebase with `--autostash`, inspect `git status`, run `git diff --check`, and check for conflict markers before staging or deploying. Git can finish the rebase with exit code 0 even when restoring the autostash leaves conflicts; resolve those conflicts explicitly before continuing.
 
+## Verify native sharing in the native client
+
+An anonymous Expo manifest or asset download does not prove another Expo account can launch it in Expo Go. EAS-hosted updates are owner/organization restricted; consult the current Expo Go loading policy before claiming public access. For public self-hosting, use the supported plain-JavaScript update format and keep native verification/sandboxing intact. Report a real phone launch separately from HTTP and bundle checks.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

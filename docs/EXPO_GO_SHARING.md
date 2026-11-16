@@ -1,55 +1,40 @@
 # Share Yuzu through Expo Go
 
-The hosted `public-demo` branch belongs to `@stephenhung/yuzu`, project
-`5336f37b-9daf-476e-b9eb-28ff7c38df56`. It publishes the complete iOS and
-Android app bundle for SDK 58; testers install the current Expo Go app.
-The project uses the `sdkVersion` runtime policy (`exposdk:58.0.0`). No
-Apple membership, native build, development server, or shared Expo login is
-needed to load a published update whose manifest is publicly accessible.
+EAS-hosted updates are restricted to the project owner or members of its owning organization. An anonymous HTTP manifest/bundle download does **not** prove another account can open the update inside Expo Go. The earlier EAS preview QR is unsuitable for public testers.
 
-The project-scoped EAS `preview` environment contains these public values:
+Expo officially supports self-hosted **plain JavaScript** updates. Yuzu publishes that format using Convex file storage and the public HTTP endpoint `/expo-preview/<snapshot>`. No EAS project membership, Apple membership, or local development server is required by that hosting route. A physical-phone launch must still be checked before calling a particular preview working.
 
-- `EXPO_PUBLIC_CONVEX_URL=https://optimistic-newt-247.convex.cloud`
-- `EXPO_PUBLIC_CONVEX_SITE_URL=https://optimistic-newt-247.convex.site`
+## Publish a public mobile preview
 
-The public preview uses anonymous device identity. It does not supply a
-Clerk publishable key. Google account linking is not supported by this
-preview; browser OAuth custom callbacks require a development/native build.
-Claude and Codex subscription connections use separate backend device/code
-flows. Installed-app detection is unavailable in Expo Go.
-
-Publish from the current main checkout after fetching/rebasing and checking:
+Use current Expo Go for SDK 58. Export both native platforms without Hermes bytecode:
 
 ```sh
-bunx eas-cli@latest update --branch public-demo --environment preview \
-  --platform all --message 'Yuzu public Expo Go preview' --non-interactive
+npx expo export --platform ios --platform android --no-bytecode --output-dir dist
+CONVEX_ACCOUNT=ycyc node scripts/publish-expo-go.mjs dist .expo/public-preview.json
 ```
 
-`eas update` does not inherit the `env` object from an EAS build profile.
-Keep the two URLs above in the selected EAS environment. Never put backend
-secrets or user subscription credentials in an `EXPO_PUBLIC_` variable.
+The uploader defaults to Matthew's shared `optimistic-newt-247` Convex deployment. Override `CONVEX_PREVIEW_DEPLOYMENT` only when deliberately targeting another deployment. The deployment-admin CLI must already be authenticated. The `publicPreview` backend must be deployed first.
 
-Use the returned update group ID to generate an Expo Go QR:
+The script uploads only exported bundle/assets; it never publishes `.env` files, source maps, credentials or Expo sessions. It verifies UTF-8 JavaScript, refuses HBC bytecode, publishes immutable manifests, downloads all assets anonymously, and verifies SHA-256 hashes. Its JSON receipt contains an HTTPS landing URL and an `exps://` native URL. The matching PNG is the QR. Each publication creates a distinct snapshot; old snapshots remain unchanged.
 
-```text
-https://qr.expo.dev/eas-update?projectId=5336f37b-9daf-476e-b9eb-28ff7c38df56&groupId=GROUP_ID&slug=exp
-```
+Client configuration is compiled by `expo export`, so ensure `EXPO_PUBLIC_CONVEX_URL` points to the intended backend before export. The current preview uses anonymous device identity with the shared backend. It does not configure Google account linking; Claude/Codex subscription connections use separate backend device/code flows. Installed-app detection is unavailable in Expo Go. Backend secrets never belong in `EXPO_PUBLIC_` variables.
 
-Use `slug=exp`, not `slug=yuzu`; the latter targets a development build.
-Adding `&format=url` returns the matching `exp://` URL. Before sharing,
-request the HTTPS manifest URL without authorization/cookies with
-`expo-platform: ios`, `expo-runtime-version: exposdk:58.0.0`, and
-`expo-protocol-version: 1`. Check the returned bundle and assets load using only the per-asset headers
-issued in the anonymous manifest extensions (not Expo account credentials),
-and verify their SHA-256 hashes. Repeat the manifest/bundle check for Android. These checks do
-not prove that a physical phone has launched/rendered the app.
+## Hosting and verification
 
-Development tunnel links are different: current physical-iPhone Expo Go
-requires Expo CLI and Expo Go to use the same Expo account. A tunnel QR is
-therefore unsuitable for sharing with arbitrary testers. Published updates
-are exempt from that development-server rule. EAS CLI has no supported
-project-privacy flag; prove anonymous access using the published manifest.
+Upload URL creation and manifest publishing are internal deployment-admin operations. The public GET handler serves only immutable preview records. Asset URLs must match the same deployment's Convex file storage exactly. The manifest uses `runtimeVersion: exposdk:58.0.0`, an independent scope, and SDK58 client metadata; it does not impersonate a signed EAS update or a development server.
 
-References: [Expo Go sign-in rule](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/),
-[QR parameters](https://docs.expo.dev/more/qr-codes/),
-[update environment](https://docs.expo.dev/eas-update/getting-started/).
+Expo Go supports unsigned plain-JavaScript self-hosted manifests and applies its own unsigned sandbox. The server never fabricates a signature, certificate or verification flag. It ignores and does not log, persist or forward any Expo-Session header sent by the native client. No account permissions or client verification settings are changed.
+
+Check both platform manifests, plain-JavaScript launch assets and every asset hash, then open the QR on a real phone with an unrelated Expo account. HTTP success alone is insufficient. A browser can open the HTTPS preview landing page and choose its platform; it still needs Expo Go to launch the native application.
+
+The existing public development-tunnel browser URL runs the web version only while its local server remains online. Native WebView capture requires a mobile runtime. Expo Go development-server links on physical iOS require the same Expo account in CLI and phone, so they are not public-sharing links.
+
+References: [Expo Go ownership and self-hosting policy](https://expo.dev/changelog/expo-go-loading-changes-may-2026), [Updates protocol](https://docs.expo.dev/technical-specs/expo-updates-1/), [official custom-server example](https://github.com/expo/custom-expo-updates-server), [development-server sign-in restriction](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/).
+
+## Verified public preview
+
+The user confirmed a physical-phone Expo Go launch from this self-hosted snapshot after the EAS preview had failed with403:
+
+https://optimistic-newt-247.convex.site/expo-preview/1741c4c8-abfc-43b0-bb4f-2cd07791e337
+
+Both platform manifests and all66 public files passed anonymous download and SHA256 checks. Google account linking remains unavailable in this preview.

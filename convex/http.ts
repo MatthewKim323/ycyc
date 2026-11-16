@@ -5,8 +5,15 @@ import { catalogApp } from "./catalog";
 import { deeplinkBase } from "./lib/env";
 import { CORS_HEADERS, handleMcpPost } from "./lib/mcp";
 import { verifyStandardWebhook } from "./lib/webhook";
+import { previewResponse } from "./publicPreview";
 
 const http = httpRouter();
+
+http.route({
+  pathPrefix: "/expo-preview/",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => previewResponse(req, (snapshot, platform) => ctx.runQuery(internal.publicPreview.get, { snapshot, platform }))),
+});
 
 // ---- MCP: POST /mcp/<token> ----
 

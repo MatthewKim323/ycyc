@@ -62,6 +62,11 @@ export const aiTurnStatusValidator = v.union(
 export const aiEventTypeValidator = v.union(v.literal("text_delta"), v.literal("tool_start"), v.literal("tool_end"));
 
 export default defineSchema({
+  // Immutable deployment-admin uploads: public Expo configuration and assets only.
+  publicMobilePreviews: defineTable({
+    snapshot: v.string(), iosManifestJson: v.string(), androidManifestJson: v.string(), createdAt: v.number(),
+  }).index("by_snapshot", ["snapshot"]),
+
   // Explicit per-user marketplace grants. Uninstalled rows are tombstones so
   // stale connection completions cannot restore access after removal.
   pluginInstallations: defineTable({
