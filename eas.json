@@ -1,14 +1,27 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "ios": { "simulator": true },
-      "env": { "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-newt-247.convex.cloud" }
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-newt-247.convex.cloud",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YW1wbGUtbGxhbWEtODc2Mi5jbGVyay5hY2NvdW50cy5kZXYk"
+      }
     },
     "production": {
-      "env": { "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-newt-247.convex.cloud" }
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://optimistic-newt-247.convex.cloud",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YW1wbGUtbGxhbWEtODc2Mi5jbGVyay5hY2NvdW50cy5kZXYk"
+      }
     }
   }
 }
