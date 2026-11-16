@@ -83,6 +83,7 @@ export interface RecipeTool {
   inputSchema: Record<string, unknown>; // JSON Schema object
   request?: RequestTemplate; // absent for executor "phone"
   extract?: string; // dot path into the JSON response, e.g. "items" ; empty = whole body
+  omit?: string[]; // dot paths dropped from what the model reads (per item for lists), e.g. "food.serving_sizes"
   phoneInstruction?: string; // executor "phone": plain-English step template for Revyl, with {{args}}
   sample?: { args: Record<string, unknown>; ok: boolean; at: number };
 }

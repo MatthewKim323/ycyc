@@ -102,7 +102,26 @@
         "args": {},
         "ok": true,
         "at": 1794779051918
-      }
+      },
+      "omit": [
+        "food.serving_sizes",
+        "food.nutritional_contents",
+        "food.user_id",
+        "food.version",
+        "food.public",
+        "food.type",
+        "food.country_code",
+        "food.deleted",
+        "food.created_at",
+        "serving_size.id",
+        "serving_size.nutrition_multiplier",
+        "serving_size.is_fraction",
+        "type",
+        "client_id",
+        "meal_position",
+        "meal_food_id",
+        "created_at"
+      ]
     },
     {
       "name": "log_food",

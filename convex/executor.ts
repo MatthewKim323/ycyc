@@ -8,6 +8,7 @@ import { catalogApp, displayName } from "./catalog";
 import {
   extractPath,
   fitToolText,
+  shapeForModel,
   prepareArgs,
   renderBody,
   renderHeader,
@@ -188,6 +189,12 @@ function parseBody(body: string): unknown {
   return undefined;
 }
 
+/** The text a tool returns to the model: trimmed of noise, then fitted under the size cap. */
+function modelText(value: unknown, fallback: string, omit?: string[]): string {
+  const shown = shapeForModel(value, omit);
+  return fitToolText(shown, toText(shown, fallback));
+}
+
 function toText(value: unknown, fallback: string): string {
   if (value === undefined) return fallback;
   if (typeof value === "string") return value;
@@ -255,7 +262,7 @@ export function errText(e: unknown): string {
 
 async function executeTemplated(
   ctx: Ctx,
-  opts: { conn: Doc<"connections">; recipe: Recipe; args: Record<string, unknown>; tool?: RecipeTool; template?: RequestTemplate; extract?: string },
+  opts: { conn: Doc<"connections">; recipe: Recipe; args: Record<string, unknown>; tool?: RecipeTool; template?: RequestTemplate; extract?: string; omit?: string[] },
 ): Promise<ExecResult> {
   const { conn, recipe } = opts;
   const session = parseSession(conn);
@@ -287,7 +294,7 @@ async function executeTemplated(
         const raw = r.raw === undefined ? "" : typeof r.raw === "string" ? r.raw : JSON.stringify(r.raw);
         return { ok: false, status: r.status || undefined, text: truncateText(`${r.error ?? "Failed"} ${raw}`.trim(), 1500) };
       }
-      return { ok: true, status: r.status, text: fitToolText(r.data, toText(r.data, "Done.")), data: r.data };
+      return { ok: true, status: r.status, text: modelText(r.data, "Done."), data: r.data };
     }
     // A bare RequestTemplate (auth.check during verify).
     await tmpl.ensureLogin(recipe, session, state, timeoutFetch);
@@ -303,7 +310,7 @@ async function executeTemplated(
     return {
       ok,
       status: res.status,
-      text: truncateText(ok ? toText(data, "Done.") : `HTTP ${res.status}: ${toText(res.body, "")}`, ok ? undefined : 1500),
+      text: ok ? modelText(data, "Done.", opts.omit) : truncateText(`HTTP ${res.status}: ${toText(res.body, "")}`, 1500),
       data,
     };
   } catch (e) {
@@ -374,7 +381,7 @@ async function executeViaRecipeRunner(
       : err;
     return { ok: false, status: r.status || undefined, text: truncateText(friendly, 1500) };
   }
-  return { ok: true, status: r.status, text: fitToolText(r.data, toText(r.data, "Done.")), data: r.data };
+  return { ok: true, status: r.status, text: modelText(r.data, "Done."), data: r.data };
 }
 
 // Executor runs never see the password (it is stripped after sign-in anyway).
@@ -523,6 +530,7 @@ export async function executeRequest(
     toolName: string;
     executor?: Executor;
     extract?: string;
+    omit?: string[];
     emptyOn?: ToolFlags["emptyOn"];
     kind?: "read" | "write";
     forceRefresh?: boolean;
@@ -534,7 +542,7 @@ export async function executeRequest(
     return executeViaRecipeRunner(ctx, { conn, recipe, toolName: opts.toolName, args: opts.args, template, forceRefresh: opts.forceRefresh });
   }
   if (executor !== "device" && isTemplated(recipe)) {
-    return executeTemplated(ctx, { conn, recipe, args: opts.args, template, extract: opts.extract });
+    return executeTemplated(ctx, { conn, recipe, args: opts.args, template, extract: opts.extract, omit: opts.omit });
   }
   const session = parseSession(conn);
   const scope: RenderScope = { args: opts.args, session, baseUrl: recipe.baseUrl };
@@ -603,7 +611,7 @@ export async function executeRequest(
   const extracted = parsed !== undefined ? extractPath(parsed, opts.extract) : undefined;
   const ok = res.status >= 200 && res.status < 300;
   const text = ok
-    ? fitToolText(extracted, toText(extracted, res.body))
+    ? modelText(extracted, res.body, opts.omit)
     : truncateText(`HTTP ${res.status}: ${truncateText(res.body, 1500)}`);
   return { ok, status: res.status, text, data: extracted };
 }
@@ -730,6 +738,7 @@ async function executeToolOnce(
     toolName: opts.tool.name,
     executor,
     extract: opts.tool.extract,
+    omit: opts.tool.omit,
     emptyOn: (opts.tool as FlaggedTool).emptyOn,
     kind: opts.tool.kind,
   });

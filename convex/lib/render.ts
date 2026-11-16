@@ -204,7 +204,39 @@ export function extractPath(data: unknown, path: string | undefined): unknown {
   return walk(data, path.split(".").filter(Boolean));
 }
 
-export const MAX_TOOL_TEXT = 8 * 1024;
+export const MAX_TOOL_TEXT = 24 * 1024;
+
+function compact(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(compact);
+  if (!v || typeof v !== "object") return v;
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) {
+    if (x === null || x === undefined) continue;
+    const c = compact(x);
+    if (Array.isArray(c) ? c.length === 0 : c && typeof c === "object" && Object.keys(c).length === 0) continue;
+    out[k] = c;
+  }
+  return out;
+}
+
+function dropPath(v: unknown, path: string[]): void {
+  if (!v || typeof v !== "object" || !path.length) return;
+  if (Array.isArray(v)) {
+    for (const x of v) dropPath(x, path);
+    return;
+  }
+  const rec = v as Record<string, unknown>;
+  if (path.length === 1) delete rec[path[0]];
+  else dropPath(rec[path[0]], path.slice(1));
+}
+
+/** What the model reads: no nulls or empty values, and the tool's `omit` paths removed (per item for lists). */
+export function shapeForModel(value: unknown, omit?: string[]): unknown {
+  if (value === undefined) return value;
+  const out = compact(value);
+  for (const p of omit ?? []) dropPath(out, p.split(".").filter(Boolean));
+  return out;
+}
 
 export function truncateText(text: string, max = MAX_TOOL_TEXT): string {
   if (text.length <= max) return text;
