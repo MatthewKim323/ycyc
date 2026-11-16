@@ -1,6 +1,7 @@
 <template>
-  <!-- s04-connect (8.0 s). Pick MyFitnessPal, the connect sheet, the build stage. Cronometer builds behind at 3x. -->
-  <!-- sfx: t=0.93 name=ui-confirm gain=0.5 -->
+  <!-- s04-connect (8.0 s). Welcome (Continue with Google), pick MyFitnessPal, the connect sheet, the build stage. Cronometer builds behind at 3x. -->
+  <!-- sfx: t=0.55 name=ui-confirm gain=0.5 -->
+  <!-- sfx: t=1.02 name=ui-confirm gain=0.5 -->
   <!-- sfx: t=1.15 name=ui-open gain=0.3 -->
   <!-- sfx: t=2.00 name=ui-confirm gain=0.45 -->
   <!-- sfx: t=2.15 name=card-morph gain=0.3 -->
@@ -18,7 +19,23 @@
     #s04-phone { left: 0; top: 0; }
     .s04-ph { display: flex !important; align-items: center; justify-content: center; text-align: center; padding: 0 48px; box-sizing: border-box;
       background: #141414 !important; font: 500 32px/1.35 "Inter", sans-serif; color: #a1a1a1; }
-    #s04-tap { position: absolute; left: 60px; top: 280px; width: 100px; height: 100px; border-radius: 50%; box-shadow: inset 0 0 0 3px #fff; opacity: 0; }
+    #s04-phone-p { position: absolute; left: 0; top: 0; width: 430px; height: 932px; }
+    #s04-tap, #s04-tapg { position: absolute; width: 100px; height: 100px; border-radius: 50%; box-shadow: inset 0 0 0 3px #fff; opacity: 0; }
+    #s04-tap { left: 80px; top: 247px; }
+    #s04-tapg { left: 165px; top: 747px; }
+    /* onboarding Welcome, rebuilt from steps.tsx, laid over the Pick screen inside the phone */
+    #s04-wel { position: absolute; left: 14px; top: 14px; width: 402px; height: 904px; border-radius: 54px; overflow: hidden; background: #000; font-family: "Inter", sans-serif; }
+    #s04-wel-waves { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #s04-wel-dim { position: absolute; inset: 0; background: #000; opacity: 0.28; }
+    #s04-wel-mark { position: absolute; left: 0; right: 0; top: 77px; text-align: center; font: 600 20px/26px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; margin: 0; }
+    #s04-wel-b { position: absolute; left: 16px; right: 16px; bottom: 50px; display: flex; flex-direction: column; gap: 12px; }
+    .s04-hero { font: 600 34px/40px "Inter", sans-serif; letter-spacing: -0.8px; color: #fff; margin: 0; }
+    #s04-wel-body { font: 400 15px/21px "Inter", sans-serif; color: #a1a1a1; margin: 0; }
+    #s04-wel-cta { margin-top: 4px; display: flex; flex-direction: column; }
+    #s04-gbtn { height: 52px; border-radius: 999px; background: #fff; display: flex; align-items: center; justify-content: center; gap: 10px;
+      font: 600 15px/20px "Inter", sans-serif; color: #000; }
+    #s04-gbtn svg { width: 18px; height: 18px; display: block; }
+    #s04-wel-skip { align-self: center; padding: 12px 24px; font: 500 15px/21px "Inter", sans-serif; color: #a1a1a1; }
 
     /* camera: sheet + build share one space */
     #s04-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 2000px; }
@@ -86,11 +103,39 @@
       <div id="s04-dim"></div>
       <div id="s04-stage">
         <div id="s04-phone-w">
-          <div id="s04-phone" class="k-phone">
-            <!-- footage: assets/footage/r3-ycyc-connect.mp4 -->
-            <div id="s04-r3" class="k-screen s04-ph" data-layout-allow-overlap>R3 · yuzu: Apps → MyFitnessPal → sign in</div>
+          <div id="s04-phone-p">
+            <div id="s04-phone" class="k-phone">
+              <!-- footage: assets/footage/r3-ycyc-connect.mp4 -->
+              <img id="s04-r3" class="k-screen s04-ph" src="assets/footage/r3-ycyc-connect.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
+              <div id="s04-wel" data-layout-allow-overlap>
+                <canvas id="s04-wel-waves"></canvas>
+                <div id="s04-wel-dim"></div>
+                <p id="s04-wel-mark">yuzu</p>
+                <div id="s04-wel-b">
+                  <div>
+                    <p class="s04-hero">Your apps,</p>
+                    <p class="s04-hero">in every AI.</p>
+                  </div>
+                  <p id="s04-wel-body">Connect the apps you already use. Use them from Claude, ChatGPT, Grok and Muse.</p>
+                  <div id="s04-wel-cta">
+                    <div id="s04-gbtn">
+                      <!-- Google's "G" brand mark, required artwork on the Google button (google-button.tsx) -->
+                      <svg viewBox="0 0 48 48" aria-hidden="true">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                      </svg>
+                      Continue with Google
+                    </div>
+                    <div id="s04-wel-skip">Continue without an account</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="s04-tapg"></div>
+            <div id="s04-tap"></div>
           </div>
-          <div id="s04-tap"></div>
         </div>
 
         <div id="s04-cw">
@@ -179,17 +224,25 @@
       KIT.waves(tl, $("#s04-waves"), { from: 0, to: D, offset: 18.779 });
       tl.fromTo("#s04-dim", { opacity: 0 }, { opacity: 0.55, duration: 0.7, ease: "power2.inOut", immediateRender: false }, 0);
 
-      // phone rises (origin on the MyFitnessPal tile so the push lands there)
-      const PO = "110px 330px";
+      // phone rises on the Welcome screen (outer origin on the MyFitnessPal row so the later push lands there)
+      const PO = "130px 297px";
       gsap.set("#s04-phone-w", { transformOrigin: PO, scale: 0.966, y: 1100, filter: "blur(0px)", opacity: 1 });
       tl.fromTo("#s04-phone-w", { y: 1100 }, { y: 0, duration: 0.6, ease: E, immediateRender: false }, 0.05);
       tl.fromTo("#s04-phone-w", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 0.05);
-      tl.fromTo("#s04-phone-w", { scale: 0.966 }, { scale: 0.985, duration: 0.3, ease: "sine.inOut", immediateRender: false }, 0.65);
-      // tap on the MyFitnessPal tile, push follows
-      tl.fromTo("#s04-tap", { scale: 0.5, opacity: 0.85 }, { scale: 1.3, opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.93);
-      tl.fromTo("#s04-phone-w", { scale: 0.985 }, { scale: 1.8, duration: 0.45, ease: "power2.inOut", immediateRender: false }, 0.95);
-      tl.fromTo("#s04-phone-w", { filter: "blur(0px)" }, { filter: "blur(5px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 0.95);
-      tl.fromTo("#s04-phone-w", { filter: "blur(5px)", opacity: 1 }, { filter: "blur(8px)", opacity: 0.4, duration: 0.3, ease: "power2.out", immediateRender: false }, 1.15);
+      tl.fromTo("#s04-phone-w", { scale: 0.966 }, { scale: 0.985, duration: 0.35, ease: "sine.inOut", immediateRender: false }, 0.65);
+      // Welcome: the shader runs inside the phone, punch toward Continue with Google, press, the screen clears to Pick your first app
+      KIT.waves(tl, $("#s04-wel-waves"), { from: 0, to: 0.95, offset: 18.779, width: 402, height: 904, dpr: 2 });
+      gsap.set("#s04-phone-p", { transformOrigin: "215px 797px", scale: 1 });
+      tl.fromTo("#s04-phone-p", { scale: 1 }, { scale: 1.22, duration: 0.2, ease: "power2.inOut", immediateRender: false }, 0.38);
+      tl.fromTo("#s04-tapg", { scale: 0.5, opacity: 0.85 }, { scale: 1.3, opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.55);
+      KIT.press(tl, $("#s04-gbtn"), 0.55);
+      tl.fromTo("#s04-wel", { opacity: 1, x: 0, filter: "blur(0px)" }, { opacity: 0, x: -60, filter: "blur(8px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 0.7);
+      tl.fromTo("#s04-phone-p", { scale: 1.22 }, { scale: 1, duration: 0.3, ease: "power2.inOut", immediateRender: false }, 0.7);
+      // tap on the MyFitnessPal row, push follows
+      tl.fromTo("#s04-tap", { scale: 0.5, opacity: 0.85 }, { scale: 1.3, opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 1.02);
+      tl.fromTo("#s04-phone-w", { scale: 0.985 }, { scale: 1.8, duration: 0.45, ease: "power2.inOut", immediateRender: false }, 1.04);
+      tl.fromTo("#s04-phone-w", { filter: "blur(0px)" }, { filter: "blur(5px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 1.04);
+      tl.fromTo("#s04-phone-w", { filter: "blur(5px)", opacity: 1 }, { filter: "blur(8px)", opacity: 0.4, duration: 0.3, ease: "power2.out", immediateRender: false }, 1.24);
       tl.fromTo("#s04-phone-w", { opacity: 0.4 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 2.15);
 
       // camera keyframes (origin 0 0)
