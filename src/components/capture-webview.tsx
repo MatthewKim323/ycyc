@@ -183,18 +183,27 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
         inject("window.__yuzu && window.__yuzu.probe(" + args + ");true;");
       });
 
+    const sessionProbes = (id: string) => new Promise<void>((resolve) => {
+      if (!cfg.sessionProbes.length) { resolve(); return; }
+      const timer = setTimeout(() => { probeWaiters.current.delete(id); resolve(); }, PROBE_TIMEOUT_MS);
+      probeWaiters.current.set(id, () => { clearTimeout(timer); resolve(); });
+      inject("window.__yuzu && window.__yuzu.runSessionProbes(" + JSON.stringify(id) + ");true;");
+    });
+
     (async () => {
       await sleep(SETTLE_AFTER_LOGIN_MS);
       if (cancelled) return;
-      inject("window.__yuzu && window.__yuzu.runSessionProbes();true;");
+      await sessionProbes("session-initial");
       let i = 0;
       for (const step of cfg.playbook) {
         if (cancelled) return;
         if (step.kind === "visit") {
           await visit(step.path);
           await sleep(step.dwellMs ?? 3500);
-          // A fresh page lost the earlier session probe results only if it reloaded mid-flight; rerun.
-          if (i === 0) inject("window.__yuzu && window.__yuzu.runSessionProbes();true;");
+          if (cancelled) return;
+          // Each loaded page has a fresh recorder. Wait for its token exchange
+          // before another navigation or an API probe that needs those headers.
+          await sessionProbes("session-after-visit-" + i);
         } else {
           await probe(step, "p" + i);
           await sleep(600);

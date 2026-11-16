@@ -421,25 +421,34 @@ try {
   Y.checkLogin = checkLogin;
 
   // Session probes: mint a bearer token from the cookie session through the site's own endpoint.
-  Y.runSessionProbes = function () {
+  Y.runSessionProbes = function (id) {
     try {
       var probes = C.sessionProbes || [];
-      probes.forEach(function (sp) {
-        W.fetch(sp.path, { credentials: "include", headers: { accept: "application/json" } }).then(function (r) {
+      return Promise.all(probes.map(function (sp) {
+        return W.fetch(sp.path, { credentials: "include", headers: { accept: "application/json" } }).then(function (r) {
           return r.ok ? r.json() : null;
         }).then(function (j) {
-          if (!j) return;
+          if (!j) return false;
+          var complete = true;
           for (var key in sp.pick) {
             var v = getPath(j, sp.pick[key]);
-            if (v == null || v === "") continue;
+            if (v == null || v === "") { complete = false; continue; }
             var dot = key.indexOf(".");
             var kind = key.slice(0, dot), name = key.slice(dot + 1);
             var pre = (sp.prefix && sp.prefix[key]) || "";
             if (kind === "headers" || kind === "cookies" || kind === "storage") setSession(kind, name, pre + String(v));
           }
-        }, function () {});
+          return complete;
+        }).catch(function () { return false; });
+      })).then(function (results) {
+        // Deliver session values before acknowledging: native capture must not
+        // navigate away while the token exchange is still in flight.
+        postSession();
+        if (id) post({ t: "probe", id: id, ok: results.every(function (ok) { return ok; }), status: 0 });
       });
-    } catch (e) { log("sessionProbes " + e); }
+    } catch (e) {
+      if (id) post({ t: "probe", id: id, ok: false, status: 0 });
+    }
   };
 
   // Playbook probe: same-origin request through the hooked fetch so it lands in the capture.
