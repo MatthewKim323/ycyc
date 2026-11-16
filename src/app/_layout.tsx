@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ApprovalSheet } from "@/components/approval-sheet";
 import { DeviceRelay } from "@/components/device-relay";
+import { AccountProvider } from "@/hooks/account";
 import { OnboardingProvider, useOnboarding } from "@/hooks/onboarding";
 import { UserProvider, useUser } from "@/hooks/user";
 import { colors } from "@/theme";
@@ -85,18 +86,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SafeAreaProvider>
-        <ConvexProvider client={convex}>
-          <UserProvider>
-            <OnboardingProvider>
-              <ThemeProvider value={theme}>
-                <StatusBar style="light" />
-                <RootStack fontsReady={fontsLoaded || !!fontError} />
-                <Relay />
-                <ApprovalSheet />
-              </ThemeProvider>
-            </OnboardingProvider>
-          </UserProvider>
-        </ConvexProvider>
+        <AccountProvider>
+          <ConvexProvider client={convex}>
+            <UserProvider>
+              <OnboardingProvider>
+                <ThemeProvider value={theme}>
+                  <StatusBar style="light" />
+                  <RootStack fontsReady={fontsLoaded || !!fontError} />
+                  <Relay />
+                  <ApprovalSheet />
+                </ThemeProvider>
+              </OnboardingProvider>
+            </UserProvider>
+          </ConvexProvider>
+        </AccountProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

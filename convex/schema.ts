@@ -68,9 +68,15 @@ export default defineSchema({
     plan: v.union(v.literal("free"), v.literal("pro")),
     createdAt: v.number(),
     relaySeenAt: v.optional(v.number()), // phone relay heartbeat (calls.heartbeat)
+    // Google sign-in via Clerk (users.linkAccount). Connections follow the account across devices.
+    clerkUserId: v.optional(v.string()),
+    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
   })
     .index("by_deviceId", ["deviceId"])
-    .index("by_mcpToken", ["mcpToken"]),
+    .index("by_mcpToken", ["mcpToken"])
+    .index("by_clerkUserId", ["clerkUserId"]),
 
   // Provider CLIs own their authentication. Persist only sealed credential/code
   // envelopes; public status queries deliberately omit these fields.

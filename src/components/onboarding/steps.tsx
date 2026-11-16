@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeInDown, LinearTransition } from "react-native-rea
 import { copyFor, taglineFor } from "@/components/app-copy";
 import { Button } from "@/components/button";
 import { CopyButton } from "@/components/copy-button";
+import { GoogleButton } from "@/components/google-button";
 import { displayLink } from "@/components/mcp-link-card";
 import { Glass } from "@/components/onboarding-chrome";
 import { PressableScale } from "@/components/pressable-scale";
@@ -14,6 +15,7 @@ import { Reveal } from "@/components/reveal";
 import { SuccessMark } from "@/components/success-mark";
 import { Text } from "@/components/text";
 import type { CatalogEntry, Id } from "@/hooks/convex";
+import { useAuth } from "@/hooks/user";
 import { installedFirst, type InstalledApps } from "@/lib/installed-apps";
 import { colors, enter, fonts, layout, space } from "@/theme";
 
@@ -36,6 +38,20 @@ export function sortCatalog<T extends { slug: string }>(apps: T[], installed: In
 }
 
 export function Welcome({ bottomInset, onNext }: { bottomInset: number; onNext: () => void }) {
+  const auth = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const google = auth.configured && !auth.signedIn;
+
+  const continueWithGoogle = async () => {
+    setSigningIn(true);
+    setFailed(false);
+    const result = await auth.signInWithGoogle();
+    setSigningIn(false);
+    if (result === "signed-in") onNext();
+    else if (result === "failed") setFailed(true);
+  };
+
   return (
     <View style={[styles.screen, styles.welcome, { paddingBottom: bottomInset + space.lg }]}>
       <Reveal delay={200} style={styles.wordmark}>
@@ -56,7 +72,31 @@ export function Welcome({ bottomInset, onNext }: { bottomInset: number; onNext: 
           </Text>
         </Reveal>
         <Reveal delay={700} style={styles.cta}>
-          <Button label="Get started" onPress={onNext} fullWidth />
+          {google ? (
+            <View>
+              <GoogleButton onPress={continueWithGoogle} loading={signingIn || !auth.loaded} />
+              {failed ? (
+                <Animated.View entering={FadeIn.duration(200)}>
+                  <Text variant="caption" color={colors.error} style={[styles.center, styles.authError]}>
+                    Google sign-in didn&rsquo;t finish. Try again.
+                  </Text>
+                </Animated.View>
+              ) : null}
+              <PressableScale
+                onPress={onNext}
+                haptic="selection"
+                disabled={signingIn}
+                style={styles.textButton}
+                accessibilityLabel="Continue without an account"
+              >
+                <Text variant="bodyMedium" color={colors.textSecondary}>
+                  Continue without an account
+                </Text>
+              </PressableScale>
+            </View>
+          ) : (
+            <Button label="Get started" onPress={onNext} fullWidth />
+          )}
         </Reveal>
       </View>
     </View>
@@ -356,6 +396,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   cta: { marginTop: space.lg },
+  authError: { marginTop: space.sm },
   top: { gap: space.xl },
   howCard: { padding: space.xl, gap: space.xl },
   howRow: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },

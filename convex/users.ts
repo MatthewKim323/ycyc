@@ -34,6 +34,56 @@ export const ensure = mutation({
   },
 });
 
+// After Google sign-in: the account's user follows the person, so this device switches to it.
+// The device's previous anonymous user is detached (its deviceId is retired) so `ensure` stays unique.
+export const linkAccount = mutation({
+  args: {
+    deviceId: v.string(),
+    clerkUserId: v.string(),
+    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { deviceId, clerkUserId, email, name, imageUrl }) => {
+    const profile = { email, name, imageUrl };
+    const current = await ctx.db
+      .query("users")
+      .withIndex("by_deviceId", (q) => q.eq("deviceId", deviceId))
+      .unique();
+    const account = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .first();
+
+    if (account) {
+      if (current && current._id !== account._id) {
+        await ctx.db.patch(current._id, { deviceId: `${deviceId}#detached:${current._id}` });
+      }
+      await ctx.db.patch(account._id, { deviceId, ...profile });
+      return { userId: account._id, mcpUrl: mcpUrlFor(account.mcpToken), plan: account.plan };
+    }
+
+    // First sign-in for this account: claim the device user, unless it already belongs to someone else.
+    if (current && !current.clerkUserId) {
+      await ctx.db.patch(current._id, { clerkUserId, ...profile });
+      return { userId: current._id, mcpUrl: mcpUrlFor(current.mcpToken), plan: current.plan };
+    }
+    if (current) {
+      await ctx.db.patch(current._id, { deviceId: `${deviceId}#detached:${current._id}` });
+    }
+    const mcpToken = randomToken();
+    const userId = await ctx.db.insert("users", {
+      deviceId,
+      mcpToken,
+      plan: "free",
+      createdAt: Date.now(),
+      clerkUserId,
+      ...profile,
+    });
+    return { userId, mcpUrl: mcpUrlFor(mcpToken), plan: "free" as const };
+  },
+});
+
 export const get = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
