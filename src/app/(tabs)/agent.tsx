@@ -24,10 +24,10 @@ import { useUser } from "@/hooks/user";
 import { planForProvider, selectPlan, useAgent, useAiPlans, type AgentProvider } from "@/lib/agent";
 import { colors, enter, fadeIn, fonts, layout, radius, space } from "@/theme";
 
-const RECENT = 4;
+const RECENT = 3;
 // Enough recent activity to settle the cards of the current reply.
 const RECEIPTS = 20;
-const SUGGESTIONS = 4;
+const SUGGESTIONS = 3;
 // Light up the newest activity row when the person comes back within this window of a handoff.
 const RETURN_WINDOW = 10 * 60 * 1000;
 
@@ -207,6 +207,7 @@ export default function AgentScreen() {
                         now={now}
                         index={i + 6}
                         flash={i === 0 ? flash : 0}
+                        quiet
                         onPress={() =>
                           appBySlug.has(item.appSlug)
                             ? router.push({ pathname: "/app/[slug]", params: { slug: item.appSlug } })

@@ -27,8 +27,10 @@ function lowerFirst(s: string): string {
 /** One plain sentence: "Claude logged 2 eggs to breakfast in MyFitnessPal". */
 export function activityLine(item: Activity, appName: string): string {
   if (item.tool === "connect") return `Connected ${appName}`;
-  let what = readable(item.summary) ? item.summary : item.summary.split(":")[0]?.trim();
-  if (!readable(what)) what = verbForTool(item.appSlug, item.tool) ?? `Used ${appName}`;
+  // Summaries with raw arguments ("words in a lesson topic: ko, en, 10") read worse than the tool's verb.
+  let what: string | undefined = readable(item.summary) && !item.summary.includes(":") ? item.summary : undefined;
+  what ??= verbForTool(item.appSlug, item.tool) ?? item.summary.split(":")[0]?.trim();
+  if (!readable(what)) what = `Used ${appName}`;
   const where = what.toLowerCase().includes(appName.toLowerCase()) ? "" : ` in ${appName}`;
   if (IN_APP.has(item.assistant)) return `${what}${where}`;
   return `${assistantName(item.assistant)} ${lowerFirst(what)}${where}`;
@@ -48,6 +50,7 @@ export const RecentRow = memo(function RecentRow({
   index,
   flash,
   onPress,
+  quiet = false,
 }: {
   item: Activity;
   app: CatalogEntry | undefined;
@@ -56,6 +59,8 @@ export const RecentRow = memo(function RecentRow({
   /** Change to briefly light the row up (newest row after returning from an assistant). */
   flash: number;
   onPress: () => void;
+  /** Agent tab: no logo, grey text, so the composer stays the focus. */
+  quiet?: boolean;
 }) {
   const line = activityLine(item, app?.name ?? "yuzu");
   const status = statusLine(item);
@@ -77,9 +82,9 @@ export const RecentRow = memo(function RecentRow({
     <Animated.View entering={enter(index)} layout={layout}>
       <PressableScale onPress={onPress} accessibilityLabel={line} scaleTo={0.98} haptic="selection" style={styles.row}>
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glow, glowStyle]} />
-        <AppGlyph app={app ?? { slug: item.appSlug, category: "other" }} size={28} />
+        {quiet ? null : <AppGlyph app={app ?? { slug: item.appSlug, category: "other" }} size={28} />}
         <View style={styles.text}>
-          <Text variant="body" numberOfLines={2}>
+          <Text variant={quiet ? "caption" : "body"} color={quiet ? colors.textSecondary : undefined} numberOfLines={quiet ? 1 : 2}>
             {line}
           </Text>
           {status ? (
