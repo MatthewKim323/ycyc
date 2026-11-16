@@ -94,13 +94,15 @@ for comp in sorted((L / "compositions").glob("*.html")):
         dur = cfg.get("duration") or round(dur_scene - start, 3)
         cls = re.sub(r"\bclip\b", "", el_cls.group(1) if el_cls else "k-screen").strip()
         if src.suffix in IMAGE_EXT:
-            new = f'<img id="{el_id.group(1)}" class="{cls}" src="assets/footage/{src.name}" alt="" style="object-fit: cover;">'
+            fit = cfg.get("fit", "cover")
+            new = (f'<img id="{el_id.group(1)}" class="{cls}" src="assets/footage/{src.name}" alt="" '
+                   f'style="object-fit: {fit}; object-position: 50% 0%; padding: 0; background: #000;">')
         else:
             mp4 = transcode(src, stem)
             rate = cfg.get("rate", 1)
             new = (f'<video id="{el_id.group(1)}" class="clip {cls}" src="assets/footage/_proc/{mp4.name}" muted playsinline '
                    f'data-start="{start}" data-duration="{dur}" data-media-start="{cfg.get("media_start", 0)}" '
-                   f'data-playback-rate="{rate}" data-track-index="2" style="object-fit: cover;"></video>')
+                   f'data-playback-rate="{rate}" data-track-index="2" style="object-fit: {cfg.get("fit", "cover")}; padding: 0; background: #000;"></video>')
             swapped_video = True
         tagname = head.group(1)
         if tagname == "div":
