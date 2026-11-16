@@ -39,6 +39,8 @@ References: [Expo Go ownership and self-hosting policy](https://expo.dev/changel
 
 The user confirmed a physical-phone launch through the original shared URL after the EAS preview failed with 403. That confirmation predates the account sign-in configuration. The shared URL now follows newer publications, so historical launch success must not be reported as a successful Google sign-in or MyFitnessPal API check.
 
-The capture lifetime fix (`206cc86`), token exchange wait (`cb6426b`), and generic app login confirmation (`b5e589b`) are on shared main. Fresh native onboarding and Google account-linking checks remain pending. Each publication receipt records the exact app source commit, both platform manifest checks, and downloaded asset hashes.
+The capture lifetime fix (`206cc86`), token exchange wait (`cb6426b`), and generic app login confirmation (`b5e589b`) are on shared main. Each publication receipt records the exact app source commit, both platform manifest checks, and downloaded asset hashes.
+
+The user confirmed that the account-configured preview (`1066af7`) returned signed in to Yuzu after Google authentication on their physical phone. A read-only Convex check also confirmed a verified Clerk identity and account email linked to the same device user. This verifies the Google account flow separately from MyFitnessPal API verification and Spotify tool integration, which still need their own native end-to-end checks.
 
 Account flow references: [Clerk hosted authentication](https://clerk.com/docs/expo/guides/account-portal/hosted-auth), [Expo Go deep links](https://docs.expo.dev/linking/into-your-app/).
