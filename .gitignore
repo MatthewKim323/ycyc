@@ -74,3 +74,5 @@ vid/assets/footage/_proc/
 vid/assets/footage/*.mp4
 vid/assets/footage/*.mov
 vid/assets/footage/*.MOV
+# third-party App Store icons (fetched by vid/tools/fetch-icons.py): local only
+vid/assets/apps/store/
