@@ -16,6 +16,7 @@ export function Composer({
   busy,
   running,
   error,
+  label,
   onLayout,
 }: {
   value: string;
@@ -26,11 +27,18 @@ export function Composer({
   busy: boolean;
   running: boolean;
   error: string | null;
+  /** Quiet line above the input naming the active plan. */
+  label?: string | null;
   onLayout?: (e: LayoutChangeEvent) => void;
 }) {
   const ready = value.trim().length > 0 && !busy && canSend;
   return (
     <View style={styles.wrap} onLayout={onLayout}>
+      {label ? (
+        <Text variant="caption" color={colors.textTertiary} numberOfLines={1} style={styles.label}>
+          {label}
+        </Text>
+      ) : null}
       <View style={styles.box}>
         <TextInput
           value={value}
@@ -83,5 +91,6 @@ const styles = StyleSheet.create({
     maxHeight: 132,
     textAlignVertical: "top",
   },
+  label: { paddingLeft: space.lg + 1, marginBottom: space.xs },
   error: { textAlign: "center", marginTop: space.sm, fontSize: 12, lineHeight: 16 },
 });

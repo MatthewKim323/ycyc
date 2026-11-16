@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiLoginSheet } from "@/components/ai-login";
 import { AssistantHeader } from "@/components/agent/assistant-header";
-import { AssistantMenu } from "@/components/agent/assistant-menu";
+import { AssistantMenu, assistantLabel } from "@/components/agent/assistant-menu";
 import { Composer } from "@/components/agent/composer";
 import { Conversation } from "@/components/agent/conversation";
 import { RecentRow } from "@/components/agent/recent";
@@ -97,10 +97,15 @@ export default function AgentScreen() {
     setMenuOpen(false);
     setFailed(null);
     Keyboard.dismiss();
+    // Clear right away like any chat; the draft comes back only if the send fails.
+    const draft = text;
+    setText("");
+    const restore = () => setText((cur) => (cur ? cur : draft));
     try {
-      const res = await agent.send(text);
-      if (res) setText("");
+      const res = await agent.send(draft);
+      if (!res) restore();
     } catch (e) {
+      restore();
       setFailed(
         provider.kind === "handoff"
           ? `Couldn't open ${provider.name}. Your message is copied.`
@@ -234,6 +239,7 @@ export default function AgentScreen() {
           busy={agent.status !== "idle"}
           running={agent.status !== "idle" && provider?.kind === "inapp"}
           error={failed}
+          label={provider?.kind === "inapp" ? `${assistantLabel(provider)} plan` : null}
         />
 
         {menuOpen ? (
