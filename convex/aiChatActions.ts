@@ -42,7 +42,9 @@ export const run = internalAction({
       const code = message === "provider_output_limit" ? "output_limit" :
         message === "provider_timeout" ? "turn_expired" :
         message === "provider_tool_isolation_unavailable" ? "runtime_unavailable" : "turn_failed";
-      console.warn("ai_turn", claim.provider, code);
+      // Fixed error codes only (never stderr, prompts, credentials or URLs).
+      const detail = /^(provider_[a-z_]+|Native provider [a-zA-Z0-9 :]{0,60}|Compressed archive [a-z ]{0,40}|Unsupported native provider)$/.test(message) ? message : "other";
+      console.warn("ai_turn", claim.provider, code, detail);
       await ctx.runMutation(internal.aiChat.finish, { turnId, status: "error", error: code });
     } finally { stream.dispose(); }
   },

@@ -3,7 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import Animated, {
   Easing,
@@ -232,7 +232,11 @@ export default function ConnectFlow() {
   const { userId, mcpUrl } = useUser();
   const { finish, onboarded } = useOnboarding();
   const { token } = useAiPlans();
-  const planQueries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  // Memoized: a new object each render makes Convex resubscribe during render (infinite re-render crash).
+  const planQueries = useMemo(
+    () => (token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>)),
+    [token],
+  );
   const planResult = useQueries(planQueries);
   const planState = planResult.state instanceof Error ? undefined : planResult.state;
   const planReady = !!planState?.provider && (planState.step === "connect_apps" || planState.step === "ready");

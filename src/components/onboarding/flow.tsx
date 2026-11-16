@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "convex/react";
 import { type Href, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,7 +53,11 @@ export function OnboardingFlow() {
   const apps = useQuery(api.apps.list);
   const installed = useInstalledApps();
   const { token } = useAiPlans();
-  const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  // Memoized: a new object each render makes Convex resubscribe during render (infinite re-render crash).
+  const queries = useMemo(
+    () => (token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>)),
+    [token],
+  );
   const result = useQueries(queries);
   const state = result.state instanceof Error ? undefined : result.state;
   const planReady = !!state?.provider && (state.step === "connect_apps" || state.step === "ready");

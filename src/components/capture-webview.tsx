@@ -221,7 +221,7 @@ export function CaptureWebView({ app, onDone, onProgress, startUrl }: CaptureWeb
       ref={webRef}
       style={styles.web}
       source={{ uri }}
-      originWhitelist={["https://*", "http://*"]}
+      originWhitelist={["https://*", "http://*", "about:*"]}
       injectedJavaScriptBeforeContentLoaded={recorder}
       injectedJavaScriptBeforeContentLoadedForMainFrameOnly
       injectedJavaScriptForMainFrameOnly

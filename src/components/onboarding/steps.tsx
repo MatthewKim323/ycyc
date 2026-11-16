@@ -1,7 +1,7 @@
 import { useQueries } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, LinearTransition, ZoomIn } from "react-native-reanimated";
 
@@ -150,7 +150,11 @@ export function PickAI({
 }) {
   const { token, status } = useAiPlans();
   const { mcpUrl } = useUser();
-  const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
+  // Memoized: a new object each render makes Convex resubscribe during render (infinite re-render crash).
+  const queries = useMemo(
+    () => (token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>)),
+    [token],
+  );
   const result = useQueries(queries) as { state?: { step: string; provider: PlanId | null } | Error };
   const state = result.state instanceof Error ? undefined : result.state;
   const selected = state?.provider ?? status?.find((s) => s.selected)?.provider ?? null;
