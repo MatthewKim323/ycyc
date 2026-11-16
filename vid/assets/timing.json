@@ -1,5 +1,5 @@
 {
-  "total": 100.981,
+  "total": 105.231,
   "scenes": {
     "s01-guess": {
       "start": 0.0,
@@ -59,7 +59,7 @@
     },
     "s13-end": {
       "start": 94.341,
-      "duration": 6.64
+      "duration": 10.89
     }
   },
   "lines": [
@@ -201,10 +201,28 @@
     {
       "scene": "s13-end",
       "who": "narrator",
-      "start": 95.261,
-      "end": 98.214,
+      "start": 94.641,
+      "end": 96.026,
       "text": [
-        "Yuzu. Your apps, in every AI."
+        "Every AI you pay for."
+      ]
+    },
+    {
+      "scene": "s13-end",
+      "who": "narrator",
+      "start": 96.761,
+      "end": 98.441,
+      "text": [
+        "Every app you use."
+      ]
+    },
+    {
+      "scene": "s13-end",
+      "who": "narrator",
+      "start": 99.351,
+      "end": 99.975,
+      "text": [
+        "Yuzu."
       ]
     }
   ]

@@ -59,5 +59,13 @@ ParkMobile. Duolingo. Whatever you open next.
 Built today at YC, with Capy, Revyl, and Convex.
 
 16
-00:01:35,261 --> 00:01:38,214
-Yuzu. Your apps, in every AI.
+00:01:34,641 --> 00:01:36,026
+Every AI you pay for.
+
+17
+00:01:36,761 --> 00:01:38,441
+Every app you use.
+
+18
+00:01:39,351 --> 00:01:39,975
+Yuzu.

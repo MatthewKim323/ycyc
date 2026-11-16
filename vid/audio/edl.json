@@ -225,17 +225,32 @@
   },
   {
    "id": "s13-end",
-   "min": 6.64,
+   "min": 10.89,
    "tail": 0.5,
    "lines": [
     {
      "who": "narrator",
-     "src": "audio/voice/chris/v13-t2.mp3",
-     "at": 0.92,
+     "src": "audio/voice/chris/v13a-t2.mp3",
+     "at": 0.3,
      "text": [
-      "Yuzu. Your apps, in every AI."
-     ],
-     "keep_pauses": true
+      "Every AI you pay for."
+     ]
+    },
+    {
+     "who": "narrator",
+     "src": "audio/voice/chris/v13b-t1.mp3",
+     "at": 2.42,
+     "text": [
+      "Every app you use."
+     ]
+    },
+    {
+     "who": "narrator",
+     "src": "audio/voice/chris/v13c-t1.mp3",
+     "at": 5.01,
+     "text": [
+      "Yuzu."
+     ]
     }
    ]
   }

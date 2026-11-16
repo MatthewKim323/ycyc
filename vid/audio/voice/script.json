@@ -75,8 +75,18 @@
   "style": "casual, proud"
  },
  {
-  "id": "v13",
-  "text": "Yuzu. Your apps, in every AI.",
-  "style": "warm, calm, final"
+  "id": "v13a",
+  "text": "Every AI you pay for.",
+  "style": "confident, building"
+ },
+ {
+  "id": "v13b",
+  "text": "Every app you use.",
+  "style": "confident, building higher"
+ },
+ {
+  "id": "v13c",
+  "text": "Yuzu.",
+  "style": "warm, landing the name, final"
  }
 ]
