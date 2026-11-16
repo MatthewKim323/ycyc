@@ -66,6 +66,9 @@
     .s02-lock { position: absolute; display: flex; align-items: center; gap: 16px; height: 92px; padding: 0 36px 0 24px; border-radius: 46px; box-sizing: border-box;
       background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #a1a1a1; }
     .s02-lock .k-icon { width: 48px; height: 48px; }
+    .s02-real { position: absolute; display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 22px 0 16px; border-radius: 999px; box-sizing: border-box;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 600 24px "Inter", sans-serif; letter-spacing: -0.01em; color: #fff; }
+    .s02-real i { width: 10px; height: 10px; border-radius: 50%; background: #fff; flex: none; }
     #s02-dot { position: absolute; left: 953px; top: 438.6px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
   </style>
   <div data-hf-id="hf-js6l" id="root" data-composition-id="s02-islands" data-width="1920" data-height="1080">
@@ -93,6 +96,7 @@
               <video data-hf-id="hf-icaq" id="s02-v-mfp2" class="clip" src="assets/footage/_proc/intro-mfp.mp4" data-start="5.9" data-duration="1.633" data-media-start="5.25" data-playback-rate="0.25" data-track-index="2" data-hf-media-start-basis="local" muted playsinline></video>
             </div>
           </div>
+          <div id="s02-real-mfp" class="s02-real" style="left:1250px; top:300px;"><i id="s02-rd-mfp"></i><span>Real screen recording</span></div>
           <div data-hf-id="hf-1kxd" id="s02-chip-mfp" class="s02-chip" style="left:1250px; top:388px;"><div data-hf-id="hf-6ltd" class="lg" style="background-image: url(assets/apps/myfitnesspal.png);"></div><span data-hf-id="hf-rznm">MyFitnessPal</span></div>
           <div data-hf-id="hf-75pr" id="s02-lock-mfp" class="s02-lock" style="left:1250px; top:548px;"><div data-hf-id="hf-u54c" id="s02-lk-mfp" class="k-icon"></div><span data-hf-id="hf-jqpm">Your AI can't see this</span></div>
           <div data-hf-id="hf-vspo" id="s02-cw-cro" class="s02-cw" style="left:2410px;">
@@ -110,6 +114,7 @@
               <video data-hf-id="hf-zyjj" id="s02-v-str" class="clip" src="assets/footage/_proc/intro-strong.mp4" data-start="4.3" data-duration="3.233" data-media-start="1.65" data-track-index="3" data-hf-media-start-basis="local" muted playsinline></video>
             </div>
           </div>
+          <div id="s02-real-str" class="s02-real" style="left:5070px; top:300px;"><i id="s02-rd-str"></i><span>Real screen recording</span></div>
           <div data-hf-id="hf-9dl7" id="s02-chip-str" class="s02-chip" style="left:5070px; top:388px;"><div data-hf-id="hf-mn59" class="lg" style="background-image: url(assets/apps/strong.png);"></div><span data-hf-id="hf-yuti">Strong</span></div>
           <div data-hf-id="hf-1wz9" id="s02-lock-str" class="s02-lock" style="left:5070px; top:548px;"><div data-hf-id="hf-xc3a" id="s02-lk-str" class="k-icon"></div><span data-hf-id="hf-3an2">Your AI can't see this</span></div>
         </div>
@@ -160,6 +165,14 @@
         tl.fromTo(l, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.45, ease: E, immediateRender: false }, lockAt);
         KIT.icon(tl, $("#s02-lk-" + k), "one-key", { at: lockAt, speed: 1.4 });
       };
+      // "Real screen recording" badges: in with each phone, out with it
+      const real = (k, at) => {
+        gsap.set("#s02-real-" + k, { opacity: 0, y: 6 });
+        tl.fromTo("#s02-real-" + k, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, at);
+        tl.fromTo("#s02-rd-" + k, { opacity: 1 }, { opacity: 0.35, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, at + 0.3);
+      };
+      real("mfp", 1.35);
+      real("str", 4.52);
       chips("mfp", 1.55, 1.93);
       chips("str", 4.71, 4.95);
 
@@ -192,7 +205,7 @@
 
       // ---- H: on 6.01 the two phones fan out behind the Cronometer card (chips clear first), locks pulse on 6.69, collapse to the dot.
       const ST = 6.01, SD = 0.5;
-      tl.fromTo(["#s02-chip-str", "#s02-lock-str"], { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 5.86);
+      tl.fromTo(["#s02-chip-str", "#s02-lock-str", "#s02-real-str"], { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 5.86);
       gsap.set("#s02-cw-cro", { x: 0, y: 0, rotation: 0, scale: 1, zIndex: 3, transformOrigin: "50% 50%" });
       const stack = [
         { el: "#s02-pw-mfp", from: { x: 0, y: 0, rotation: 0, scale: 2.72 }, to: { x: 4064, y: -206, rotation: -8, scale: 0.62 }, blur: true, d: 0.06 },

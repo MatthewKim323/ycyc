@@ -46,6 +46,10 @@
     #s09c-p2pop { position: absolute; inset: 0; }
     #s09c-phone2 { left: 0; top: 0; }
     #s09c-phone2 img { object-fit: cover; object-position: 50% 0%; background: #000; }
+    .k-real { display: inline-flex; align-items: center; gap: 12px; height: 52px; padding: 0 22px 0 16px; border-radius: 999px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 24px "Inter", sans-serif; letter-spacing: -0.01em; color: #fff; white-space: nowrap; }
+    .k-real i { width: 10px; height: 10px; border-radius: 50%; background: #fff; display: block; }
+    #s09c-real1 { position: absolute; top: 200px; left: 478px; }
+    #s09c-real2 { position: absolute; top: 96px; left: 1490px; }
   </style>
   <div data-hf-id="hf-t88g" id="root" data-composition-id="s09c-cloud" data-width="1920" data-height="1080">
     <div data-hf-id="hf-3y24" id="s09c-wrap" class="clip k-canvas" data-start="0" data-duration="10.890" data-track-index="0">
@@ -62,6 +66,7 @@
         <div data-hf-id="hf-ao9p" id="s09c-tap2" class="s09c-tap" style="left:300px;top:720px"></div>
         <div data-hf-id="hf-gzjd" id="s09c-tap3" class="s09c-tap" style="left:150px;top:380px"></div>
         <div data-hf-id="hf-boqa" id="s09c-chip" class="k-chip">Revyl cloud iPhone</div>
+        <div id="s09c-real1" class="k-real"><i></i>Real app screen</div>
       </div>
 
       <!-- scripts/re/mfp/captures/2026-11-15.json entries: host + path only (no query, headers, cookies or tokens) -->
@@ -90,6 +95,7 @@
       </div>
 
       <div data-hf-id="hf-lszh" id="s09c-p2whip">
+        <div id="s09c-real2" class="k-real"><i></i>Real app screen</div>
         <div data-hf-id="hf-7sxn" id="s09c-p2push">
           <div data-hf-id="hf-zzj0" id="s09c-p2pop">
             <div data-hf-id="hf-4erm" id="s09c-phone2" class="k-phone">
@@ -169,6 +175,11 @@
       tl.fromTo(whip, { x: 0 }, { x: -1700, duration: 0.39, ease: "power3.in", immediateRender: false }, 10.5);
       tl.fromTo("#s09c-hb-k", { attr: { stdDeviation: "0 0" } }, { attr: { stdDeviation: "10 0" }, duration: 0.39, ease: "power2.in", immediateRender: false }, 10.5);
 
+      // "Real app screen" badges: with the cloud phone's chip (leaves with it), and with the search phone in D
+      gsap.set(["#s09c-real1", "#s09c-real2"], { opacity: 0, y: 6 });
+      tl.fromTo("#s09c-real1", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, 0.12);
+      tl.fromTo("#s09c-real1", { opacity: 1 }, { opacity: 0, duration: 0.18, ease: "power2.in", immediateRender: false }, 3.1);
+      tl.fromTo("#s09c-real2", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, 9.5);
       window.__timelines["s09c-cloud"] = tl;
     })();
   </script>

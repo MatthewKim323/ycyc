@@ -11,6 +11,10 @@
     .s12-frame { position: absolute; inset: 0; border-radius: 48px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; padding: 24px; }
     .s12-screen { width: 100%; height: 100%; border-radius: 24px; background: #141414; display: flex; align-items: center; justify-content: center;
       font: 500 32px "Inter", sans-serif; color: #a1a1a1; }
+    .k-real { display: inline-flex; align-items: center; gap: 12px; height: 52px; padding: 0 22px 0 16px; border-radius: 999px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 24px "Inter", sans-serif; letter-spacing: -0.01em; color: #fff; white-space: nowrap; }
+    .k-real i { width: 10px; height: 10px; border-radius: 50%; background: #fff; display: block; }
+    .s12-tags { position: absolute; top: -92px; left: 0; height: 64px; display: flex; align-items: center; gap: 12px; }
+    .s12-tags .k-chip { position: static; }
   </style>
   <div data-hf-id="hf-4x06" id="root" data-composition-id="s12-built" data-width="1920" data-height="1080">
     <div data-hf-id="hf-w3db" id="s12-wrap" class="clip k-canvas" data-start="0" data-duration="6.000" data-track-index="0">
@@ -23,7 +27,7 @@
       <div data-hf-id="hf-hp0w" id="s12-dim"></div>
       <div data-hf-id="hf-euzc" id="s12-c1" class="s12-card">
         <div data-hf-id="hf-s5nz" id="s12-c1-push" class="s12-push">
-          <div data-hf-id="hf-3cqw" class="k-chip s12-chip">Capy</div>
+          <div class="s12-tags"><div data-hf-id="hf-3cqw" class="k-chip s12-chip">Capy</div><div class="k-real s12-real"><i></i>Real screenshot</div></div>
           <div data-hf-id="hf-yf5i" class="s12-frame">
             <!-- footage: assets/footage/r10a-capy.png -->
             <img id="hf-lvnc" class="k-screen s12-screen" src="assets/footage/r10a-capy.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
@@ -32,7 +36,7 @@
       </div>
       <div data-hf-id="hf-niv7" id="s12-c2" class="s12-card">
         <div data-hf-id="hf-pd6y" id="s12-c2-push" class="s12-push">
-          <div data-hf-id="hf-rjup" class="k-chip s12-chip">Revyl</div>
+          <div class="s12-tags"><div data-hf-id="hf-rjup" class="k-chip s12-chip">Revyl</div><div class="k-real s12-real"><i></i>Real screenshot</div></div>
           <div data-hf-id="hf-bj4q" class="s12-frame">
             <!-- footage: assets/footage/r10b-revyl.png -->
             <img id="hf-aew4" class="k-screen s12-screen" src="assets/footage/r10b-revyl.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
@@ -41,7 +45,7 @@
       </div>
       <div data-hf-id="hf-jkr6" id="s12-c3" class="s12-card">
         <div data-hf-id="hf-1m39" id="s12-c3-push" class="s12-push">
-          <div data-hf-id="hf-gqso" class="k-chip s12-chip">Convex</div>
+          <div class="s12-tags"><div data-hf-id="hf-gqso" class="k-chip s12-chip">Convex</div><div class="k-real s12-real"><i></i>Real screenshot</div></div>
           <div data-hf-id="hf-bxfr" class="s12-frame">
             <!-- footage: assets/footage/r10c-convex.png -->
             <img id="hf-ablc" class="k-screen s12-screen" src="assets/footage/r10c-convex.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
@@ -93,6 +97,11 @@
       // last card leaves by drawing into the centre of frame, where the yuzu mark arrives in s13
       tl.fromTo("#s12-c3", { scale: 1, opacity: 1, filter: "blur(0px)" }, { scale: 0.14, opacity: 0, filter: "blur(10px)", duration: 0.42, ease: "power3.in", immediateRender: false }, 5.46);
 
+      // "Real screenshot" badges arrive with their card
+      [...document.querySelectorAll(".s12-real")].forEach((b, i) => {
+        gsap.set(b, { opacity: 0, y: 6 });
+        tl.fromTo(b, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, [0.12, 2.24, 4.28][i]);
+      });
       window.__timelines["s12-built"] = tl;
     })();
   </script>

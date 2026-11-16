@@ -40,6 +40,9 @@
     #s08-speed { position: relative; height: 64px; width: 96px; border-radius: 32px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a;
       font: 600 28px/64px "Inter", sans-serif; color: #fff; font-variant-numeric: tabular-nums; }
     #s08-speed span { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
+    .rb-badge { display: inline-flex; align-items: center; align-self: center; gap: 12px; height: 52px; padding: 0 22px 0 16px; border-radius: 999px; background: #0b0b0b;
+      box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 24px/1 "Inter", sans-serif; letter-spacing: -0.01em; color: #fff; white-space: nowrap; }
+    .rb-dot { width: 10px; height: 10px; border-radius: 5px; background: #fff; flex: none; }
   </style>
   <div data-hf-id="hf-iima" id="root" data-composition-id="s08-chatgpt" data-width="1920" data-height="1080">
     <div data-hf-id="hf-blei" id="s08-wrap" class="k-canvas">
@@ -60,6 +63,7 @@
         <div data-hf-id="hf-ut2j" id="s08-rim"></div>
       </div>
       <div data-hf-id="hf-s4fe" id="s08-tags">
+        <div id="s08-real" class="rb-badge"><span id="s08-real-dot" class="rb-dot"></span>Real screen recording</div>
         <div data-hf-id="hf-oa8y" id="s08-chip" class="s08-chip"><span data-hf-id="hf-15ht" class="s08-glogo"></span><span data-hf-id="hf-1ghg">ChatGPT</span><span data-hf-id="hf-mw74" class="s08-sep">·</span><span data-hf-id="hf-4wz9" class="s08-y">yuzu</span></div>
         <div data-hf-id="hf-v2z6" id="s08-speed">
           <span data-hf-id="hf-qrtz" id="s08-x6a">6x</span><span data-hf-id="hf-dke0" id="s08-x4b">4x</span><span data-hf-id="hf-kx2v" id="s08-x3c">3x</span><span data-hf-id="hf-ez4y" id="s08-x6d">6x</span>
@@ -109,6 +113,8 @@
         tl.fromTo(speeds[i - 1], { opacity: 1 }, { opacity: 0, duration: 0.06, ease: "none", immediateRender: false }, t0);
         tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.06, ease: "none", immediateRender: false }, t0);
       });
+
+      tl.fromTo("#s08-real-dot", { opacity: 1 }, { opacity: 0.25, duration: 0.2, yoyo: true, repeat: 1, ease: "sine.inOut", immediateRender: false }, 0.6);
 
       // Exit: whip left into s09 (the Grok phone whips in from the right).
       const G2end = cuts[7][3];

@@ -36,6 +36,9 @@
     #s05-chip .k-icon { width: 40px; height: 40px; }
 
     /* second phone with capture placeholder */
+    .k-real { position: absolute; left: 0; top: -76px; height: 52px; padding: 0 22px 0 16px; box-sizing: border-box; border-radius: 999px; background: #0b0b0b;
+      box-shadow: inset 0 0 0 1.5px #2a2a2a; display: flex; align-items: center; gap: 12px; font: 600 24px "Inter", sans-serif; color: #fff; letter-spacing: -0.01em; white-space: nowrap; opacity: 0; }
+    .k-real i { width: 10px; height: 10px; border-radius: 50%; background: #fff; display: block; }
     #s05-phone-w { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
     #s05-phone { left: 0; top: 0; }
     .s05-ph { display: flex !important; align-items: center; justify-content: center; text-align: center; padding: 0 48px; box-sizing: border-box;
@@ -75,6 +78,7 @@
             <!-- footage: assets/footage/r4-claude-connector.mp4 -->
             <img id="hf-wdxp" class="k-screen s05-ph" src="assets/footage/r4-claude-connector.png" alt="" style="object-fit: cover; object-position: 50% 0%; padding: 0; background: #000;">
           </div>
+          <div id="s05-real" class="k-real"><i></i>Real app screen</div>
         </div>
 
         <div data-hf-id="hf-como" id="s05-chip-w">
@@ -132,6 +136,7 @@
 
       gsap.set("#s05-phone-w", { transformOrigin: "50% 50%", scale: 0.966, y: 1100 });
       tl.fromTo("#s05-phone-w", { y: 1100 }, { y: 0, duration: 0.6, ease: E, immediateRender: false }, 1.85);
+      tl.fromTo("#s05-real", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out", immediateRender: false }, 1.95);
       tl.fromTo("#s05-phone-w", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 1.85);
       tl.fromTo("#s05-phone-w", { scale: 0.966 }, { scale: 0.99, duration: 2.05, ease: "sine.inOut", immediateRender: false }, 2.45);
 
