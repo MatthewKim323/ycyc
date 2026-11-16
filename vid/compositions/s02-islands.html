@@ -1,22 +1,21 @@
 <template>
   <!-- s02-islands (7.533 s). Music running, beats 0.56 1.25 1.93 2.61 3.29 3.97 4.65 5.33 6.01 6.69 7.37.
-       D 0 to 1.25: the wall of app tiles flies in from depth. E 1.25 to 3.00: dive, the MyFitnessPal tile becomes its data card, values locked.
-       F 3.00 to 4.65: whip to Cronometer. G 4.65 to 6.01: whip to Strong. H 6.01 to 7.533: the three snap into a fanned stack, locks pulse (6.69),
-       the stack collapses (6.98 to 7.28) into a 14 px white dot at (960, 445.6), where s03 picks it up. -->
+       D 0 to 1.25: the wall of app tiles flies in from depth. E 1.25 to 3.00: dive into MyFitnessPal, matt's real Today screen (rec-1644) at 2.6x
+       on the calories and macros, chip + lock chip beside it. F 3.00 to 4.65: whip to the Cronometer card, values locked.
+       G 4.65 to 6.01: whip to Strong, the real History scroll (rec-1635). H 6.01 to 7.533: two phones fan behind the Cronometer card, locks pulse
+       (6.69), the stack collapses (6.98 to 7.28) into a 14 px white dot at (960, 445.6), where s03 picks it up. -->
   <!-- sfx: t=0.00 name=flash-tick gain=0.45 -->
   <!-- sfx: t=0.02 name=whoosh-soft gain=0.3 -->
-  <!-- sfx: t=1.25 name=card-morph gain=0.35 -->
+  <!-- sfx: t=1.25 name=whoosh-soft gain=0.35 -->
+  <!-- sfx: t=1.55 name=case-pop gain=0.35 -->
   <!-- sfx: t=1.93 name=row-tick gain=0.5 -->
-  <!-- sfx: t=2.05 name=row-tick gain=0.45 -->
-  <!-- sfx: t=2.17 name=row-tick gain=0.45 -->
   <!-- sfx: t=3.00 name=whoosh-soft gain=0.4 -->
   <!-- sfx: t=3.35 name=row-tick gain=0.5 -->
   <!-- sfx: t=3.47 name=row-tick gain=0.45 -->
   <!-- sfx: t=3.59 name=row-tick gain=0.45 -->
   <!-- sfx: t=4.38 name=whoosh-soft gain=0.4 -->
-  <!-- sfx: t=4.71 name=row-tick gain=0.5 -->
-  <!-- sfx: t=4.83 name=row-tick gain=0.45 -->
-  <!-- sfx: t=4.95 name=row-tick gain=0.45 -->
+  <!-- sfx: t=4.71 name=case-pop gain=0.35 -->
+  <!-- sfx: t=4.95 name=row-tick gain=0.5 -->
   <!-- sfx: t=6.01 name=whoosh-soft gain=0.4 -->
   <!-- sfx: t=6.69 name=row-tick gain=0.55 -->
   <!-- sfx: t=6.98 name=card-morph gain=0.5 -->
@@ -54,10 +53,23 @@
     .s02-bar { width: 260px; height: 56px; border-radius: 999px; background: #1f1f1f; }
     .s02-val { width: auto; min-width: 0; padding: 0 26px; display: inline-flex; align-items: center; justify-content: flex-end; background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a; font: 600 36px "Inter", sans-serif; color: #fff; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+    /* real recordings in phones (two clips can share one screen, so they sit absolute) */
+    .s02-pw { position: absolute; width: 430px; height: 932px; }
+    .s02-pw .k-phone { left: 0; top: 0; }
+    .s02-pw video { position: absolute; left: 14px; top: 14px; width: 402px; height: 904px; border-radius: 54px; object-fit: cover; display: block; }
+    #s02-pw-mfp { left: 405px; top: 254.8px; }
+    #s02-pw-str { left: 4485px; top: 74px; }
+    /* the chips beside each phone: app (logo + name) and the lock line */
+    .s02-chip { position: absolute; display: flex; align-items: center; gap: 26px; height: 128px; padding: 0 48px 0 22px; border-radius: 64px; box-sizing: border-box;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #2a2a2a; white-space: nowrap; font: 600 52px "Inter", sans-serif; letter-spacing: -0.02em; color: #fff; }
+    .s02-chip .lg { width: 88px; height: 88px; border-radius: 24px; background-color: #141414; background-size: cover; background-position: center; flex: none; }
+    .s02-lock { position: absolute; display: flex; align-items: center; gap: 16px; height: 92px; padding: 0 36px 0 24px; border-radius: 46px; box-sizing: border-box;
+      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; white-space: nowrap; font: 500 36px "Inter", sans-serif; color: #a1a1a1; }
+    .s02-lock .k-icon { width: 48px; height: 48px; }
     #s02-dot { position: absolute; left: 953px; top: 438.6px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
   </style>
   <div id="root" data-composition-id="s02-islands" data-width="1920" data-height="1080">
-    <div id="s02-islands-wrap" class="clip k-canvas" data-start="0" data-duration="7.533" data-track-index="0" data-layout-allow-overflow>
+    <div id="s02-islands-wrap" class="k-canvas" data-layout-allow-overflow>
       <div id="s02-wcam">
         <div id="s02-t-oura" class="s02-t" style="left:30px; top:160px;"><div id="s02-ti-oura" class="s02-g s02-g-type"><div class="s02-nm">Oura</div></div></div>
         <div id="s02-t-strong" class="s02-t" style="left:340px; top:160px;"><div class="s02-g s02-g-logo"><img id="s02-ti-strong" src="assets/apps/strong.png" alt=""></div><b>Strong</b><span>Workouts, sets, PRs</span></div>
@@ -75,16 +87,14 @@
 
       <div id="s02-collapse">
         <div id="s02-dcam">
-          <div id="s02-cw-mfp" class="s02-cw" style="left:410px;">
-            <div id="s02-card-mfp" class="s02-card">
-              <div class="s02-head"><div id="s02-cg-mfp" class="s02-cg" style="background-image: url(assets/apps/myfitnesspal.png);"></div><div id="s02-ht-mfp" class="s02-ht"><b>MyFitnessPal</b><span>Food diary, macros</span></div></div>
-              <div class="s02-rows">
-                <div id="s02-r-mfp1" class="s02-row"><span class="s02-l">Calories</span><div class="s02-v"><div id="s02-k-mfp1" class="s02-k k-icon"></div><div id="s02-b-mfp1" class="s02-bar s02-val">1,480 / 2,300</div></div></div>
-                <div id="s02-r-mfp2" class="s02-row"><span class="s02-l">Protein</span><div class="s02-v"><div id="s02-k-mfp2" class="s02-k k-icon"></div><div id="s02-b-mfp2" class="s02-bar s02-val">62 / 140 g</div></div></div>
-                <div id="s02-r-mfp3" class="s02-row"><span class="s02-l">Meals logged</span><div class="s02-v"><div id="s02-k-mfp3" class="s02-k k-icon"></div><div id="s02-b-mfp3" class="s02-bar s02-val">11 this week</div></div></div>
-              </div>
+          <div id="s02-pw-mfp" class="s02-pw">
+            <div id="s02-ph-mfp" class="k-phone">
+              <video id="s02-v-mfp" class="clip" src="assets/footage/_proc/intro-mfp.mp4" data-start="1.25" data-duration="2.1" data-media-start="1.05" data-playback-rate="0.45" data-track-index="1" data-hf-media-start-basis="local" muted playsinline></video>
+              <video id="s02-v-mfp2" class="clip" src="assets/footage/_proc/intro-mfp.mp4" data-start="5.9" data-duration="1.633" data-media-start="5.25" data-playback-rate="0.25" data-track-index="2" data-hf-media-start-basis="local" muted playsinline></video>
             </div>
           </div>
+          <div id="s02-chip-mfp" class="s02-chip" style="left:1250px; top:388px;"><div class="lg" style="background-image: url(assets/apps/myfitnesspal.png);"></div><span>MyFitnessPal</span></div>
+          <div id="s02-lock-mfp" class="s02-lock" style="left:1250px; top:548px;"><div id="s02-lk-mfp" class="k-icon"></div><span>Your AI can't see this</span></div>
           <div id="s02-cw-cro" class="s02-cw" style="left:2410px;">
             <div id="s02-card-cro" class="s02-card">
               <div class="s02-head"><div id="s02-cg-cro" class="s02-cg" style="background-image: url(assets/apps/cronometer.png);"></div><div id="s02-ht-cro" class="s02-ht"><b>Cronometer</b><span>Nutrients, food log</span></div></div>
@@ -95,17 +105,13 @@
               </div>
             </div>
           </div>
-          <div id="s02-cw-str" class="s02-cw" style="left:4410px;">
-            <div id="s02-card-str" class="s02-card">
-              <div class="s02-head"><div id="s02-cg-str" class="s02-cg" style="background-image: url(assets/apps/strong.png);"></div><div id="s02-ht-str" class="s02-ht"><b>Strong</b><span>Workouts, sets, PRs</span></div></div>
-              <div class="s02-rows">
-                <div id="s02-r-str1" class="s02-row"><span class="s02-l">Sets this week</span><div class="s02-v"><div id="s02-k-str1" class="s02-k k-icon"></div><div id="s02-b-str1" class="s02-bar s02-val">68</div></div></div>
-                <div id="s02-r-str2" class="s02-row"><span class="s02-l">Volume</span><div class="s02-v"><div id="s02-k-str2" class="s02-k k-icon"></div><div id="s02-b-str2" class="s02-bar s02-val">41,200 lb</div></div></div>
-                <div id="s02-r-str3" class="s02-row"><span class="s02-l">Bench PR</span><div class="s02-v"><div id="s02-k-str3" class="s02-k k-icon"></div><div id="s02-b-str3" class="s02-bar s02-val">185 × 5</div></div></div>
-              </div>
+          <div id="s02-pw-str" class="s02-pw">
+            <div id="s02-ph-str" class="k-phone">
+              <video id="s02-v-str" class="clip" src="assets/footage/_proc/intro-strong.mp4" data-start="4.3" data-duration="3.233" data-media-start="1.65" data-track-index="3" data-hf-media-start-basis="local" muted playsinline></video>
             </div>
           </div>
-
+          <div id="s02-chip-str" class="s02-chip" style="left:5070px; top:388px;"><div class="lg" style="background-image: url(assets/apps/strong.png);"></div><span>Strong</span></div>
+          <div id="s02-lock-str" class="s02-lock" style="left:5070px; top:548px;"><div id="s02-lk-str" class="k-icon"></div><span>Your AI can't see this</span></div>
         </div>
       </div>
       <div id="s02-dot"></div>
@@ -136,39 +142,41 @@
       tl.fromTo("#s02-wcam", { scale: 0.9 }, { scale: 0.97, duration: 0.56, ease: "power2.out", immediateRender: false }, 0);
       tl.fromTo("#s02-wcam", { scale: 0.99 }, { scale: 1, duration: 1.25 - 0.56, ease: "sine.inOut", immediateRender: false }, 0.56);
 
-      // ---- E: dive. The MyFitnessPal tile becomes its data card (shared glyph, the card opens out of the tile).
+      // ---- E: dive. The wall zooms through MyFitnessPal and the real Today screen opens up out of it (2.6x on calories + macros, ad kept out of frame).
       const DIVE = 1.25;
       tl.fromTo("#s02-wcam", { scale: 1, opacity: 1, filter: "blur(0px)" }, { scale: 1.45, opacity: 0, filter: "blur(10px)", duration: 0.36, ease: "power2.in", immediateRender: false }, DIVE);
       tl.set("#s02-t-mfp", { visibility: "hidden" }, DIVE);
-      const clip = (t, r, b, l, rad) => "inset(" + t + "px " + r + "px " + b + "px " + l + "px round " + rad + "px)";
-      gsap.set("#s02-cw-mfp", { opacity: 0 });
-      tl.set("#s02-cw-mfp", { opacity: 1 }, DIVE);
-      gsap.set("#s02-card-mfp", { clipPath: clip(0, 263, 436, 573, 72) });
-      tl.fromTo("#s02-card-mfp", { clipPath: clip(0, 263, 436, 573, 72) }, { clipPath: clip(0, 0, 0, 0, 48), duration: 0.5, ease: SP.layout.ease, immediateRender: false }, DIVE);
-      gsap.set("#s02-cg-mfp", { x: 549, y: -24, scale: 1.5714, transformOrigin: "50% 50%" });
-      tl.fromTo("#s02-cg-mfp", { x: 549, y: -24, scale: 1.5714 }, { x: 0, y: 0, scale: 1, duration: 0.5, ease: SP.layout.ease, immediateRender: false }, DIVE);
-      KIT.reveal(tl, ["#s02-ht-mfp"], 1.6, { y: 24, dur: 0.45 });
+      const MO = "215px 285.2px"; // the phone point shown at frame centre (30% down the screen)
+      gsap.set("#s02-pw-mfp", { transformOrigin: MO, scale: 1.9, opacity: 0, filter: "blur(10px)", x: 0, y: 0, rotation: 0 });
+      tl.fromTo("#s02-pw-mfp", { scale: 1.9 }, { scale: 2.62, duration: 0.5, ease: SP.layout.ease, immediateRender: false }, DIVE + 0.04);
+      tl.fromTo("#s02-pw-mfp", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, DIVE + 0.04);
+      tl.fromTo("#s02-pw-mfp", { scale: 2.62 }, { scale: 2.72, duration: 3.0 - 1.79, ease: "sine.inOut", immediateRender: false }, 1.79);
 
-      // cards: glyphs, rows tick in on the beats, locks pulse, every hold drifts
-      const CARDS = [
-        { k: "mfp", rows: [1.93, 2.05, 2.17], pulse: 2.61, hold: [1.5, 3.0] },
-        { k: "cro", rows: [3.35, 3.47, 3.59], pulse: 3.97, hold: [3.1, 4.4] },
-        { k: "str", rows: [4.71, 4.83, 4.95], pulse: 5.33, hold: [4.5, 6.01] },
-      ];
+      // chips beside the phones: app chip pops, the lock line lands on the next beat
+      const chips = (k, at, lockAt) => {
+        const c = "#s02-chip-" + k, l = "#s02-lock-" + k;
+        gsap.set([c, l], { opacity: 0, transformOrigin: "0% 50%" });
+        tl.fromTo(c, { y: 36, scale: 0.9 }, { y: 0, scale: 1, duration: SP.pop.dur, ease: SP.pop.ease, immediateRender: false }, at);
+        tl.fromTo(c, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, at);
+        tl.fromTo(l, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.45, ease: E, immediateRender: false }, lockAt);
+        KIT.icon(tl, $("#s02-lk-" + k), "one-key", { at: lockAt, speed: 1.4 });
+      };
+      chips("mfp", 1.55, 1.93);
+      chips("str", 4.71, 4.95);
+
+      // the Cronometer card: rows tick in after the whip, locks pulse on the beat, the hold drifts
       const pulse = (k, at) => {
         const bars = [1, 2, 3].map((j) => "#s02-b-" + k + j), keys = [1, 2, 3].map((j) => "#s02-k-" + k + j);
-        tl.fromTo(bars, { backgroundColor: "#1f1f1f" }, { backgroundColor: "#4a4a4a", duration: 0.08, ease: "power2.out", stagger: 0.04, immediateRender: false }, at);
-        tl.fromTo(bars, { backgroundColor: "#4a4a4a" }, { backgroundColor: "#1f1f1f", duration: 0.42, ease: "power2.out", stagger: 0.04, immediateRender: false }, at + 0.08);
+        tl.fromTo(bars, { backgroundColor: "#141414" }, { backgroundColor: "#3a3a3a", duration: 0.08, ease: "power2.out", stagger: 0.04, immediateRender: false }, at);
+        tl.fromTo(bars, { backgroundColor: "#3a3a3a" }, { backgroundColor: "#141414", duration: 0.42, ease: "power2.out", stagger: 0.04, immediateRender: false }, at + 0.08);
         tl.fromTo(keys, { opacity: 0.5 }, { opacity: 1, duration: 0.08, ease: "power2.out", stagger: 0.04, immediateRender: false }, at);
         tl.fromTo(keys, { opacity: 1 }, { opacity: 0.5, duration: 0.42, ease: "power2.out", stagger: 0.04, immediateRender: false }, at + 0.08);
       };
-      CARDS.forEach((c) => {
-        [1, 2, 3].forEach((j) => KIT.icon(tl, $("#s02-k-" + c.k + j), "one-key"));
-        KIT.reveal(tl, [1, 2, 3].map((j) => "#s02-r-" + c.k + j), c.rows[0], { y: 22, dur: 0.45, stagger: 0.12 });
-        pulse(c.k, c.pulse);
-        gsap.set("#s02-card-" + c.k, { scale: 1, transformOrigin: "50% 50%" });
-        tl.fromTo("#s02-card-" + c.k, { scale: 1 }, { scale: 1.035, duration: c.hold[1] - c.hold[0], ease: "sine.inOut", immediateRender: false }, c.hold[0]);
-      });
+      [1, 2, 3].forEach((j) => KIT.icon(tl, $("#s02-k-cro" + j), "one-key"));
+      KIT.reveal(tl, [1, 2, 3].map((j) => "#s02-r-cro" + j), 3.35, { y: 22, dur: 0.45, stagger: 0.12 });
+      pulse("cro", 3.97);
+      gsap.set("#s02-card-cro", { scale: 1, transformOrigin: "50% 50%" });
+      tl.fromTo("#s02-card-cro", { scale: 1 }, { scale: 1.035, duration: 4.4 - 3.1, ease: "sine.inOut", immediateRender: false }, 3.1);
 
       // ---- F, G: whips along the deck, landing on the beats 3.29 and 4.65 (motion blur only in flight)
       gsap.set("#s02-dcam", { x: 0, filter: "blur(0px)" });
@@ -179,24 +187,27 @@
       };
       whip(0, -2000, 3.0, 0.29);
       whip(-2000, -4000, 4.38, 0.27);
+      // Strong: the phone at 1.3x on its History scroll, a slight push
+      gsap.set("#s02-pw-str", { transformOrigin: "215px 394px", scale: 1.3, x: 0, y: 0, rotation: 0 });
+      tl.fromTo("#s02-pw-str", { scale: 1.3 }, { scale: 1.38, duration: 5.95 - 4.6, ease: "sine.inOut", immediateRender: false }, 4.6);
 
-      // ---- H: the three snap into a fanned stack on 6.01 (headers peek above, Strong in front), locks pulse on 6.69, collapse to the dot.
+      // ---- H: on 6.01 the two phones fan out behind the Cronometer card (chips clear first), locks pulse on 6.69, collapse to the dot.
       const ST = 6.01, SD = 0.5;
+      tl.fromTo(["#s02-chip-str", "#s02-lock-str"], { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", immediateRender: false }, 5.86);
+      gsap.set("#s02-cw-cro", { x: 0, y: 0, rotation: 0, scale: 1, zIndex: 3, transformOrigin: "50% 50%" });
       const stack = [
-        { k: "mfp", x: 3975, y: -252.4, r: -2.5, s: 0.62 },
-        { k: "cro", x: 1990, y: -78.4, r: -1.2, s: 0.66 },
-        { k: "str", x: 8, y: 95.6, r: 1.2, s: 0.7 },
+        { el: "#s02-pw-mfp", from: { x: 0, y: 0, rotation: 0, scale: 2.72 }, to: { x: 4064, y: -206, rotation: -8, scale: 0.62 }, blur: true, d: 0.06 },
+        { el: "#s02-cw-cro", from: { x: 0, y: 0, rotation: 0, scale: 1 }, to: { x: 2000, y: 50, rotation: -1, scale: 0.7 }, blur: true, d: 0.03 },
+        { el: "#s02-pw-str", from: { x: 0, y: 0, rotation: 0, scale: 1.38 }, to: { x: 526, y: -67, rotation: 8, scale: 0.62 }, blur: false, d: 0 },
       ];
-      stack.forEach((c, i) => {
-        const el = "#s02-cw-" + c.k;
-        gsap.set(el, { x: 0, y: 0, rotation: 0, scale: 1, transformOrigin: "50% 50%" });
-        tl.fromTo(el, { x: 0, y: 0, rotation: 0, scale: 1 }, { x: c.x, y: c.y, rotation: c.r, scale: c.s, duration: SD, ease: SP.layout.ease, immediateRender: false }, ST + (2 - i) * 0.03);
-        if (c.k !== "str") {
-          tl.fromTo(el, { filter: "blur(0px)" }, { filter: "blur(12px)", duration: 0.1, ease: "power2.in", immediateRender: false }, ST + (2 - i) * 0.03);
-          tl.fromTo(el, { filter: "blur(12px)" }, { filter: "blur(0px)", duration: 0.22, ease: "power2.out", immediateRender: false }, ST + (2 - i) * 0.03 + 0.1);
+      stack.forEach((c) => {
+        tl.fromTo(c.el, c.from, { ...c.to, duration: SD, ease: SP.layout.ease, immediateRender: false }, ST + c.d);
+        if (c.blur) {
+          tl.fromTo(c.el, { filter: "blur(0px)" }, { filter: "blur(12px)", duration: 0.1, ease: "power2.in", immediateRender: false }, ST + c.d);
+          tl.fromTo(c.el, { filter: "blur(12px)" }, { filter: "blur(0px)", duration: 0.22, ease: "power2.out", immediateRender: false }, ST + c.d + 0.1);
         }
       });
-      ["mfp", "cro", "str"].forEach((k) => pulse(k, 6.69));
+      pulse("cro", 6.69);
 
       const C0 = 6.98, CD = 0.3, DOTSCALE = 0.016;
       gsap.set("#s02-collapse", { transformOrigin: "960px 445.6px", scale: 1, opacity: 1 });
