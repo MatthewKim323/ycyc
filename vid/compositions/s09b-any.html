@@ -1,14 +1,13 @@
 <!-- s09b-any: yuzu runs no model of its own.
-     A (0-2.6): the Agent tab (agent.tsx, composer.tsx, assistant-menu.tsx, suggestions.tsx, send-button.tsx) at 3x: a
-     suggestion fills the composer, the assistant menu switches Claude, ChatGPT, Grok, send; zoom through the composer.
+     A (0-2.6): onboarding "Pick your AI" (steps.tsx PickAI) and the plan login sheet (ai-login/login-sheet.tsx) at 3x:
+     tap Claude plan, sign-in sheet, "Claude is connected", row goes live, zoom through Continue.
      B (2.6-5.3): the handoff lands in Grok (capture R11), the Grok + Duolingo chip, push in on the answer.
      C (5.3-8.1): the Link tab rows at speed, one check every half beat, the card drifting up as it grows; exits clean. -->
-<!-- sfx: t=0.54 name=text-tick gain=0.35 -->
-<!-- sfx: t=0.88 name=ui-open gain=0.35 -->
-<!-- sfx: t=1.22 name=ui-roll gain=0.4 -->
-<!-- sfx: t=1.64 name=ui-open gain=0.3 -->
-<!-- sfx: t=1.90 name=ui-roll gain=0.4 -->
-<!-- sfx: t=2.24 name=ui-confirm gain=0.55 -->
+<!-- sfx: t=0.54 name=ui-open gain=0.35 -->
+<!-- sfx: t=0.70 name=card-morph gain=0.3 -->
+<!-- sfx: t=1.22 name=ding-success gain=0.5 -->
+<!-- sfx: t=1.56 name=whoosh-soft gain=0.25 -->
+<!-- sfx: t=1.90 name=row-tick gain=0.45 -->
 <!-- sfx: t=2.32 name=whoosh-soft gain=0.3 -->
 <!-- sfx: t=3.26 name=case-pop gain=0.45 -->
 <!-- sfx: t=3.94 name=msg-in gain=0.5 -->
@@ -29,38 +28,37 @@
     .s9-f { font-family: "Inter", sans-serif; }
     .s9-cam { position: absolute; inset: 0; transform-origin: 0 0; }
 
-    /* A: Agent tab at 3x. Stack = hero, one suggestion, composer (wrap padding 12pt -> box 1107 wide). */
-    #s09b-stack { position: absolute; left: 406px; top: 130px; width: 1107px; display: flex; flex-direction: column; align-items: center; }
-    .s9-prompt { font: 600 72px/90px "Inter", sans-serif; letter-spacing: -1.5px; color: #fff; text-align: center; }
-    .s9-logos { display: flex; margin-top: 48px; }
-    .s9-li { border-radius: 24px; box-shadow: 0 0 0 6px #000; background: #000; }
-    .s9-li + .s9-li { margin-left: -18px; }
-    .s9-li img { width: 66px; height: 66px; border-radius: 18px; display: block; }
-    #s09b-sug { margin-top: 72px; width: 1083px; display: flex; align-items: center; gap: 36px; padding: 36px 48px; border-radius: 48px;
-      background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; }
-    #s09b-sug img { width: 72px; height: 72px; border-radius: 19px; flex: none; display: block; }
-    .s9-sugt { flex: 1; font: 400 45px/63px "Inter", sans-serif; color: #fff; white-space: nowrap; }
-    #s09b-cwrap { position: relative; width: 1107px; padding-top: 72px; }
-    #s09b-box { border-radius: 78px; background: #0b0b0b; box-shadow: inset 0 0 0 1.5px #1f1f1f; padding: 36px 24px 24px; }
-    .s9-input { position: relative; height: 66px; margin: 0 24px; font: 400 48px/66px "Inter", sans-serif; white-space: nowrap; }
-    .s9-input span { position: absolute; left: 0; top: 0; }
-    #s09b-ph { color: #6b6b6b; }
-    #s09b-q { color: #fff; }
-    .s9-crow { position: relative; margin-top: 36px; height: 102px; }
-    .s9-pill { position: absolute; left: 0; top: 0; height: 102px; padding: 0 42px; border-radius: 51px; background: #141414;
-      box-shadow: inset 0 0 0 1.5px #1f1f1f; display: flex; align-items: center; font: 500 39px/54px "Inter", sans-serif; color: #fff; white-space: nowrap; }
-    #s09b-send { position: absolute; right: 0; top: 0; width: 102px; height: 102px; border-radius: 51px; background: #141414; overflow: hidden; }
-    #s09b-fill { position: absolute; inset: 0; border-radius: 51px; background: #fff; }
-    .s9-arrow { position: absolute; left: 21px; top: 21px; width: 60px; height: 60px; }
-    .s9-arrow .k-icon { width: 60px; height: 60px; transform: rotate(90deg); }
-    .s9-foot { position: relative; height: 48px; margin-top: 24px; font: 400 36px/48px "Inter", sans-serif; color: #6b6b6b; }
-    .s9-foot span { position: absolute; left: 0; right: 0; top: 0; text-align: center; white-space: nowrap; }
-    #s09b-menu { position: absolute; left: 24px; bottom: calc(100% - 48px); min-width: 660px; padding: 18px 0; border-radius: 54px;
-      background: #141414; box-shadow: inset 0 0 0 1.5px #2a2a2a; }
-    .s9-mrow { height: 132px; padding: 0 48px; display: flex; align-items: center; gap: 36px; font: 500 45px/63px "Inter", sans-serif; color: #fff; }
-    .s9-mrow > span { flex: 1; }
-    .s9-mcheck { width: 54px; height: 54px; }
-
+    /* A: onboarding "Pick your AI" at 3x (content 361pt -> 1083), shown at 0.95; Glass card; login sheet at 3x x 0.84. */
+    #s09b-pick { position: absolute; left: 418px; top: 99px; width: 1083px; display: flex; flex-direction: column; gap: 72px; }
+    .s9-ptitle { font: 600 90px/108px "Inter", sans-serif; letter-spacing: -1.8px; color: #fff; }
+    .s9-pbody { font: 400 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    #s09b-glass { border-radius: 48px; background: rgba(11,11,11,0.8); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.14); overflow: hidden; }
+    .s9-prow { display: flex; align-items: center; gap: 36px; padding: 36px 48px; }
+    .s9-prow + .s9-prow { box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.1); }
+    .s9-pname { flex: 1; font: 500 48px/66px "Inter", sans-serif; letter-spacing: -0.3px; color: #fff; }
+    .s9-pst { display: grid; justify-items: end; align-items: center; font: 500 39px/54px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-pst > * { grid-area: 1 / 1; white-space: nowrap; }
+    .s9-live { display: flex; align-items: center; gap: 18px; color: #fff; }
+    .s9-dot { width: 18px; height: 18px; border-radius: 9px; background: #fff; }
+    #s09b-cont { height: 156px; border-radius: 78px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+      font: 600 45px/60px "Inter", sans-serif; }
+    #s09b-acam { z-index: 3; }
+    #s09b-scrim { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 4; }
+    #s09b-sheetpos { position: absolute; left: 370px; bottom: -70px; width: 1179px; z-index: 5; }
+    #s09b-sheet { width: 1179px; padding: 36px 72px 150px; border-radius: 84px 84px 0 0; background: #0b0b0b; box-shadow: inset 0 1.5px 0 #1f1f1f;
+      display: flex; flex-direction: column; gap: 72px; font-family: "Inter", sans-serif; }
+    .s9-grab { align-self: center; width: 108px; height: 12px; border-radius: 6px; background: #2a2a2a; margin-bottom: -36px; }
+    .s9-shead, .s9-sbody { display: grid; }
+    .s9-shead > *, .s9-sbody > * { grid-area: 1 / 1; }
+    .s9-shead > * { font: 600 60px/78px "Inter", sans-serif; letter-spacing: -0.9px; color: #fff; }
+    .s9-auth { display: flex; flex-direction: column; gap: 48px; }
+    .s9-stext { font: 400 45px/63px "Inter", sans-serif; color: #a1a1a1; }
+    .s9-open { height: 156px; border-radius: 78px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+      font: 600 45px/60px "Inter", sans-serif; }
+    #s09b-notnow { align-self: center; padding: 24px 72px; font: 500 45px/63px "Inter", sans-serif; color: #6b6b6b; }
+    .s9-done { display: flex; flex-direction: column; align-items: center; gap: 36px; padding: 36px 0; }
+    .s9-mark { width: 192px; height: 192px; border-radius: 96px; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 36px; }
+    .s9-mark .k-icon { width: 106px; height: 106px; }
     /* B: phone with the R11 capture placeholder + the Grok, Duolingo chip. */
     #s09b-ph11 { position: absolute; left: 745px; top: 74px; width: 430px; height: 932px; }
     #s09b-phone { left: 0; top: 0; }
@@ -103,46 +101,40 @@
       <canvas id="s09b-waves" class="k-waves"></canvas>
       <div id="s09b-dim"></div>
 
-      <!-- A: Agent tab -->
+      <!-- A: Pick your AI + plan login sheet -->
       <div id="s09b-acam" class="s9-cam">
-        <div id="s09b-stack" class="s9-f" data-layout-allow-overlap>
-          <div id="s09b-hero">
-            <div class="s9-prompt">Ask your apps anything</div>
-            <div style="display:flex;justify-content:center"><div class="s9-logos">
-              <div class="s9-li"><img src="assets/apps/myfitnesspal.png" alt="" /></div>
-              <div class="s9-li"><img src="assets/apps/strong.png" alt="" /></div>
-              <div class="s9-li"><img src="assets/apps/cronometer.png" alt="" /></div>
-            </div></div>
+        <div id="s09b-pick" class="s9-f">
+          <div id="s09b-ptitle" class="s9-ptitle">Pick your AI</div>
+          <div id="s09b-pbody" class="s9-pbody">Use the plan you already pay for. It answers right inside yuzu.</div>
+          <div id="s09b-glass">
+            <div id="s09b-row1" class="s9-prow"><div class="s9-pname">Claude plan</div>
+              <div class="s9-pst"><span id="s09b-st-conn">Connect</span><span id="s09b-st-sign">Signing in</span><span id="s09b-st-live" class="s9-live"><span class="s9-dot"></span>Connected</span></div></div>
+            <div id="s09b-row2" class="s9-prow"><div class="s9-pname">ChatGPT plan</div>
+              <div class="s9-pst"><span>Connect</span></div></div>
           </div>
-          <div id="s09b-sug"><div id="s09b-suglogo" style="width:72px;height:72px;border-radius:19px;flex:none;background:#141414 url(assets/apps/myfitnesspal.png) center/cover"></div><div class="s9-sugt">How much protein do I have left today?</div></div>
-          <div id="s09b-cwrap">
-            <div id="s09b-box">
-              <div class="s9-input"><span id="s09b-ph">Ask anything</span><span id="s09b-q">How much protein do I have left today?</span></div>
-              <div class="s9-crow">
-                <div id="s09b-p1" class="s9-pill">Claude</div>
-                <div id="s09b-p2" class="s9-pill">ChatGPT</div>
-                <div id="s09b-p3" class="s9-pill">Grok</div>
-                <div id="s09b-send">
-                  <div id="s09b-fill"></div>
-                  <div id="s09b-aw" class="s9-arrow"><div id="s09b-aw-ic" class="k-icon"></div></div>
-                  <div id="s09b-ab" class="s9-arrow"><div id="s09b-ab-ic" class="k-icon"></div></div>
-                </div>
+          <div id="s09b-cont">Continue</div>
+        </div>
+      </div>
+      <div id="s09b-scrim"></div>
+      <div id="s09b-sheetpos" data-layout-allow-overflow>
+        <div id="s09b-sheetcam">
+          <div id="s09b-sheet">
+            <div class="s9-grab"></div>
+            <div class="s9-shead"><span id="s09b-h-conn">Connect your Claude plan</span><span id="s09b-h-done">Claude is connected</span></div>
+            <div class="s9-sbody">
+              <div id="s09b-auth" class="s9-auth">
+                <div class="s9-stext">Sign in on Claude, then paste the code it gives you.</div>
+                <div class="s9-open">Open Claude</div>
+              </div>
+              <div id="s09b-done" class="s9-done">
+                <div id="s09b-mark" class="s9-mark"><div id="s09b-mark-ic" class="k-icon"></div></div>
+                <div class="s9-stext">Ask your apps anything with Claude.</div>
               </div>
             </div>
-            <div class="s9-foot">
-              <span id="s09b-f1">Opens in Claude with your apps attached</span>
-              <span id="s09b-f2">Opens in ChatGPT with your apps attached</span>
-              <span id="s09b-f3">Opens in Grok with your apps attached</span>
-            </div>
-            <div id="s09b-menu">
-              <div id="s09b-m1" class="s9-mrow"><span>Claude</span><div id="s09b-m1-ok" class="s9-mcheck k-icon"></div></div>
-              <div id="s09b-m2" class="s9-mrow"><span>ChatGPT</span><div id="s09b-m2-ok" class="s9-mcheck k-icon"></div></div>
-              <div id="s09b-m3" class="s9-mrow"><span>Grok</span><div id="s09b-m3-ok" class="s9-mcheck k-icon"></div></div>
-            </div>
+            <div id="s09b-notnow">Not now</div>
           </div>
         </div>
       </div>
-
       <!-- B: the handoff lands in Grok -->
       <div id="s09b-bcam" class="s9-cam">
         <div id="s09b-ph11">
@@ -212,71 +204,54 @@
 
       KIT.waves(tl, $("#s09b-waves"), { from: 0, to: D, offset: 57.284 });
 
-      // ---------------- A: Agent tab (0 - 2.62) ----------------
-      gsap.set("#s09b-acam", cam(1.1, 960, 540));
-      tl.fromTo("#s09b-acam", cam(1.1, 960, 540), { ...cam(1.14, 960, 540), duration: 2.3, ease: "sine.inOut", immediateRender: false }, 0);
-      // Enter: hero fades in, then suggestion and composer on the enter curve (55ms stagger).
-      const parts = ["#s09b-hero", "#s09b-sug", "#s09b-cwrap"];
-      gsap.set(parts, { opacity: 0 });
-      parts.forEach((p, i) => {
-        tl.fromTo(p, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, i * 0.055);
-        tl.fromTo(p, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, i * 0.055);
+      // ---------------- A: Pick your AI (0 - 2.6) ----------------
+      gsap.set("#s09b-acam", cam(0.95, 960, 540));
+      tl.fromTo("#s09b-acam", cam(0.95, 960, 540), { ...cam(0.985, 960, 540), duration: 2.2, ease: "sine.inOut", immediateRender: false }, 0);
+      // Lands at 0.00: title (Reveal 0), body (Reveal 80ms), Glass card (enter 3).
+      [["#s09b-ptitle", 0], ["#s09b-pbody", 0.08], ["#s09b-glass", 0.165]].forEach(([el, at]) => {
+        gsap.set(el, { opacity: 0 });
+        tl.fromTo(el, { y: 36 }, { y: 0, duration: 0.6, ease: KIT.ease.enter, immediateRender: false }, at);
+        tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out", immediateRender: false }, at);
       });
+      gsap.set(["#s09b-st-sign", "#s09b-st-live", "#s09b-cont"], { opacity: 0 });
 
-      // Send button: idle (surface2 + white arrow at 35%) until the composer has text. The app's arrow is the
-      // Lordicon trending-flat back arrow turned to point up (assets/icons/arrow-back-black.json, inlined here).
-      const S09B_ARROW = {"v":"5.12.1","fr":60,"ip":70,"op":140,"w":500,"h":500,"nm":"system-regular-161-trending-flat","ddd":0,"assets":[{"id":"comp_0","nm":"in-ternd-flat","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":60,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[17.713,250.003,0],"to":[70.833,0,0],"ti":[-70.833,0,0]},{"t":60,"s":[442.713,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[442.713,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[39.371,-1.003],[39.371,-1.003],[39.371,-1.003]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":1,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-236.136,0]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.332],"y":[0.693]},"o":{"x":[0.237],"y":[0.157]},"t":1,"s":[100]},{"i":{"x":[0.573],"y":[1]},"o":{"x":[0.25],"y":[0.401]},"t":31.975,"s":[20.604]},{"t":60,"s":[0]}],"ix":1},"e":{"a":0,"k":100,"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":60,"st":0,"ct":1,"bm":0}]},{"id":"comp_1","nm":"hover-ternd-flat-1","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":60,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":1,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[17.713,250.003,0],"to":[70.833,0,0],"ti":[-70.833,0,0]},{"t":60,"s":[442.713,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[442.713,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[39.371,-1.003],[39.371,-1.003],[39.371,-1.003]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":20,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":4,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.2,"y":1},"o":{"x":0.167,"y":0.167},"t":20,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-236.136,0]],"c":false}]},{"t":60,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.332],"y":[0.693]},"o":{"x":[0.237],"y":[0.157]},"t":20,"s":[100]},{"i":{"x":[0.573],"y":[1]},"o":{"x":[0.25],"y":[0.401]},"t":41,"s":[20.604]},{"t":60,"s":[0]}],"ix":1},"e":{"a":0,"k":100,"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":20,"op":60,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.004,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[250.004,250.003,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.8,"y":0},"t":0,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[192.136,0],[-192.136,0]],"c":false}]},{"t":20,"s":[{"i":[[0,0],[0,0]],"o":[[0,0],[0,0]],"v":[[232.577,-0.99],[-192.136,0]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.8],"y":[0]},"t":0,"s":[0]},{"t":20,"s":[0]}],"ix":1},"e":{"a":1,"k":[{"i":{"x":[0.833],"y":[0.833]},"o":{"x":[0.8],"y":[0]},"t":0,"s":[100]},{"t":20,"s":[0]}],"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[249.43,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"gr","it":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.8,"y":0},"t":0,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-41.084,-83.334],[41.084,0],[-41.084,83.334]],"c":false}]},{"t":20,"s":[{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[79.371,-2.026],[80.392,-0.99],[79.371,0.045]],"c":false}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"st","c":{"a":0,"k":[0,0,0,1],"ix":3,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":31.3,"ix":5},"lc":2,"lj":2,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Stroke","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false},{"ty":"tr","p":{"a":0,"k":[401.629,250.003],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 2","np":1,"cix":2,"bm":0,"ix":2,"mn":"ADBE Vector Group","hd":false}],"ip":1,"op":20,"st":0,"ct":1,"bm":0}]},{"id":"comp_2","nm":"hover-ternd-flat-2","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0,"y":1},"o":{"x":0.167,"y":0.167},"t":10,"s":[-257.997,250.003,0],"to":[84.667,0,0],"ti":[-84.667,0,0]},{"t":60,"s":[250.003,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.833,"y":0.833},"o":{"x":0.6,"y":0},"t":0,"s":[250.003,250.003,0],"to":[80.167,0,0],"ti":[-80.167,0,0]},{"t":16,"s":[731.003,250.003,0]}],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0}]},{"id":"comp_3","nm":"hover-ternd-flat-3","fr":60,"layers":[{"ddd":0,"ind":1,"ty":4,"nm":".primary.design","cl":"primary design","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250.003,250.003,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":1,"k":[{"i":{"x":0.193,"y":1},"o":{"x":0.333,"y":0},"t":0,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true}]},{"i":{"x":0.322,"y":1},"o":{"x":0.333,"y":0},"t":18,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[53.853,-10.988],[-28.314,-94.322],[-50.446,-94.478],[-50.601,-72.346],[5.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[5.301,15.649],[-50.601,72.346],[-50.446,94.478],[-39.458,98.983],[-28.314,94.321],[53.853,10.987]],"c":true}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":36,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[244.853,-10.988],[162.686,-94.322],[140.554,-94.478],[140.399,-72.346],[196.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[196.301,15.649],[140.399,72.346],[140.554,94.478],[151.542,98.983],[162.686,94.321],[244.853,10.987]],"c":true}]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":50,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[183.853,-10.988],[101.686,-94.322],[79.554,-94.478],[79.399,-72.346],[135.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[135.301,15.649],[79.399,72.346],[79.554,94.478],[90.542,98.983],[101.686,94.321],[183.853,10.987]],"c":true}]},{"t":60,"s":[{"i":[[6.009,6.093],[0,0],[6.156,-6.068],[-6.069,-6.154],[0,0],[0,0],[0,-8.643],[-8.644,0],[0,0],[0,0],[-6.154,-6.068],[-3.969,0],[-3.062,3.105],[0,0]],"o":[[0,0],[-6.065,-6.153],[-6.154,6.068],[0,0],[0,0],[-8.644,0],[0,8.643],[0,0],[0,0],[-6.069,6.154],[3.05,3.006],[4.042,0],[0,0],[6.009,-6.093]],"v":[[203.853,-10.988],[121.686,-94.322],[99.554,-94.478],[99.399,-72.346],[155.3,-15.65],[-192.709,-15.65],[-208.36,0],[-192.709,15.649],[155.301,15.649],[99.399,72.346],[99.554,94.478],[110.542,98.983],[121.686,94.321],[203.853,10.987]],"c":true}]}],"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0,0,0,1],"ix":4,"x":"var $bm_rt;\n$bm_rt = comp('system-regular-161-trending-flat').layer('control').effect('primary')('Color');"},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":".primary","mn":"ADBE Vector Graphic - Fill","hd":false,"cl":"primary"},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Group 1","np":2,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":300,"st":0,"ct":1,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":3,"nm":"control","sr":1,"ks":{"o":{"a":0,"k":0,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[0,0],"ix":2,"l":2},"a":{"a":0,"k":[0,0,0],"ix":1,"l":2},"s":{"a":0,"k":[100,100,100],"ix":6,"l":2}},"ao":0,"ef":[{"ty":5,"nm":"primary","np":3,"mn":"ADBE Color Control","ix":1,"en":1,"ef":[{"ty":2,"nm":"Color","mn":"ADBE Color Control-0001","ix":1,"v":{"a":0,"k":[1,1,1,1],"ix":1}}]}],"ip":0,"op":271,"st":0,"bm":0},{"ddd":0,"ind":2,"ty":0,"nm":"in-ternd-flat","refId":"comp_0","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":0,"op":70,"st":0,"bm":0},{"ddd":0,"ind":3,"ty":0,"nm":"hover-ternd-flat-1","refId":"comp_1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":70,"op":140,"st":70,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"hover-ternd-flat-2","refId":"comp_2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":140,"op":210,"st":140,"bm":0},{"ddd":0,"ind":5,"ty":0,"nm":"hover-ternd-flat-3","refId":"comp_3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[250,250,0],"ix":2,"l":2},"a":{"a":0,"k":[250,250,0],"ix":1,"l":2},"s":{"a":0,"k":[-100,100,100],"ix":6,"l":2}},"ao":0,"w":500,"h":500,"ip":210,"op":280,"st":210,"bm":0}],"markers":[],"props":{}};
-      window.YC_ICONS["s09b-arrow-back"] = { data: S09B_ARROW, seg: [70, 140], fr: 60 };
-      KIT.icon(tl, $("#s09b-aw-ic"), "s09b-arrow-back", { tint: "#fff" });
-      KIT.icon(tl, $("#s09b-ab-ic"), "s09b-arrow-back", { at: 2.24, tint: "#000" });
-      gsap.set("#s09b-fill", { opacity: 0 });
-      gsap.set("#s09b-aw", { opacity: 0.35 });
-      gsap.set("#s09b-ab", { opacity: 0 });
-      gsap.set("#s09b-q", { opacity: 0 });
+      // 0.54: tap Claude plan (press 0.98), status Connect -> Signing in.
+      gsap.set("#s09b-row1", { scale: 1 });
+      pressTo($("#s09b-row1"), 0.48, 0.98);
+      swap($("#s09b-st-conn"), $("#s09b-st-sign"), 0.54);
 
-      // 0.54: tap the suggestion (press 0.98), it fills the composer; send turns ready (160ms crossfade).
-      gsap.set("#s09b-sug", { scale: 1 });
-      pressTo($("#s09b-sug"), 0.46, 0.98);
-      swap($("#s09b-ph"), $("#s09b-q"), 0.54);
-      tl.fromTo("#s09b-fill", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
-      tl.fromTo("#s09b-ab", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
-      tl.fromTo("#s09b-aw", { opacity: 0.35 }, { opacity: 0, duration: 0.16, ease: "none", immediateRender: false }, 0.56);
+      // 0.70: the login sheet rises on the sheet spring over the 0.6 scrim.
+      const SC = 0.84;
+      gsap.set("#s09b-sheetcam", { scale: SC, transformOrigin: "50% 100%" });
+      gsap.set("#s09b-sheet", { y: 1400 });
+      gsap.set(["#s09b-h-done", "#s09b-done"], { opacity: 0 });
+      tl.fromTo("#s09b-sheet", { y: 1400 }, { y: 0, duration: 0.36, ease: S.sheet.ease, immediateRender: false }, 0.7);
+      tl.fromTo("#s09b-sheet", { filter: "blur(6px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, 0.7);
+      tl.fromTo("#s09b-scrim", { opacity: 0 }, { opacity: 0.6, duration: 0.2, ease: "power1.out", immediateRender: false }, 0.7);
+      tl.fromTo("#s09b-sheetcam", { scale: SC }, { scale: SC * 1.03, duration: 0.86, ease: "sine.inOut", immediateRender: false }, 0.7);
 
-      // Assistant pill + menu. Claude is current; ChatGPT picked on 1.22, Grok on 1.90 (each pick closes the menu).
-      const pills = ["#s09b-p1", "#s09b-p2", "#s09b-p3"], foots = ["#s09b-f1", "#s09b-f2", "#s09b-f3"];
-      gsap.set([pills[1], pills[2], foots[1], foots[2]], { opacity: 0 });
-      gsap.set("#s09b-menu", { opacity: 0, scale: 0, transformOrigin: "0% 100%" });
-      ["#s09b-m1-ok", "#s09b-m2-ok", "#s09b-m3-ok"].forEach((id) => KIT.icon(tl, $(id), "check", { at: 0 })); // drawn by the time the menu opens
-      gsap.set(["#s09b-m2-ok", "#s09b-m3-ok"], { opacity: 0 });
-      const openMenu = (pill, at) => {
-        pressTo($(pill), at, 0.95);
-        tl.fromTo(pill, { boxShadow: "inset 0 0 0 1.5px #1f1f1f" }, { boxShadow: "inset 0 0 0 1.5px #2a2a2a", duration: 0.1, immediateRender: false }, at);
-        tl.fromTo("#s09b-menu", { scale: 0.2 }, { scale: 1, duration: 0.4, ease: S.pop.ease, immediateRender: false }, at + 0.04);
-        tl.fromTo("#s09b-menu", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, at + 0.04);
-      };
-      const pick = (row, fromOk, toOk, fromPill, toPill, fromFoot, toFoot, at) => {
-        pressTo($(row), at - 0.06, 0.98);
-        tl.fromTo(fromOk, { opacity: 1 }, { opacity: 0, duration: 0.08, immediateRender: false }, at);
-        tl.fromTo(toOk, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: S.pop.ease, immediateRender: false }, at);
-        swap($(fromPill), $(toPill), at);
-        swap($(fromFoot), $(toFoot), at);
-        tl.fromTo("#s09b-menu", { opacity: 1 }, { opacity: 0, duration: 0.14, ease: "power2.in", immediateRender: false }, at + 0.2);
-        tl.fromTo("#s09b-menu", { scale: 1 }, { scale: 0.96, duration: 0.14, ease: "power2.in", immediateRender: false }, at + 0.2);
-      };
-      openMenu(pills[0], 0.86);
-      pick("#s09b-m2", "#s09b-m1-ok", "#s09b-m2-ok", pills[0], pills[1], foots[0], foots[1], 1.22);
-      openMenu(pills[1], 1.6);
-      pick("#s09b-m3", "#s09b-m2-ok", "#s09b-m3-ok", pills[1], pills[2], foots[1], foots[2], 1.9);
+      // 1.22: "Claude is connected": heading swaps, body crossfades (out 120ms, in 220ms), SuccessMark pops and draws.
+      swap($("#s09b-h-conn"), $("#s09b-h-done"), 1.22);
+      tl.fromTo(["#s09b-auth", "#s09b-notnow"], { opacity: 1 }, { opacity: 0, duration: 0.08, ease: "power2.in", immediateRender: false }, 1.22);
+      tl.fromTo("#s09b-done", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 1.24);
+      tl.fromTo("#s09b-mark", { scale: 0.6 }, { scale: 1, duration: 0.45, ease: S.pop.ease, immediateRender: false }, 1.24);
+      KIT.icon(tl, $("#s09b-mark-ic"), "check-black", { at: 1.34 });
 
-      // 2.24: send (press 0.9, the arrow plays once), then zoom through the composer into B.
-      gsap.set("#s09b-send", { scale: 1 });
-      pressTo($("#s09b-send"), 2.24, 0.9);
-      // Composer centre in stage px (measured once; fallbacks are the 3x layout values).
-      const cwrap = $("#s09b-cwrap"), box = $("#s09b-box");
-      const compY = 130 + (cwrap.offsetTop || 411) + (box.offsetTop || 72) + (box.offsetHeight || 264) / 2;
-      tl.fromTo("#s09b-acam", cam(1.14, 960, 540), { ...cam(2.6, 960, compY), duration: 0.34, ease: "power3.in", immediateRender: false }, 2.3);
-      tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.3);
-      tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.48);
+      // 1.56: the sheet slides down (200ms) and the scrim clears.
+      tl.to("#s09b-sheet", { y: 1400, duration: 0.24, ease: "power2.in" }, 1.56);
+      tl.to("#s09b-sheet", { filter: "blur(6px)", duration: 0.24, ease: "power2.in" }, 1.56);
+      tl.to("#s09b-scrim", { opacity: 0, duration: 0.2, ease: "power1.in" }, 1.56);
+
+      // 1.90: the row goes live (dot + Connected) and Continue fades in.
+      swap($("#s09b-st-sign"), $("#s09b-st-live"), 1.9);
+      tl.fromTo("#s09b-cont", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 1.9);
+
+      // 2.24: zoom through the live Claude row into B (A sits above B, so B shows through as A clears).
+      const glass = $("#s09b-glass"), row1 = $("#s09b-row1");
+      const rowY = 99 + (glass.offsetTop || 378) + (row1.offsetTop || 0) + (row1.offsetHeight || 138) / 2;
+      tl.fromTo("#s09b-acam", cam(0.985, 960, 540), { ...cam(2.6, 960, rowY), duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
+      tl.fromTo("#s09b-acam", { filter: "blur(0px)" }, { filter: "blur(10px)", duration: 0.34, ease: "power3.in", immediateRender: false }, 2.26);
+      tl.fromTo("#s09b-acam", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 2.44);
 
       // ---------------- B: the handoff in Grok (2.42 - 5.36) ----------------
       const PX = 700, ANS = 648;
