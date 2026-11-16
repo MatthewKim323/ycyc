@@ -10,7 +10,7 @@
  },
  "s09c-cloud-phone": {
   "start": 0.0,
-  "media_start": 1.0,
+  "media_start": 7.5,
   "duration": 6.3,
   "rate": 8
  }
