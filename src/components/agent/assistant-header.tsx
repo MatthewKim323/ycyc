@@ -6,7 +6,7 @@ import { colors, fadeIn, fadeOut, space } from "@/theme";
 
 import { PressableScale } from "../pressable-scale";
 import { Text } from "../text";
-import { assistantLabel } from "./assistant-menu";
+import { AssistantLogo, assistantLabel } from "./assistant-menu";
 
 /** Top-center switcher: which AI answers, and whether it's your plan. Tap to change. */
 export function AssistantHeader({
@@ -38,17 +38,20 @@ export function AssistantHeader({
           style={[styles.switcher, open && styles.switcherOpen]}
         >
           <Animated.View key={provider?.id} entering={fadeIn} style={styles.center}>
-            <Text variant="rowTitle" numberOfLines={1}>
-              {label}
-            </Text>
-            {plan ? (
-              <View style={styles.sub}>
-                <View style={styles.dot} />
-                <Text variant="micro" color={colors.textSecondary}>
-                  Your plan
-                </Text>
-              </View>
-            ) : null}
+            {provider ? <AssistantLogo id={provider.id} size={26} /> : null}
+            <View style={styles.labels}>
+              <Text variant="rowTitle" numberOfLines={1}>
+                {label}
+              </Text>
+              {plan ? (
+                <View style={styles.sub}>
+                  <View style={styles.dot} />
+                  <Text variant="micro" color={colors.textSecondary}>
+                    Your plan
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </Animated.View>
         </PressableScale>
       ) : (
@@ -81,13 +84,15 @@ const styles = StyleSheet.create({
   right: { alignItems: "flex-end" },
   switcher: {
     minHeight: 40,
-    paddingHorizontal: space.lg,
+    paddingLeft: space.sm,
+    paddingRight: space.lg,
     paddingVertical: 4,
     borderRadius: 20,
     justifyContent: "center",
   },
   switcherOpen: { backgroundColor: colors.surface2 },
-  center: { alignItems: "center" },
+  center: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  labels: { alignItems: "flex-start", flexShrink: 1 },
   sub: { flexDirection: "row", alignItems: "center", gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.live },
 });

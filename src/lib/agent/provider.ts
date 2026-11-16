@@ -6,7 +6,7 @@ import { store } from "@/hooks/storage";
 
 // The Agent tab talks to an assistant through one of these. Two kinds:
 // - "handoff": no model runs in yuzu. send() returns a URL and the prompt; useAgent copies the
-//   prompt and opens the assistant's own app with it prefilled (Claude, ChatGPT, Grok today).
+//   prompt and opens the assistant's own app with it prefilled (Claude, ChatGPT, Grok, Perplexity, Gemini, Muse).
 // - "inapp": the assistant runs inside yuzu (for example on the person's own plan). send() returns
 //   a stream of chunks that the conversation view renders live.
 // See docs/agent-page-spec.md, "For Stephen".

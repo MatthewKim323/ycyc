@@ -3,12 +3,14 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from "react-native";
-import Animated, { FadeIn, FadeInDown, LinearTransition } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, LinearTransition, ZoomIn } from "react-native-reanimated";
 
+import { AssistantLogo } from "@/components/agent/assistant-menu";
 import { copyFor, taglineFor } from "@/components/app-copy";
 import { Button } from "@/components/button";
 import { CopyButton } from "@/components/copy-button";
 import { GoogleButton } from "@/components/google-button";
+import { Icon } from "@/components/icon";
 import { displayLink } from "@/components/mcp-link-card";
 import { Glass } from "@/components/onboarding-chrome";
 import { PressableScale } from "@/components/pressable-scale";
@@ -16,18 +18,20 @@ import { Reveal } from "@/components/reveal";
 import { SuccessMark } from "@/components/success-mark";
 import { Text } from "@/components/text";
 import { api, type CatalogEntry, type Id } from "@/hooks/convex";
-import { useAuth } from "@/hooks/user";
+import { useAuth, useUser } from "@/hooks/user";
 import {
   openLogin,
   PLAN_PROVIDER_ID,
+  PROMPT_PREFIX,
   rememberPick,
   selectPlan,
   useAiPlans,
   type PlanId,
   type ProviderStatus,
 } from "@/lib/agent";
+import { handoffUrl, takesPrefill } from "@/lib/agent/handoff";
 import { installedFirst, type InstalledApps } from "@/lib/installed-apps";
-import { colors, enter, fonts, layout, space } from "@/theme";
+import { colors, enter, fonts, layout, space, springs } from "@/theme";
 
 import { AppIcon, PopularChips, SearchField, SearchResults } from "./app-search";
 
@@ -113,18 +117,30 @@ export function Welcome({ bottomInset, onNext }: { bottomInset: number; onNext: 
   );
 }
 
-const PLANS: { plan: PlanId; title: string }[] = [
-  { plan: "claude", title: "Claude plan" },
-  { plan: "codex", title: "ChatGPT plan" },
+const PLANS: { plan: PlanId; name: string }[] = [
+  { plan: "claude", name: "Claude" },
+  { plan: "codex", name: "ChatGPT" },
 ];
 
-function planState(row: ProviderStatus | undefined): { text: string; live: boolean } {
-  if (row?.status === "connected") return { text: "Connected", live: true };
-  if (row?.status === "starting" || row?.status === "authorizing") return { text: "Signing in", live: false };
-  return { text: "Connect", live: false };
+// Assistant apps that take a handoff. Gemini and Muse can't prefill, so the link is copied first.
+const APPS: { id: string; name: string }[] = [
+  { id: "grok", name: "Grok" },
+  { id: "perplexity", name: "Perplexity" },
+  { id: "gemini", name: "Gemini" },
+  { id: "muse", name: "Muse" },
+];
+
+type PlanUi = "connect" | "signing" | "connected";
+
+function planUi(row: ProviderStatus | undefined): PlanUi {
+  if (row?.status === "connected") return "connected";
+  if (row?.status === "starting" || row?.status === "authorizing") return "signing";
+  return "connect";
 }
 
-/** Pick your AI before setting up apps. The backend confirms the selected plan. */
+const pop = ZoomIn.springify().damping(springs.pop.damping).stiffness(springs.pop.stiffness).mass(springs.pop.mass);
+
+/** Pick your AI before setting up apps: a plan the backend confirms, or an assistant app handoff. */
 export function PickAI({
   bottomInset,
   onNext,
@@ -133,68 +149,142 @@ export function PickAI({
   onNext: () => void;
 }) {
   const { token, status } = useAiPlans();
+  const { mcpUrl } = useUser();
   const queries = token ? { state: { query: api.aiOnboarding.state, args: { token } } } : ({} as Record<string, never>);
   const result = useQueries(queries) as { state?: { step: string; provider: PlanId | null } | Error };
   const state = result.state instanceof Error ? undefined : result.state;
   const selected = state?.provider ?? status?.find((s) => s.selected)?.provider ?? null;
   const connectedCount = status?.filter((s) => s.status === "connected").length ?? 0;
   const planReady = !!state?.provider && (state.step === "connect_apps" || state.step === "ready");
+  // An assistant app picked on this screen (it wins over a plan until a plan is tapped again).
+  const [app, setApp] = useState<string | null>(null);
+  const canContinue = planReady || app !== null;
 
   const choose = (plan: PlanId, row: ProviderStatus | undefined) => {
     if (row?.status === "connected") {
       selectPlan(plan);
       rememberPick(PLAN_PROVIDER_ID[plan]);
+      setApp(null);
       return;
     }
     openLogin(plan).catch(() => {});
   };
 
+  const handOff = async (id: string) => {
+    const prompt = mcpUrl ? `${PROMPT_PREFIX}${mcpUrl}` : "";
+    const url = handoffUrl(id, prompt);
+    if (!url) return;
+    // Copy first: Gemini and Muse open empty, and a dropped prefill is one paste away.
+    if (prompt) await Clipboard.setStringAsync(prompt).catch(() => {});
+    rememberPick(id);
+    setApp(id);
+    Linking.openURL(url).catch(() => {});
+  };
+
   return (
     <View style={[styles.screen, { paddingTop: space.xxl, paddingBottom: bottomInset + space.lg }]}>
-      <View style={styles.top}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.aiContent} showsVerticalScrollIndicator={false}>
         <Reveal delay={0}>
           <Text style={styles.title}>Pick your AI</Text>
         </Reveal>
-        <Reveal delay={80}>
-          <Text variant="body" color={colors.textSecondary}>
-            Use the plan you already pay for. It answers right inside yuzu.
-          </Text>
-        </Reveal>
-        <Animated.View entering={enter(3)}>
+
+        <View style={styles.group}>
+          <Animated.View entering={enter(1)}>
+            <Text variant="label" color={colors.textTertiary} style={styles.groupLabel}>
+              Your plan
+            </Text>
+          </Animated.View>
           <Glass>
             {PLANS.map((p, i) => {
               const row = status?.find((s) => s.provider === p.plan);
-              const st = planState(row);
-              const isSelected = selected === p.plan && st.live;
+              const ui = planUi(row);
+              const inUse = ui === "connected" && app === null && selected === p.plan && connectedCount > 1;
               return (
-                <View key={p.plan} style={i > 0 && styles.divider}>
+                <Animated.View key={p.plan} entering={enter(i + 2)} style={i > 0 && styles.divider}>
                   <PressableScale
                     onPress={() => choose(p.plan, row)}
                     haptic="selection"
-                    scaleTo={0.98}
-                    style={styles.appRow}
-                    accessibilityLabel={`${p.title}, ${st.text}`}
-                    accessibilityState={{ selected: isSelected }}
+                    style={styles.aiRow}
+                    accessibilityLabel={
+                      ui === "connected" ? `${p.name}, ${inUse ? "in use" : "connected"}` : `Connect your ${p.name} plan`
+                    }
+                    accessibilityState={{ selected: inUse }}
                   >
+                    <AssistantLogo id={PLAN_PROVIDER_ID[p.plan]} size={40} />
                     <View style={styles.flex}>
-                      <Text variant="rowTitle">{p.title}</Text>
-                    </View>
-                    <Animated.View key={st.text} entering={FadeIn.duration(200)} style={styles.onPhone}>
-                      {st.live ? <View style={styles.liveDot} /> : null}
-                      <Text variant="label" color={st.live ? colors.text : colors.textSecondary}>
-                        {isSelected && connectedCount > 1 ? "In use" : st.text}
+                      <Text variant="rowTitle" numberOfLines={1}>
+                        {p.name}
                       </Text>
-                    </Animated.View>
+                      <Text variant="caption" color={colors.textSecondary} numberOfLines={1}>
+                        Use your {p.name} plan
+                      </Text>
+                    </View>
+                    <View style={styles.trail}>
+                      <Animated.View key={ui} entering={ui === "connected" ? pop : FadeIn.duration(200)}>
+                        {ui === "connected" ? (
+                          <View style={styles.connected}>
+                            <Icon name="check" size={18} />
+                            <Text variant="label">{inUse ? "In use" : "Connected"}</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.connectPill}>
+                            <Text variant="label" color={ui === "signing" ? colors.textSecondary : colors.text}>
+                              {ui === "signing" ? "Signing in" : "Connect"}
+                            </Text>
+                          </View>
+                        )}
+                      </Animated.View>
+                    </View>
                   </PressableScale>
-                </View>
+                </Animated.View>
               );
             })}
           </Glass>
-        </Animated.View>
-      </View>
+        </View>
+
+        <View style={styles.group}>
+          <Animated.View entering={enter(4)}>
+            <Text variant="label" color={colors.textTertiary} style={styles.groupLabel}>
+              Or use the app
+            </Text>
+          </Animated.View>
+          <Glass>
+            {APPS.map((a, i) => {
+              const picked = app === a.id;
+              const sub = takesPrefill(a.id) ? `Opens the ${a.name} app` : `Copies your link, opens ${a.name}`;
+              return (
+                <Animated.View key={a.id} entering={enter(i + 5)} style={i > 0 && styles.divider}>
+                  <PressableScale
+                    onPress={() => handOff(a.id)}
+                    haptic="selection"
+                    style={styles.aiRow}
+                    accessibilityLabel={`${a.name}, ${sub}`}
+                    accessibilityState={{ selected: picked }}
+                  >
+                    <AssistantLogo id={a.id} size={40} />
+                    <View style={styles.flex}>
+                      <Text variant="rowTitle" numberOfLines={1}>
+                        {a.name}
+                      </Text>
+                      <Text variant="caption" color={colors.textSecondary} numberOfLines={1}>
+                        {sub}
+                      </Text>
+                    </View>
+                    <View style={styles.trail}>
+                      <Animated.View key={picked ? "picked" : "idle"} entering={picked ? pop : FadeIn.duration(200)}>
+                        {picked ? <Icon name="check" size={18} /> : <Icon name="external" size={18} opacity={0.4} />}
+                      </Animated.View>
+                    </View>
+                  </PressableScale>
+                </Animated.View>
+              );
+            })}
+          </Glass>
+        </View>
+      </ScrollView>
 
       <Animated.View entering={FadeIn.delay(320).duration(280)} style={styles.actions}>
-        {planReady ? (
+        {canContinue ? (
           <Animated.View entering={FadeIn.duration(200)} layout={layout}>
             <Button label="Continue" onPress={onNext} fullWidth />
           </Animated.View>
@@ -502,6 +592,24 @@ const styles = StyleSheet.create({
   cta: { marginTop: space.lg },
   authError: { marginTop: space.sm },
   top: { gap: space.xl },
+  aiContent: { gap: space.xl, paddingBottom: space.lg },
+  group: { gap: space.sm },
+  groupLabel: { paddingHorizontal: space.xs },
+  aiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+  },
+  trail: { minWidth: 24, alignItems: "flex-end" },
+  connectPill: {
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  connected: { flexDirection: "row", alignItems: "center", gap: 4 },
   howCard: { padding: space.xl, gap: space.xl },
   howRow: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
   num: {
